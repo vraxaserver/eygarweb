@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {Heart, Star, Shield, Gift, Ticket, Users, Bed, Bath} from "lucide-react";
 import Image from "next/image";
+import {formatCurrency} from "@/lib/utils"
 
 
 export default function FeaturedPropertyCard({ property, layout = "grid" }) {
@@ -50,6 +51,9 @@ export default function FeaturedPropertyCard({ property, layout = "grid" }) {
                         src={property.images[currentImageIndex] || "/placeholder.svg"}
                         alt={property.title}
                         fill
+                        sizes="(max-width: 768px) 100vw, 
+           (max-width: 1200px) 50vw, 
+           33vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-200 rounded-t-2xl"
                     />
 
@@ -130,7 +134,7 @@ export default function FeaturedPropertyCard({ property, layout = "grid" }) {
                 </Button>
 
                 {/* Safety Badges */}
-                {property.safetyBadges && property.safetyBadges.length > 0 && (
+                {property?.safetyBadges && property?.safetyBadges.length > 0 && (
                     <div className="absolute top-3 left-3">
                         <Badge
                             variant="secondary"
@@ -177,13 +181,13 @@ export default function FeaturedPropertyCard({ property, layout = "grid" }) {
                     <div className="flex items-center space-x-3 text-xs text-gray-600 mb-2">
                         <span className="flex items-center space-x-1">
                             <Users className="h-3 w-3" />
-                            <span>{property.maxGuests} guests</span>
+                            <span>{property.max_guests} guests</span>
                         </span>
-                            <span className="flex items-center space-x-1">
+                        <span className="flex items-center space-x-1">
                             <Bed className="h-3 w-3" />
                             <span>{property.beds} bed{property.beds > 1 ? 's' : ''}</span>
                         </span>
-                            <span className="flex items-center space-x-1">
+                        <span className="flex items-center space-x-1">
                             <Bath className="h-3 w-3" />
                             <span>{property.bathrooms} bath</span>
                         </span>
@@ -194,13 +198,14 @@ export default function FeaturedPropertyCard({ property, layout = "grid" }) {
                     </div>
                 </div>
 
-                {/* Host Language */}
-                <p className="text-xs text-gray-500 mb-3">🗣️ Host speaks {property.host.languages.join(', ')}</p>
 
                 {/* Price */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <span className="text-lg font-bold text-gray-900">${property.pricePerNight}</span>
+                        <span className="text-lg font-bold text-gray-900">
+                            {formatCurrency(property.price_per_night, property.currency)}
+                        </span>
+
                         <span className="text-sm text-gray-600">/night</span>
                     </div>
                     <div className="text-right">

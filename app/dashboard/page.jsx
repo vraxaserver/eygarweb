@@ -5,14 +5,28 @@ import GuestDashboard from "@/components/dashboard/guests/GuestDashboard";
 import HostDashboard from "@/components/dashboard/hosts/HostDashboard";
 import VendorDashboard from "@/components/dashboard/vendors/VendorDashboard";
 import { Loader2 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import {
+    selectIsAuthenticated,
+    selectCurrentToken,
+    selectCurrentRole,
+    logout
+} from "@/store/slices/authSlice";
 
-const user = {
-    role: "guest",
-}
 export default function DashboardPage() {
     // This is a placeholder for your real authentication logic.
     // It should provide the user object and a loading state.
     // const { user, isLoading } = useAuth();
+    const router = useRouter();
+    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const role = useSelector(selectCurrentRole)
+    console.log("role: ", role)
+    
+    if(!isAuthenticated) {
+        router.push("/login");
+    }
+
     const isLoading = false
 
     if (isLoading) {
@@ -23,19 +37,19 @@ export default function DashboardPage() {
         );
     }
 
-    if (!user) {
-        // Handle case where user is not logged in, e.g., redirect
-        // This would typically be handled by middleware or a layout
-        return <p>Please log in to view your dashboard.</p>;
-    }
+    // if (!user) {
+    //     // Handle case where user is not logged in, e.g., redirect
+    //     // This would typically be handled by middleware or a layout
+    //     return <p>Please log in to view your dashboard.</p>;
+    // }
 
     // This is the core logic: render based on user role
-    if (user.role === 'host') {
-        return <HostDashboard user={user} />;
-    } else if (user.role === "vendor") {
-        return <VendorDashboard user={user} />;
+    if (role === "host") {
+        return <HostDashboard />;
+    } else if (role === "vendor") {
+        return <VendorDashboard />;
     } else {
-        return <GuestDashboard user={user} />;
+        return <GuestDashboard />;
     }
 
 }

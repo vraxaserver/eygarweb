@@ -6,8 +6,14 @@ const initialState = {
     loading: false,
     totalResults: 0,
     currentPage: 1,
+    location: {
+        name: "",
+        country: "",
+        city: "",
+        lat: null,
+        lon: null
+    },
     filters: {
-        location: '',
         checkIn: null,
         checkOut: null,
         guests: {
@@ -17,8 +23,10 @@ const initialState = {
         },
         priceRange: [0, 1000],
         propertyType: '',
+        placeType: '',
         badges: [],
         amenities: [],
+        categories: [],
     },
     sortBy: 'price_low_high',
 };
@@ -28,7 +36,7 @@ const searchSlice = createSlice({
     initialState,
     reducers: {
         setLocation: (state, action) => {
-            state.filters.location = action.payload;
+            state.location = action.payload;
         },
         setDates: (state, action) => {
             state.filters.checkIn = action.payload.checkIn;

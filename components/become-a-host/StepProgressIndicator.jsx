@@ -7,7 +7,7 @@ import React from "react";
 
 // Configuration for the steps in the registration process
 const steps = [
-    { id: 0, path: "/become-a-host/create-profile", label: "Get started", icon: Play },
+    
     { id: 1, path: "/become-a-host/create-profile", label: "Create Profile", icon: Popsicle },
     { id: 2, path: "/become-a-host/verify-identity", label: "Identity", icon: Shield },
     { id: 3, path: "/become-a-host/verify-contact", label: "Contact", icon: User },

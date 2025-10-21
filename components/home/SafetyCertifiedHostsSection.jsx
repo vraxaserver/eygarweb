@@ -1,14 +1,17 @@
-"use client"
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
+"use client";
+import { Button } from "@/components/ui/button";
 import SafetyCertifierPropertyCard from "@/components/properties/SafetyCertifierPropertyCard";
-import { useTranslation} from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
+import { useGetPropertiesQuery } from "@/store/features/propertiesApi"
 
 
-const SafetyCertifiedHostsSection = ({properties}) => {
-
-    const { t } = useTranslation()
+const SafetyCertifiedHostsSection = () => {
+    const { t } = useTranslation();
+    const {
+        data: properties,
+        isLoading,
+        isError,
+    } = useGetPropertiesQuery();
     return (
         <div className="w-full mb-16 mt-10">
             {/* Section Header */}
@@ -28,12 +31,15 @@ const SafetyCertifiedHostsSection = ({properties}) => {
 
             {/* Responsive Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4 sm:gap-6">
-                {properties.map((property) => (
-                    <SafetyCertifierPropertyCard key={property.id} property={property} />
-                ))}
+                {properties &&
+                    properties.items.map((property) => (
+                        <SafetyCertifierPropertyCard
+                            key={property.id}
+                            property={property}
+                        />
+                    ))}
             </div>
         </div>
-
     );
 };
 

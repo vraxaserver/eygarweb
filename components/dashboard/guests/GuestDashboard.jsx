@@ -502,8 +502,8 @@ const mockBookings = [
     },
     {
         id: "6",
-        checkIn: "2025-09-18",
-        checkOut: "2025-09-21",
+        checkIn: "2025-09-25",
+        checkOut: "2025-10-21",
         guests: 2,
         totalPrice: 420,
         status: "confirmed",

@@ -10,10 +10,8 @@ import {
     ArrowRight,
 } from "lucide-react";
 
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
-import Link from "next/link";
+import { useSubmitForReviewMutation } from "@/store/features/profileApi";
 
 // Checklist item component
 const ChecklistItem = ({ text, isComplete }) => (
@@ -35,19 +33,59 @@ const ChecklistItem = ({ text, isComplete }) => (
 
 export default function SubmitForReviewPage() {
     const router = useRouter();
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitForReview, { isLoading }] = useSubmitForReviewMutation();
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [formData, setFormData] = useState({
+        additional_notes: "",
+        terms_accepted: false,
+        privacy_policy_accepted: false,
+    });
+    const [errors, setErrors] = useState({});
 
-    const handleSubmit = () => {
-        setIsSubmitting(true);
-        // Simulate an API call
-        setTimeout(() => {
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+        // Clear error when user starts typing/checking
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        
+        if (!formData.terms_accepted) {
+            newErrors.terms_accepted = "You must accept the terms and conditions";
+        }
+        
+        if (!formData.privacy_policy_accepted) {
+            newErrors.privacy_policy_accepted = "You must accept the privacy policy";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
+
+        try {
+            await submitForReview(formData).unwrap();
             console.log("Application submitted!");
-            setIsSubmitting(false);
             setIsSubmitted(true);
             // Optionally redirect after a few seconds
             setTimeout(() => router.push("/dashboard"), 3000);
-        }, 2000);
+        } catch (error) {
+            console.error("Failed to submit application:", error);
+            // Handle error (show toast, etc.)
+        }
     };
 
     if (isSubmitted) {
@@ -78,7 +116,7 @@ export default function SubmitForReviewPage() {
                 <StepProgressIndicator />
                 {/* Main Content */}
                 <main className="bg-slate-50 min-h-screen flex justify-center p-4">
-                    <div className="bg-slate-50 min-h-screen flex  justify-center p-4">
+                    <div className="bg-slate-50 min-h-screen flex justify-center p-4">
                         <div className="w-full max-w-2xl">
                             <div className="bg-white rounded-2xl shadow-lg p-8">
                                 <div className="text-center">
@@ -114,24 +152,112 @@ export default function SubmitForReviewPage() {
                                     </ul>
                                 </div>
 
-                                <div className="mt-8 text-center">
-                                    <Link
-                                        href={"/dashboard"}
-                                        type="submit"
-                                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
-                                        
-                                    >
-                                        Submit Application
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </div>
+                                {/* Application Form */}
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    {/* Additional Notes */}
+                                    <div>
+                                        <label 
+                                            htmlFor="additional_notes" 
+                                            className="block text-sm font-medium text-gray-700 mb-2"
+                                        >
+                                            Additional Notes (Optional)
+                                        </label>
+                                        <textarea
+                                            id="additional_notes"
+                                            name="additional_notes"
+                                            rows={4}
+                                            value={formData.additional_notes}
+                                            onChange={handleInputChange}
+                                            placeholder="Please review my application. I'm excited to start hosting!"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                                        />
+                                    </div>
+
+                                    {/* Terms and Conditions */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="flex items-start gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    name="terms_accepted"
+                                                    checked={formData.terms_accepted}
+                                                    onChange={handleInputChange}
+                                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700">
+                                                    I accept the{" "}
+                                                    <a 
+                                                        href="/terms" 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-indigo-600 hover:text-indigo-500 underline"
+                                                    >
+                                                        Terms and Conditions
+                                                    </a>
+                                                </span>
+                                            </label>
+                                            {errors.terms_accepted && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    {errors.terms_accepted}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="flex items-start gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    name="privacy_policy_accepted"
+                                                    checked={formData.privacy_policy_accepted}
+                                                    onChange={handleInputChange}
+                                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700">
+                                                    I accept the{" "}
+                                                    <a 
+                                                        href="/privacy" 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-indigo-600 hover:text-indigo-500 underline"
+                                                    >
+                                                        Privacy Policy
+                                                    </a>
+                                                </span>
+                                            </label>
+                                            {errors.privacy_policy_accepted && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    {errors.privacy_policy_accepted}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Submit Button */}
+                                    <div className="mt-8 text-center">
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                    Submitting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Submit Application
+                                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </main>
             </div>
-
-            <Footer />
         </>
     );
 }

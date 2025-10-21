@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import ImageGallery from "@/components/property/ImageGallery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,27 +30,29 @@ import {
     MapPin,
     Shield,
     Calendar as CalendarIcon,
-    Clock,
     Home,
-    CheckCircle,
-    XCircle,
-    ChevronUp,
     ChevronDown,
     Minus,
     Plus,
-    Gift
+    Gift,
 } from "lucide-react";
 
-import Header from "@/components/layout/Header";
-import {LocalCoupons} from "@/components/property/LocalCoupons";
+
+import { LocalCoupons } from "@/components/property/LocalCoupons";
 import FreeExperiences from "@/components/property/FreeExperiences";
 
-import { mockCoupons, mockProperties, mockExperiences } from "@/data/properties";
+import {
+    mockCoupons,
+    mockExperiences,
+} from "@/data/properties";
 import Location from "@/components/property/Location";
 import MeetHost from "@/components/property/MeetHost";
 import Reviews from "@/components/property/Reviews";
 import Amenities from "@/components/property/Amenities";
 
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '@/store/slices/authSlice';
+import { useRouter } from 'next/navigation';
 
 export default function PropertyDetails() {
     const [checkInDate, setCheckInDate] = useState(undefined);
@@ -190,10 +191,21 @@ export default function PropertyDetails() {
         },
     ];
 
+    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const router = useRouter();
+
+    const handleReserve = () => {
+        if (isAuthenticated) {
+            // Proceed to the actual checkout page
+            router.push(`/checkout/${property.id}`);
+        } else {
+            // Redirect to login, passing the current page as the 'from' param
+            router.push(`/login?from=/properties/1`);
+        }
+    };
+
     return (
         <div>
-            
-
             {/* Sticky Navigation */}
             <div
                 className={`fixed top-16 left-0 right-0 bg-white border-b border-gray-200 z-40 transition-transform duration-300 ${
@@ -839,7 +851,7 @@ export default function PropertyDetails() {
                                     </Popover>
                                 </div>
 
-                                <Button className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 mb-4">
+                                <Button className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 mb-4" onClick={handleReserve}>
                                     Reserve
                                 </Button>
 

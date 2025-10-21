@@ -19,6 +19,7 @@ export const CouponCard = ({ coupon }) => {
                         src={coupon.image}
                         alt={`Promotional image for ${coupon.company}`}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Example sizes
                         className="object-cover"
                     />
                 </div>

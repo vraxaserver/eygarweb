@@ -1,0 +1,18 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/settings/page": "app/(auth)/settings/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/properties/featured/route": "app/api/properties/featured/route.js",
+  "/api/properties/route": "app/api/properties/route.js",
+  "/become-a-host/create-profile/page": "app/become-a-host/create-profile/page.js",
+  "/become-a-host/page": "app/become-a-host/page.js",
+  "/become-a-host/review-submit/page": "app/become-a-host/review-submit/page.js",
+  "/become-a-host/verify-contact/page": "app/become-a-host/verify-contact/page.js",
+  "/become-a-host/verify-identity/page": "app/become-a-host/verify-identity/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/page": "app/page.js",
+  "/properties/[id]/page": "app/properties/[id]/page.js",
+  "/properties/page": "app/properties/page.js",
+  "/properties/search/page": "app/properties/search/page.js"
+}

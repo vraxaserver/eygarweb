@@ -57,7 +57,7 @@ const SearchBar = () => {
         const fetchAmenities = async () => {
             setIsLoadingAmenities(true);
             try {
-                const response = await fetch(`${PROPERTIES_API_URL}amenities/`);
+                const response = await fetch(`${PROPERTIES_API_URL}amenities`);
                 if (response.ok) {
                     const data = await response.json();
                     setAmenitiesList(data);
@@ -78,7 +78,7 @@ const SearchBar = () => {
 
         const fetchCategories = async () => {
             try {
-                const response = await fetch(`${PROPERTIES_API_URL}categories/`);
+                const response = await fetch(`${PROPERTIES_API_URL}categories`);
                 if (response.ok) {
                     const data = await response.json();
                     setCategoryList(data);

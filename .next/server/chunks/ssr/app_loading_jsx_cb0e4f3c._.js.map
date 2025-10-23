@@ -1,1 +1,0 @@
-{"version":3,"sources":["turbopack:///[project]/app/loading.jsx"],"sourcesContent":["export default function Loading() {\r\n  return null\r\n}\r\n"],"names":[],"mappings":"wCAAe,SAAS,IACtB,OAAO,IACT"}

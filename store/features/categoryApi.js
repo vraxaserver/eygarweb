@@ -7,7 +7,7 @@ export const categoryApi = createApi({
 
   // All requests will be prefixed with this URL
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://127.0.0.1:8001/api/v1/',
+    baseUrl: 'http://127.0.0.1:8001/api/v1',
   }),
 
   // Optional: Define tag types for caching and automatic refetching
@@ -32,7 +32,7 @@ export const categoryApi = createApi({
 
     // 2. Query: Get a single category by ID
     getCategoryById: builder.query({
-      query: (id) => `categories/${id}`,
+      query: (id) => `/categories/${id}`,
       providesTags: (result, error, id) => [{ type: 'Category', id }],
     }),
 
@@ -51,7 +51,7 @@ export const categoryApi = createApi({
     // 4. Mutation: Update an existing category (PUT or PATCH request)
     updateCategory: builder.mutation({
       query: ({ id, ...patch }) => ({
-        url: `categories/${id}`,
+        url: `/categories/${id}`,
         method: 'PUT', // or 'PATCH'
         body: patch,
       }),
@@ -65,7 +65,7 @@ export const categoryApi = createApi({
     // 5. Mutation: Delete a category (DELETE request)
     deleteCategory: builder.mutation({
       query: (id) => ({
-        url: `categories/${id}`,
+        url: `/categories/${id}`,
         method: 'DELETE',
       }),
       // Invalidate both the specific item and the list

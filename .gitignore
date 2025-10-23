@@ -6,6 +6,7 @@
 
 # dependencies
 .next
+.next.zip
 .idea/
 /node_modules
 /.pnp

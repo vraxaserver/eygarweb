@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const PROPERTIES_API_URL =
     process.env.PROPERTIES_API_URL ||
-    "http://127.0.0.1:8001/api/v1/";
+    "http://127.0.0.1:8001/api/v1";
 
 // Base query with conditional authentication
 const baseQueryWithAuth = fetchBaseQuery({
@@ -58,7 +58,7 @@ export const propertiesApi = createApi({
                     }
                 });
                 console.log(queryParams.toString())
-                return `properties/search?${queryParams.toString()}`;
+                return `/properties/search?${queryParams.toString()}`;
             },
             providesTags: (result) =>
                 result
@@ -72,7 +72,7 @@ export const propertiesApi = createApi({
                     : [{ type: "Property", id: "LIST" }],
         }),
         getFeaturedProperties: builder.query({
-            query: () => "properties/featured",
+            query: () => "/properties/featured",
             providesTags: [{ type: "Property", id: "FEATURED" }],
         }),
         getPropertyById: builder.query({

@@ -2,7 +2,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/",
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api",
     // This function will automatically add the auth token to headers
     prepareHeaders: (headers, { getState }) => {
         const token = getState().auth.token;
@@ -23,12 +23,12 @@ export const profileApi = createApi({
     endpoints: (builder) => ({
         // New query for fetching host status
         getCurrentStatus: builder.query({
-            query: () => "profiles/hosts/current_status/",
+            query: () => "/profiles/hosts/current_status",
             providesTags: ['CurrentStatus'], // For caching
         }),
         createBusinessProfile: builder.mutation({
             query: (data) => ({
-                url: "profiles/hosts/business_profile/",
+                url: "/profiles/hosts/business_profile",
                 method: "POST",
                 body: data, // can be FormData or JSON
             }),
@@ -36,7 +36,7 @@ export const profileApi = createApi({
         }),
         verifyIdentity: builder.mutation({
             query: (data) => ({
-                url: "profiles/hosts/identity_verification/",
+                url: "/profiles/hosts/identity_verification",
                 method: "POST",
                 body: data, // Body will be FormData
             }),
@@ -45,7 +45,7 @@ export const profileApi = createApi({
         // New mutation for contact information
         verifyContact: builder.mutation({
             query: (data) => ({
-                url: "profiles/hosts/contact_details/",
+                url: "/profiles/hosts/contact_details",
                 method: "POST",
                 body: data, // Body is a JSON object
             }),
@@ -54,7 +54,7 @@ export const profileApi = createApi({
         // New mutation for submit review
         submitForReview: builder.mutation({
             query: (data) => ({
-                url: "profiles/hosts/submit_for_review/",
+                url: "/profiles/hosts/submit_for_review",
                 method: "POST",
                 body: data, // Body is a JSON object with additional_notes, terms_accepted, privacy_policy_accepted
             }),
@@ -63,7 +63,7 @@ export const profileApi = createApi({
 
         updateProfile: builder.mutation({
             query: (data) => ({
-                url: "auth/me/",
+                url: "/auth/me",
                 method: "PATCH",
                 body: data, // Body is a JSON object with additional_notes, terms_accepted, privacy_policy_accepted
             }),

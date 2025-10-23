@@ -25,7 +25,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
         if (refreshToken) {
             const refreshResult = await baseQuery(
                 {
-                    url: "/auth/token/refresh",
+                    url: "/auth/token/refresh/",
                     method: "POST",
                     body: { refresh: refreshToken },
                 },
@@ -66,7 +66,7 @@ export const authApi = createApi({
         // Login endpoint
         login: builder.mutation({
             query: (credentials) => ({
-                url: "/auth/login", // Your Django JWT login endpoint
+                url: "/auth/login/", // Your Django JWT login endpoint
                 method: "POST",
                 body: credentials,
             }),
@@ -98,7 +98,7 @@ export const authApi = createApi({
         // Signup endpoint
         signup: builder.mutation({
             query: (userData) => ({
-                url: "/auth/register", // Your Django user registration endpoint
+                url: "/auth/register/", // Your Django user registration endpoint
                 method: "POST",
                 body: userData,
             })
@@ -106,7 +106,7 @@ export const authApi = createApi({
 
         // Get current user profile
         getProfile: builder.query({
-            query: () => "/auth/profile",
+            query: () => "/auth/profile/",
             providesTags: ["User"],
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
@@ -130,7 +130,7 @@ export const authApi = createApi({
         // Update user profile
         updateProfile: builder.mutation({
             query: (userData) => ({
-                url: "/auth/profile",
+                url: "/auth/profile/",
                 method: "PATCH",
                 body: userData,
             }),
@@ -143,7 +143,7 @@ export const authApi = createApi({
             query: () => {
                 const refreshToken = localStorage.getItem("refresh_token"); // get refresh token
                 return {
-                    url: "auth/logout",
+                    url: "/auth/logout/",
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -174,7 +174,7 @@ export const authApi = createApi({
         // Forgot password
         forgotPassword: builder.mutation({
             query: (email) => ({
-                url: "/auth/forgot-password",
+                url: "/auth/forgot-password/",
                 method: "POST",
                 body: { email },
             }),
@@ -183,7 +183,7 @@ export const authApi = createApi({
         // Reset password
         resetPassword: builder.mutation({
             query: ({ token, password }) => ({
-                url: "/auth/reset-password",
+                url: "/auth/reset-password/",
                 method: "POST",
                 body: { token, password },
             }),
@@ -192,7 +192,7 @@ export const authApi = createApi({
         // Change password
         changePassword: builder.mutation({
             query: (passwordData) => ({
-                url: "/auth/change-password",
+                url: "/auth/change-password/",
                 method: "POST",
                 body: passwordData,
             }),

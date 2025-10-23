@@ -5,6 +5,7 @@
 
 
 # dependencies
+.next
 .idea/
 /node_modules
 /.pnp

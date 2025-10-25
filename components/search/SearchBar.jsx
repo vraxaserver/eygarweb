@@ -16,8 +16,8 @@ import LocationSearch from '@/components/LocationSearch';
 import { useRouter } from "next/navigation";
 
 const PROPERTIES_API_URL =
-    process.env.PROPERTIES_API_URL ||
-    "http://127.0.0.1:8001/api/v1/";
+    process.env.NEXT_PUBLIC_PROPERTIES_API_URL ||
+    "http://127.0.0.1:8001/api/v1";
 
 const SearchBar = () => {
     const router = useRouter()
@@ -57,7 +57,7 @@ const SearchBar = () => {
         const fetchAmenities = async () => {
             setIsLoadingAmenities(true);
             try {
-                const response = await fetch(`${PROPERTIES_API_URL}amenities`);
+                const response = await fetch(`${PROPERTIES_API_URL}/amenities`);
                 if (response.ok) {
                     const data = await response.json();
                     setAmenitiesList(data);
@@ -78,7 +78,7 @@ const SearchBar = () => {
 
         const fetchCategories = async () => {
             try {
-                const response = await fetch(`${PROPERTIES_API_URL}categories`);
+                const response = await fetch(`${PROPERTIES_API_URL}/categories`);
                 if (response.ok) {
                     const data = await response.json();
                     setCategoryList(data);

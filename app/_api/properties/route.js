@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Best practice: Store the API base URL in an environment variable
-const PROPERTIES_API_URL = process.env.PROPERTIES_API_URL || "http://127.0.0.1:8001/api/v1/properties/";
+const PROPERTIES_API_URL = process.env.PROPERTIES_API_URL || "http://127.0.0.1:8001/api/v1";
 
 export async function GET(request) {
     try {

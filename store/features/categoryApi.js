@@ -1,5 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+const PROPERTIES_API_URL = "http://127.0.0.1:8001/api/v1";
+    // process.env.NEXT_PUBLIC_PROPERTIES_API_URL ||
+    // "http://127.0.0.1:8001/api/v1";
 // Define a single API slice for the 'category' service
 export const categoryApi = createApi({
   // The reducerPath is a unique key that identifies this API slice
@@ -7,7 +10,7 @@ export const categoryApi = createApi({
 
   // All requests will be prefixed with this URL
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://127.0.0.1:8001/api/v1',
+    baseUrl: PROPERTIES_API_URL,
   }),
 
   // Optional: Define tag types for caching and automatic refetching
@@ -18,7 +21,7 @@ export const categoryApi = createApi({
     // 1. Query: Get all categories
     getCategories: builder.query({
       // The query function returns the endpoint path, which is appended to the baseUrl
-      query: () => 'categories',
+      query: () => '/categories',
       // Provide a tag for this list query, which will be used for invalidation
       providesTags: (result) =>
         result
@@ -39,7 +42,7 @@ export const categoryApi = createApi({
     // 3. Mutation: Create a new category (POST request)
     addCategory: builder.mutation({
       query: (newCategory) => ({
-        url: 'categories',
+        url: '/categories',
         method: 'POST',
         // fetchBaseQuery will automatically serialize the body to JSON
         body: newCategory,

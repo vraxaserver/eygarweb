@@ -3,7 +3,7 @@ import { setCredentials, logout, setError } from "@/store/slices/authSlice";
 
 // This is your base query that can be shared across API slices
 const baseQuery = fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+    baseUrl: process.env.NEXT_PUBLIC_USER_SERVICE_URL,
     // This function will automatically add the auth token to headers
     prepareHeaders: (headers, { getState }) => {
         const token = getState().auth.token;

@@ -1,8 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const PROPERTIES_API_URL = "http://127.0.0.1:8001/api/v1";
-    // process.env.NEXT_PUBLIC_PROPERTIES_API_URL ||
-    // "http://127.0.0.1:8001/api/v1";
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+
 // Define a single API slice for the 'category' service
 export const categoryApi = createApi({
   // The reducerPath is a unique key that identifies this API slice

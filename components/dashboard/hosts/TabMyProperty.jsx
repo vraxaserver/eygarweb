@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {getStatusColor} from "@/lib/utils"
+import { useCreatePropertyMutation, useGetMyPropertiesQuery } from "@/store/features/propertiesApi";
 import PropertyCard from "@/components/properties/PropertyCard"
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
@@ -16,9 +17,11 @@ import {
     MapPin
 } from "lucide-react";
 
-const TabMyProperty = ({properties, setShowAddModal}) => {
+const TabMyProperty = ({setShowAddModal}) => {
     const user = useSelector(selectCurrentUser);
+    const {data: properties, isLoading} = useGetMyPropertiesQuery()
     console.log("user: ", user);
+    console.log("properties: ", properties);
 
     return (
         <>
@@ -31,7 +34,7 @@ const TabMyProperty = ({properties, setShowAddModal}) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {properties.items.map((property) => (
+                {properties && properties.items.map((property) => (
                     <PropertyCard key={property.id} property={property} currentUserId={user.eygar_host.id} />
                 ))}
             </div>

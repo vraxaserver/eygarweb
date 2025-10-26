@@ -15,9 +15,7 @@ import { useGetCategoriesQuery } from '@/store/features/categoryApi';
 import LocationSearch from '@/components/LocationSearch';
 import { useRouter } from "next/navigation";
 
-const PROPERTIES_API_URL =
-    process.env.NEXT_PUBLIC_PROPERTIES_API_URL ||
-    "http://127.0.0.1:8001/api/v1";
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL
 
 const SearchBar = () => {
     const router = useRouter()
@@ -27,7 +25,7 @@ const SearchBar = () => {
     const reduxSearch = useSelector((state) => state.search);
 
     // const [searchQueryLocal, setSearchQueryLocal] = useState(reduxSearchQuery || "");
-    // const [location, setLocation] = useState({name: "", city: "", lat: null, lon: null, error: ""});
+    const [location, setLocation] = useState({name: "", city: "", lat: null, lon: null, error: ""});
     const [checkInDate, setCheckInDate] = useState(reduxFilters.checkIn ? new Date(reduxFilters.checkIn) : undefined);
     const [checkOutDate, setCheckOutDate] = useState(reduxFilters.checkOut ? new Date(reduxFilters.checkOut) : undefined);
     const [isGuestDropdownOpen, setIsGuestDropdownOpen] = useState(false);

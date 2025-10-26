@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const PROPERTIES_API_URL = "http://172.31.10.140:8001/api/v1"
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
 
 // Base query with conditional authentication
 const baseQueryWithAuth = fetchBaseQuery({
@@ -82,7 +82,7 @@ export const propertiesApi = createApi({
 
         // Get properties owned by the current authenticated user
         getMyProperties: builder.query({
-            query: () => "/my",
+            query: () => "/properties/my",
             providesTags: (result) =>
                 result
                     ? [
@@ -98,7 +98,7 @@ export const propertiesApi = createApi({
         // Only authenticated hosts can create properties
         createProperty: builder.mutation({
             query: (propertyData) => ({
-                url: "/",
+                url: "/properties",
                 method: "POST",
                 body: propertyData,
             }),
@@ -111,7 +111,7 @@ export const propertiesApi = createApi({
         // Only property owner can update
         updateProperty: builder.mutation({
             query: ({ id, ...propertyData }) => ({
-                url: `/${id}`,
+                url: `/properties/${id}`,
                 method: "PATCH",
                 body: propertyData,
             }),
@@ -125,7 +125,7 @@ export const propertiesApi = createApi({
         // Only property owner can delete
         deleteProperty: builder.mutation({
             query: (id) => ({
-                url: `/${id}`,
+                url: `/properties/${id}`,
                 method: "DELETE",
             }),
             invalidatesTags: (result, error, id) => [

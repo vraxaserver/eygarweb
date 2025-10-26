@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { selectIsAuthenticated, selectCurrentRole, updateRole } from "@/store/slices/authSlice";
@@ -29,68 +28,62 @@ const Page = () => {
 
     // Use the RTK Query hook. It will only run if the user is authenticated.
     // It automatically handles fetching, caching, loading, and error states.
-    const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(undefined, {
-            skip: !isAuthenticated,
-        });
-        
-    useEffect(() => {
-        // First, handle authentication. If not authenticated, redirect to login.
-        if (!isAuthenticated) {
-            router.push("/login");
-            return;
-        }
+    const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(undefined, {skip: !isAuthenticated});
 
-        // If the query is still running, do nothing yet.
-        if (isLoading || isFetching) {
-            return;
-        }
+    // First, handle authentication. If not authenticated, redirect to login.
+    if (!isAuthenticated) {
+        router.push("/login");
+        return;
+    }
 
-        // If there's an error fetching status, log it. You might want to show a UI message.
-        if (error) {
-            console.log("Error checking host status:", error);
-        }
+    // If the query is still running, do nothing yet.
+    if (isLoading || isFetching) {
+        return;
+    }
 
-        console.log('data', data)
-        // Check if host profile is fully submitted and under review
-        if (data.completion_percentage === 100 && data.status === "approved") {
-            if (role !== "host") {
-                dispatch(updateRole("host"));
-            }
-            router.push("/dashboard"); // Or a pending review page
-            return;
-        }
+    // If there's an error fetching status, log it. You might want to show a UI message.
+    if (error) {
+        console.log("Error checking host status:", error);
+    }
 
-        if (data) {
+    console.log('data', data)
+    // Check if host profile is fully submitted and under review
+    if (data.completion_percentage === 100 && data.status === "approved") {
+        if (role !== "host") {
+            dispatch(updateRole("host"));
+        }
+        router.push("/dashboard"); // Or a pending review page
+        return;
+    }
+
+    if (data) {
             
-
-            // Check if there's an incomplete step and redirect
-            if (data.current_step) {
-                switch (data.current_step) {
-                    case "business_profile":
-                        router.push("/become-a-host/create-profile");
-                        break;
-                    case "identity_verification":
-                        router.push("/become-a-host/verify-identity");
-                        break;
-                    case "contact_info": // Ensure this matches your API response
-                        router.push("/become-a-host/verify-contact");
-                        break;
-                    case "review_submission":
-                        router.push("/become-a-host/review-submit");
-                        break;
-                    case "compelted":
-                        router.push("/dashboard");
-                        break;
-                    default:
-                        // Fallback for any other step, though explicit cases are better
-                        router.push(`/become-a-host/${data.current_step}`);
-                        break;
-                }
-                return; // Stop execution after redirection
+        // Check if there's an incomplete step and redirect
+        if (data.current_step) {
+            switch (data.current_step) {
+                case "business_profile":
+                    router.push("/become-a-host/create-profile");
+                    break;
+                case "identity_verification":
+                    router.push("/become-a-host/verify-identity");
+                    break;
+                case "contact_info": // Ensure this matches your API response
+                    router.push("/become-a-host/verify-contact");
+                    break;
+                case "review_submission":
+                    router.push("/become-a-host/review-submit");
+                    break;
+                case "compelted":
+                    router.push("/dashboard");
+                    break;
+                default:
+                    // Fallback for any other step, though explicit cases are better
+                    router.push(`/become-a-host/${data.current_step}`);
+                    break;
             }
+            return; // Stop execution after redirection
         }
-
-    }, [isAuthenticated, data, isLoading, isFetching,])
+    }
 
 
     // Show a loading screen while the hook is fetching and we decide where to go.

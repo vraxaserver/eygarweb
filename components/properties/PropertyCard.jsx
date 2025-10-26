@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 // New Imports for Icons
 import { Heart, Star, ChevronLeft, ChevronRight, Eye, Pencil, Trash } from "lucide-react"; 
 // New Imports for Modals (Assuming shadcn/ui)
@@ -14,7 +15,7 @@ import Image from "next/image";
 import {formatCurrency} from "@/lib/utils"
 
 // NOTE: You would typically import the delete mutation hook here, e.g.:
-// import { useDeletePropertyMutation } from "@/lib/features/properties/propertiesApi";
+import { useDeletePropertyMutation } from "@/store/features/propertiesApi";
 
 
 // Add currentUserId to the component props to enable ownership check
@@ -28,7 +29,7 @@ export default function PropertyCard({ property, currentUserId }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // State for Delete confirmation
 
     // Mock RTKQ hook for deletion (Uncomment and replace with actual hook when available)
-    // const [deleteProperty, { isLoading: isDeleting }] = useDeletePropertyMutation();
+    const [deleteProperty, { isLoading: isDeleting }] = useDeletePropertyMutation();
 
     // Determine if the current user is the owner (assuming property has an ownerId field)
     const isOwner = property.host_id === currentUserId; 
@@ -54,7 +55,7 @@ export default function PropertyCard({ property, currentUserId }) {
     // Handler for the Edit button (navigates to the edit page)
     const handleEdit = (e) => {
         e.stopPropagation();
-        router.push(`/properties/edit/${property.id}`);
+        router.push(`/properties/${property.id}/edit`);
     };
 
     // Handler for the Delete button (opens the confirmation dialog)
@@ -65,18 +66,19 @@ export default function PropertyCard({ property, currentUserId }) {
 
     // Handler for confirming the deletion
     const confirmDelete = async () => {
-        // setShowDeleteConfirm(false); // Close confirmation modal immediately
-
-        // try {
-        //     // Uncomment and use the actual mutation hook
-        //     // await deleteProperty(property.id).unwrap(); 
-        //     // Add a success toast/message
-        // } catch (error) {
-        //     console.error("Failed to delete property:", error);
-        //     // Add an error toast/message
-        // }
+        setShowDeleteConfirm(false);
+        try {
+            // Uncomment and use the actual mutation hook
+            await deleteProperty(property.id).unwrap(); 
+            // Add a success toast/message
+            toast.success("Property deleted successfully!");
+        } catch (error) {
+            console.error("Failed to delete property:", error);
+            // Add an error toast/message
+            toast.error("Failed to delete property. Please try again.");
+        }
         console.log(`Deleting property: ${property.id}`); // Placeholder logic
-        setShowDeleteConfirm(false); // Close confirmation modal
+        // setShowDeleteConfirm(false); // Close confirmation modal
     };
     
     // Carousel navigation
@@ -275,7 +277,7 @@ export default function PropertyCard({ property, currentUserId }) {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={confirmDelete} 
-                            // disabled={isDeleting} // Uncomment if using RTKQ hook
+                            disabled={isDeleting} // Uncomment if using RTKQ hook
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
                             Delete

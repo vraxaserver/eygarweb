@@ -21,7 +21,7 @@ export default function PropertyListings() {
     const reduxFilters = useSelector((state) => state.search.filters);
     const reduxSearchQuery = useSelector((state) => state.search.searchQuery);
 
-    const [viewMode, setViewMode] = useState("map");
+    const [viewMode, setViewMode] = useState("grid");
     const [category, setCategory] = useState("");
     const [page, setPage] = useState(1);
     const [allProperties, setAllProperties] = useState([]);

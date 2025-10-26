@@ -204,8 +204,8 @@ export default function HostDashboard() {
             // Get auth token from localStorage
             const token = localStorage.getItem("access_token");
 
-            const response = await fetch(
-                "http://127.0.0.1:8001/api/v1/images/upload",
+            const response = await fetch( 
+                process.env.NEXT_PUBLIC_PROPERTIES_API_URL + "/images/upload",
                 {
                     method: "POST",
                     headers: {
@@ -1038,7 +1038,6 @@ export default function HostDashboard() {
                         <TabsContent value="properties" className="space-y-6">
                             <TabMyProperty
                                 setShowAddModal={setShowAddModal}
-                                properties={properties}
                             />
                         </TabsContent>
 

@@ -23,7 +23,7 @@ export default function Home() {
                 <SafetySection />
 
                 {/* Unique Experiences Section */}
-                <ExperiencesSection experiences={experiences} />
+                <ExperiencesSection />
 
                 {/* Popular Destinations Section */}
                 <PopularDestinationsSection />

@@ -106,6 +106,18 @@ export const experiencesApi = createApi({
                 { type: "Experience", id: "LIST" },
             ],
         }),
+        attachProperties: builder.mutation({
+            query: ({ experienceId, propertyIds }) => ({
+                url: `/experiences/${experienceId}/properties`,
+                method: 'POST',
+                body: propertyIds, // The body is an array of IDs
+            }),
+            // This will refetch the specific experience's data if needed elsewhere
+            invalidatesTags: (result, error, { experienceId }) => [{ type: 'Experience', id: experienceId }],
+        }),
+        getPropertiesByExperience: builder.query({
+            query: (experienceId) => `/experiences/${experienceId}/properties`,
+        }),
     }),
 });
 
@@ -115,7 +127,10 @@ export const {
     useGetExperiencesQuery,
     useGetExperienceQuery,
     useGetMyExperiencesQuery,
+    useGetPropertiesByExperienceQuery,
     useAddExperienceMutation,
     useUpdateExperienceMutation,
     useDeleteExperienceMutation,
+    useAttachPropertiesMutation,
+    
 } = experiencesApi;

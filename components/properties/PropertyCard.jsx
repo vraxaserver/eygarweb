@@ -99,6 +99,8 @@ export default function PropertyCard({ property, currentUserId }) {
         ? `${property.location.city}, ${property.location.country}`
         : "Location not available";
 
+
+    console.log("properties", property)
     return (
         <>
             <Card
@@ -110,7 +112,7 @@ export default function PropertyCard({ property, currentUserId }) {
                         {/* Property Image Carousel */}
                         <div className="relative h-72 w-full">
                             <Image
-                                src={property.images[currentImageIndex] || "/placeholder.svg"}
+                                src={property.images[currentImageIndex]?.image_url || property.images[currentImageIndex]}
                                 alt={property.title}
                                 fill
                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 

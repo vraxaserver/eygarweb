@@ -7,6 +7,7 @@ import authReducer from "@/store/slices/authSlice";
 import locationReducer from "@/store/slices/locationSlice"; 
 import { profileApi } from "@/store/features/profileApi";
 import { categoryApi } from '@/store/features/categoryApi';
+import { experiencesApi } from "@/store/features/experienceApi";
 
 
 export const store = configureStore({
@@ -18,13 +19,20 @@ export const store = configureStore({
         [profileApi.reducerPath]: profileApi.reducer,
         [propertiesApi.reducerPath]: propertiesApi.reducer,
         [categoryApi.reducerPath]: categoryApi.reducer,
+        [experiencesApi.reducerPath]: experiencesApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: {
                 ignoredActions: ["persist/PERSIST", 'persist/REHYDRATE',],
             },
-        }).concat(propertiesApi.middleware, authApi.middleware, profileApi.middleware, categoryApi.middleware),
+        }).concat(
+            propertiesApi.middleware, 
+            authApi.middleware, 
+            profileApi.middleware, 
+            categoryApi.middleware,
+            experiencesApi.middleware,
+        ),
     devTools: process.env.NODE_ENV !== 'production',
 });
 

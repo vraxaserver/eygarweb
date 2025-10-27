@@ -10,7 +10,7 @@ import {
     stats,
     upcomingBookings,
     ongoingBookings,
-    experiences,
+    
 } from "./hostMockData"; // Example: move mock data out
 import {
     Home,
@@ -1256,7 +1256,7 @@ export default function HostDashboard() {
 
                         {/* Experiences Tab */}
                         <TabsContent value="experiences" className="space-y-6">
-                            <TabMyExperiences experiences={experiences} />
+                            <TabMyExperiences />
                         </TabsContent>
 
                         {/* Analytics Tab */}

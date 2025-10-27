@@ -12,7 +12,15 @@ import {
     MapPin,
     Clock
 } from "lucide-react";
-const TabMyExperiences = ({experiences}) => {
+import { useGetMyExperiencesQuery } from "@/store/features/experienceApi";
+
+
+const TabMyExperiences = () => {
+    const { data: experiences, error, isLoading, refetch } = useGetMyExperiencesQuery();
+
+    if (isLoading) return <div>Loading experiences...</div>;
+    if (error) return <div>An error occurred: {error.message}</div>;
+    
     return (
         <>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -39,17 +47,11 @@ const TabMyExperiences = ({experiences}) => {
                         <CardContent className="p-0">
                             <div className="relative">
                                 <img
-                                    src={experience.image}
+                                    src={experience.image_url}
                                     alt={experience.title}
                                     className="w-full h-48 object-cover rounded-t-lg"
                                 />
-                                <Badge
-                                    className={`absolute top-3 left-3 ${getStatusColor(
-                                        experience.status
-                                    )}`}
-                                >
-                                    {experience.status}
-                                </Badge>
+                                
                                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
                                     <Button
                                         variant="secondary"
@@ -80,26 +82,13 @@ const TabMyExperiences = ({experiences}) => {
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-2 flex items-center">
                                     <MapPin className="w-3 h-3 mr-1" />
-                                    {experience.location}
+                                    {experience.description}
                                 </p>
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center space-x-1">
-                                        <Star className="w-4 h-4 fill-current text-yellow-500" />
-                                        <span className="text-sm font-medium">
-                                            {experience.rating}
-                                        </span>
-                                        <span className="text-sm text-gray-500">
-                                            ({experience.reviews})
-                                        </span>
-                                    </div>
-                                    <div className="text-sm font-semibold">
-                                        ${experience.price}/person
-                                    </div>
-                                </div>
+                                
                                 <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
                                     <div className="flex items-center">
                                         <Clock className="w-3 h-3 mr-1" />
-                                        {experience.duration}
+                                        {experience.min_nights}
                                     </div>
                                 </div>
 

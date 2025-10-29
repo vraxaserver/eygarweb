@@ -8,6 +8,7 @@ import locationReducer from "@/store/slices/locationSlice";
 import { profileApi } from "@/store/features/profileApi";
 import { categoryApi } from '@/store/features/categoryApi';
 import { experiencesApi } from "@/store/features/experienceApi";
+import { vendorProfileApi } from "@/store/features/vendorProfileApi";
 
 
 export const store = configureStore({
@@ -20,6 +21,7 @@ export const store = configureStore({
         [propertiesApi.reducerPath]: propertiesApi.reducer,
         [categoryApi.reducerPath]: categoryApi.reducer,
         [experiencesApi.reducerPath]: experiencesApi.reducer,
+        [vendorProfileApi.reducerPath]: vendorProfileApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -32,6 +34,7 @@ export const store = configureStore({
             profileApi.middleware, 
             categoryApi.middleware,
             experiencesApi.middleware,
+            vendorProfileApi.middleware,
         ),
     devTools: process.env.NODE_ENV !== 'production',
 });

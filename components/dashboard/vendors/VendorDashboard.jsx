@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { selectCurrentRole, selectCurrentUser } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
 import { Menu } from 'lucide-react';
 import { VendorSidebar } from "./VendorSidebar";
@@ -12,11 +14,13 @@ import { ReviewsTab } from "./ReviewsTab";
 export default function VendorDashboard () {
     const [activeTab, setActiveTab] = useState("services");
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const user = useSelector(selectCurrentUser);
+    console.log("vendor user", user)
 
     const renderContent = () => {
         switch (activeTab) {
             case "services":
-                return <ServicesTab />;
+                return <ServicesTab activeUser={user} />;
             case "coupons":
                 return <CouponsTab />;
             case "requests":

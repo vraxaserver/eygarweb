@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, Tag, Percent, Calendar, Hash } from "lucide-react";
+import { X, Tag, Percent, Calendar, Hash, Type, CheckSquare, FileText, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 
 export const CouponForm = ({
     isOpen,
@@ -14,8 +13,10 @@ export const CouponForm = ({
 }) => {
     const [formData, setFormData] = useState({
         serviceId: coupon?.serviceId || "",
+        title: coupon?.title || "",
         code: coupon?.code || "",
-        discountPercent: coupon?.discountPercent || 10,
+        discountType: coupon?.discountType || "percentage", // 'percentage' or 'flat'
+        discountValue: coupon?.discountValue || 10,
         validFrom: coupon?.validFrom
             ? new Date(coupon.validFrom).toISOString().slice(0, 16)
             : "",
@@ -23,6 +24,8 @@ export const CouponForm = ({
             ? new Date(coupon.validTo).toISOString().slice(0, 16)
             : "",
         usageLimit: coupon?.usageLimit || 10,
+        eligibility: coupon?.eligibility || "",
+        terms: coupon?.terms || "",
         isActive: coupon?.isActive ?? true,
     });
 
@@ -58,85 +61,131 @@ export const CouponForm = ({
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Service Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Service
-                        </label>
-                        <select
-                            value={formData.serviceId}
-                            onChange={(e) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    serviceId: e.target.value,
-                                }))
-                            }
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="">Select a service</option>
-                            {services
-                                .filter((s) => s.isActive)
-                                .map((service) => (
-                                    <option key={service.id} value={service.id}>
-                                        {service.title}
-                                    </option>
-                                ))}
-                        </select>
-                    </div>
 
-                    {/* Coupon Code */}
+                    {/* Title */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Coupon Code
-                        </label>
-                        <div className="flex space-x-2">
-                            <div className="relative flex-1">
-                                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={formData.code}
-                                    onChange={(e) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            code: e.target.value.toUpperCase(),
-                                        }))
-                                    }
-                                    placeholder="e.g., SAVE20"
-                                    required
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                                />
-                            </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={generateCouponCode}
-                            >
-                                Generate
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Discount Percentage */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Discount Percentage
+                            Title
                         </label>
                         <div className="relative">
-                            <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Type className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
-                                type="number"
-                                min="1"
-                                max="100"
-                                value={formData.discountPercent}
+                                type="text"
+                                value={formData.title}
                                 onChange={(e) =>
                                     setFormData((prev) => ({
                                         ...prev,
-                                        discountPercent: Number(e.target.value),
+                                        title: e.target.value,
                                     }))
                                 }
+                                placeholder="e.g., Summer Sale"
+                                required
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Service Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Service
+                            </label>
+                            <select
+                                value={formData.serviceId}
+                                onChange={(e) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        serviceId: e.target.value,
+                                    }))
+                                }
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="">Select a service</option>
+                                {services
+                                    .filter((s) => s.isActive)
+                                    .map((service) => (
+                                        <option key={service.id} value={service.id}>
+                                            {service.title}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                        
+                        {/* Coupon Code */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Coupon Code
+                            </label>
+                            <div className="flex space-x-2">
+                                <div className="relative flex-1">
+                                    <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={formData.code}
+                                        onChange={(e) =>
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                code: e.target.value.toUpperCase(),
+                                            }))
+                                        }
+                                        placeholder="e.g., SAVE20"
+                                        required
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={generateCouponCode}
+                                >
+                                    Generate
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Discount Type and Value */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Discount Type
+                            </label>
+                            <select
+                                value={formData.discountType}
+                                onChange={(e) =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        discountType: e.target.value,
+                                    }))
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="percentage">Percentage</option>
+                                <option value="flat">Flat Amount</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {formData.discountType === "percentage" ? "Discount Percentage" : "Discount Amount"}
+                            </label>
+                            <div className="relative">
+                                <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max={formData.discountType === "percentage" ? "100" : undefined}
+                                    value={formData.discountValue}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            discountValue: Number(e.target.value),
+                                        }))
+                                    }
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -178,25 +227,69 @@ export const CouponForm = ({
                         </div>
                     </div>
 
-                    {/* Usage Limit */}
+                    {/* Usage Limit and Eligibility */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Usage Limit
+                            </label>
+                            <div className="relative">
+                                <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.usageLimit}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            usageLimit: Number(e.target.value),
+                                        }))
+                                    }
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Eligibility
+                            </label>
+                            <div className="relative">
+                                <CheckSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={formData.eligibility}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            eligibility: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="e.g., First-time users"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Terms and Conditions */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Usage Limit
+                            Terms and Conditions
                         </label>
                         <div className="relative">
-                            <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="number"
-                                min="1"
-                                value={formData.usageLimit}
+                            <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                            <textarea
+                                value={formData.terms}
                                 onChange={(e) =>
                                     setFormData((prev) => ({
                                         ...prev,
-                                        usageLimit: Number(e.target.value),
+                                        terms: e.target.value,
                                     }))
                                 }
+                                rows="3"
+                                placeholder="Describe the terms of the coupon..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
+                            ></textarea>
                         </div>
                     </div>
 

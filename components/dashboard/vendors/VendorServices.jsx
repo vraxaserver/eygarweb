@@ -5,6 +5,7 @@ import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ServiceForm } from "./ServiceForm";
+import Image from "next/image";
 
 const mockServices = [
     {
@@ -22,10 +23,7 @@ const mockServices = [
             lng: -73.9851,
             radius: 5,
         },
-        images: [
-            "https://images.pexels.com/photos/4253320/pexels-photo-4253320.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-            "https://images.pexels.com/photos/4253302/pexels-photo-4253302.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
+        image: "https://images.pexels.com/photos/4253320/pexels-photo-4253320.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
         isActive: true,
         price: 120,
         rating: 4.8,
@@ -47,10 +45,7 @@ const mockServices = [
             lng: -73.9851,
             radius: 10,
         },
-        images: [
-            "https://images.pexels.com/photos/1141853/pexels-photo-1141853.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-            "https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
+        image: "https://images.pexels.com/photos/1141853/pexels-photo-1141853.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
         isActive: true,
         price: 45,
         rating: 4.9,
@@ -72,9 +67,7 @@ const mockServices = [
             lng: -73.9851,
             radius: 3,
         },
-        images: [
-            "https://images.pexels.com/photos/103124/pexels-photo-103124.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
+        image: "https://images.pexels.com/photos/103124/pexels-photo-103124.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
         isActive: true,
         price: 35,
         rating: 4.6,
@@ -83,7 +76,7 @@ const mockServices = [
     },
 ];
 
-export const ServicesTab = () => {
+export const ServicesTab = ({activeUser}) => {
     const [services, setServices] = useState(mockServices);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingService, setEditingService] = useState(null);
@@ -127,13 +120,15 @@ export const ServicesTab = () => {
             // Create new service
             const newService = {
                 id: `service-${Date.now()}`,
-                vendorId: "vendor-1",
-                vendorName: "Chef Maria",
+                vendorId: activeUser.eygar_vendor?.id,
+                vendorName: activeUser.first_name,
                 rating: 0,
                 reviewCount: 0,
                 createdAt: new Date().toISOString(),
                 ...data,
             };
+            console.log("============ New Service ============")
+            console.log(newService)
             setServices((prev) => [newService, ...prev]);
         }
     };
@@ -199,9 +194,11 @@ export const ServicesTab = () => {
                             className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
                         >
                             <div className="relative h-48">
-                                <img
-                                    src={service.images[0]}
+                                <Image
+                                    src={service.image}
                                     alt={service.title}
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute top-3 left-3">

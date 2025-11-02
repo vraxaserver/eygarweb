@@ -172,7 +172,10 @@ export const CouponsTab = () => {
                 ...data,
             };
             setCoupons((prev) => [newCoupon, ...prev]);
+            console.log("New Coupon data =================")
+            console.log(newCoupon)
         }
+
     };
 
     const getServiceTitle = (serviceId) => {

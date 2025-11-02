@@ -237,7 +237,7 @@ export const RequestsTab = () => {
             </div>
 
             {/* Requests List */}
-            <div className="space-y-4">
+            <div className="flex gap-5 space-y-4">
                 {filteredRequests.map((request) => {
                     const service = getService(request.serviceId);
                     const statusInfo = statusConfig[request.status];
@@ -249,7 +249,7 @@ export const RequestsTab = () => {
                     return (
                         <div
                             key={request.id}
-                            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6"
+                            className="w-[500px] bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6"
                         >
                             {/* Header */}
                             <div className="flex items-start justify-between mb-4">

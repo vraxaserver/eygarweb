@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Upload, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PlacesAutocomplete } from "@/components/PlacesAutocomplete"; // Adjust the import path as needed
 
 const categories = [
     "Food",
@@ -24,11 +25,12 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
         allowedGuests: service?.allowedGuests || 1,
         price: service?.price || 0,
         serviceArea: {
-            lat: service?.serviceArea.lat || 40.7589,
-            lng: service?.serviceArea.lng || -73.9851,
+            name: service?.serviceArea.name || "New York, NY, USA",
+            lat: service?.serviceArea.lat || 40.7128,
+            lng: service?.serviceArea.lng || -74.0060,
             radius: service?.serviceArea.radius || 5,
         },
-        images: service?.images || [""],
+        image: service?.image || "",
         isActive: service?.isActive ?? true,
     });
 
@@ -36,31 +38,19 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit({
-            ...formData,
-            images: formData.images.filter((img) => img.trim() !== ""),
-        });
+        onSubmit(formData);
         onClose();
     };
 
-    const addImageField = () => {
+    const handlePlaceSelect = (place) => {
         setFormData((prev) => ({
             ...prev,
-            images: [...prev.images, ""],
-        }));
-    };
-
-    const removeImageField = (index) => {
-        setFormData((prev) => ({
-            ...prev,
-            images: prev.images.filter((_, i) => i !== index),
-        }));
-    };
-
-    const updateImage = (index, value) => {
-        setFormData((prev) => ({
-            ...prev,
-            images: prev.images.map((img, i) => (i === index ? value : img)),
+            serviceArea: {
+                ...prev.serviceArea,
+                name: place.name,
+                lat: place.lat,
+                lng: place.lng,
+            },
         }));
     };
 
@@ -126,7 +116,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Duration (hours)
+                                        Duration / Service time (hours)
                                     </label>
                                     <input
                                         type="number"
@@ -147,7 +137,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Max Guests
+                                        Max Guests / Items
                                     </label>
                                     <input
                                         type="number"
@@ -169,7 +159,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Price per Guest ($)
+                                    Price per Guest / Items ($)
                                 </label>
                                 <input
                                     type="number"
@@ -189,6 +179,14 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
 
                         {/* Service Area */}
                         <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Service Area
+                                </label>
+                                <PlacesAutocomplete onPlaceSelect={handlePlaceSelect} />
+                                <p className="text-xs text-gray-500 mt-1">Selected: {formData.serviceArea.name}</p>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Service Radius (km)
@@ -254,51 +252,23 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                         />
                     </div>
 
-                    {/* Images */}
+                    {/* Image */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Service Images (URLs)
+                            Service Image (URL)
                         </label>
-                        <div className="space-y-3">
-                            {formData.images.map((image, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center space-x-2"
-                                >
-                                    <input
-                                        type="url"
-                                        value={image}
-                                        onChange={(e) =>
-                                            updateImage(index, e.target.value)
-                                        }
-                                        placeholder="https://example.com/image.jpg"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    {formData.images.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                removeImageField(index)
-                                            }
-                                        >
-                                            <Trash2 className="w-4 h-4 text-red-500" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addImageField}
-                                className="w-full"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Another Image
-                            </Button>
-                        </div>
+                        <input
+                            type="url"
+                            value={formData.image}
+                            onChange={(e) =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    image: e.target.value,
+                                }))
+                            }
+                            placeholder="https://example.com/image.jpg"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
                     </div>
 
                     {/* Actions */}

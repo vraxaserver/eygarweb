@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { selectIsAuthenticated, selectCurrentRole, updateRole } from "@/store/slices/authSlice";
+import {
+    selectIsAuthenticated,
+    selectCurrentRole,
+    updateRole,
+} from "@/store/slices/authSlice";
 import { useGetCurrentStatusQuery } from "@/store/features/profileApi";
 
 import BenefitsSection from "@/components/become-a-host/BenefitsSection";
@@ -11,6 +15,7 @@ import HeroSection from "@/components/become-a-host/HeroSection";
 import ProcessOverview from "@/components/become-a-host/ProcessOverview";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 // A simple loading component to show while checking status
 const LoadingState = () => (
@@ -26,40 +31,33 @@ const Page = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
 
-    // Use the RTK Query hook. It will only run if the user is authenticated.
-    // It automatically handles fetching, caching, loading, and error states.
-    const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(undefined, {skip: !isAuthenticated});
-
     // First, handle authentication. If not authenticated, redirect to login.
     if (!isAuthenticated) {
         router.push("/login");
-        return;
+        
     }
 
-    // If the query is still running, do nothing yet.
-    if (isLoading || isFetching) {
-        return;
-    }
+    // Use the RTK Query hook. It will only run if the user is authenticated.
+    // It automatically handles fetching, caching, loading, and error states.
+    const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(
+        undefined,
+        { skip: !isAuthenticated }
+    );
 
     // If there's an error fetching status, log it. You might want to show a UI message.
     if (error) {
         console.log("Error checking host status:", error);
     }
 
-    console.log('data', data)
-    // Check if host profile is fully submitted and under review
-    if (data.completion_percentage === 100 && data.status === "approved") {
-        if (role !== "host") {
-            dispatch(updateRole("host"));
+    useEffect(() => {
+        // Check if host profile is fully submitted and under review
+        if (data?.completion_percentage === 100 && data?.status === "approved") {
+            role !== "host" && dispatch(updateRole("host"));
+            router.push("/dashboard"); // Or a pending review page
+            return;
         }
-        router.push("/dashboard"); // Or a pending review page
-        return;
-    }
 
-    if (data) {
-            
-        // Check if there's an incomplete step and redirect
-        if (data.current_step) {
+        if (data?.current_step) {
             switch (data.current_step) {
                 case "business_profile":
                     router.push("/become-a-host/create-profile");
@@ -83,10 +81,9 @@ const Page = () => {
             }
             return; // Stop execution after redirection
         }
-    }
+    }, [data?.status, role, dispatch, router]);
 
-
-    // Show a loading screen while the hook is fetching and we decide where to go.
+    // If the query is still running, do nothing yet.
     if (isLoading || isFetching) {
         return <LoadingState />;
     }

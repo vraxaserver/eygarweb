@@ -6,82 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ServiceForm } from "./ServiceForm";
 import Image from "next/image";
+import {
+    useAddServiceMutation,
+    useGetServicesQuery,
+} from "@/store/features/vendorServiceApi";
+import { toast } from "sonner";
 
-const mockServices = [
-    {
-        id: "service-1",
-        vendorId: "vendor-1",
-        vendorName: "Chef Maria",
-        title: "Authentic Italian Cooking Class",
-        description:
-            "Learn to make fresh pasta and traditional Italian dishes from scratch. Includes all ingredients and wine pairing.",
-        category: "Food",
-        duration: 3,
-        allowedGuests: 6,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 5,
-        },
-        image: "https://images.pexels.com/photos/4253320/pexels-photo-4253320.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        isActive: true,
-        price: 120,
-        rating: 4.8,
-        reviewCount: 34,
-        createdAt: "2025-01-10T10:00:00Z",
-    },
-    {
-        id: "service-2",
-        vendorId: "vendor-2",
-        vendorName: "Alex Tours",
-        title: "Historical City Walking Tour",
-        description:
-            "Discover hidden gems and fascinating stories of the city with a local expert guide. Small groups for personalized experience.",
-        category: "Local Guide",
-        duration: 4,
-        allowedGuests: 8,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 10,
-        },
-        image: "https://images.pexels.com/photos/1141853/pexels-photo-1141853.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        isActive: true,
-        price: 45,
-        rating: 4.9,
-        reviewCount: 127,
-        createdAt: "2025-01-08T14:30:00Z",
-    },
-    {
-        id: "service-3",
-        vendorId: "vendor-1",
-        vendorName: "Chef Maria",
-        title: "Premium Breakfast Delivery",
-        description:
-            "Fresh, gourmet breakfast delivered to your property. Includes artisanal pastries, fresh fruit, and premium coffee.",
-        category: "Food",
-        duration: 1,
-        allowedGuests: 4,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 3,
-        },
-        image: "https://images.pexels.com/photos/103124/pexels-photo-103124.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        isActive: true,
-        price: 35,
-        rating: 4.6,
-        reviewCount: 89,
-        createdAt: "2025-01-12T08:00:00Z",
-    },
-];
-
-export const ServicesTab = ({activeUser}) => {
-    const [services, setServices] = useState(mockServices);
+export const ServicesTab = ({ activeUser }) => {
+    const [editServices, setEditServices] = useState([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingService, setEditingService] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+
+    const { data: services, isLoading, error } = useGetServicesQuery();
+    const [addService, { isLoading: isLoadingAddService }] =
+        useAddServiceMutation();
+
+    if (isLoading) {
+        return <h1>Loading...</h1>;
+    }
+
+    console.log("services: ", services);
 
     const filteredServices = services.filter((service) => {
         const matchesSearch = service.title
@@ -105,13 +51,13 @@ export const ServicesTab = ({activeUser}) => {
     };
 
     const handleDeleteService = (serviceId) => {
-        setServices((prev) => prev.filter((s) => s.id !== serviceId));
+        setEditServices((prev) => prev.filter((s) => s.id !== serviceId));
     };
 
-    const handleSubmitService = (data) => {
+    const handleSubmitService = async (data) => {
         if (editingService) {
             // Update existing service
-            setServices((prev) =>
+            setEditServices((prev) =>
                 prev.map((s) =>
                     s.id === editingService.id ? { ...s, ...data } : s
                 )
@@ -127,9 +73,16 @@ export const ServicesTab = ({activeUser}) => {
                 createdAt: new Date().toISOString(),
                 ...data,
             };
-            console.log("============ New Service ============")
-            console.log(newService)
-            setServices((prev) => [newService, ...prev]);
+            try {
+                await addService(newService).unwrap();
+                toast.success("Service added successfully!");
+                
+                // reset(); // Reset the form fields after successful submission
+            } catch (error) {
+                toast.error(error?.data?.message || "An error occurred");
+            }
+            
+            setIsFormOpen(false);
         }
     };
 

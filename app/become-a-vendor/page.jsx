@@ -31,56 +31,60 @@ const Page = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
 
-    const { data, error, isLoading, isFetching } = useGetVendorStatusQuery(
-        undefined,
-        { skip: !isAuthenticated }
-    );
-
-    useEffect(() => {
-        if (data?.status === "approved" && role !== "vendor") {
-            dispatch(updateRole("vendor"));
-            router.push("/dashboard");
-        }
-    }, [data?.status, role, dispatch, router]);
-
     if (!isAuthenticated) {
         router.push("/login");
         return null;
     }
 
-    if (isLoading || isFetching) {
-        return <LoadingState />;
-    }
+    const { data, error, isLoading, isFetching } = useGetVendorStatusQuery(
+        undefined,
+        { skip: !isAuthenticated }
+    );
 
     if (error) {
         console.error("Error checking vendor status:", error);
-        // Optionally, show an error message to the user
     }
 
-    if (data.current_step) {
-        switch (data.current_step) {
-            case "company_details":
-                router.push("/become-a-vendor/company-details");
-                break;
-            case "service_area":
-                router.push("/become-a-vendor/service-area");
-                break;
-            case "contact_details":
-                router.push("/become-a-vendor/contact-details");
-                break;
-            case "submit_for_review":
-                router.push("/become-a-vendor/submit-for-review");
-                break;
-            case "completed":
-                router.push("/dashboard");
-                break;
+    console.log("data :", data)
 
-            default:
-                // Fallback for any other step
-                router.push(`/become-a-vendor/${data.current_step}`);
-                break;
+    useEffect(() => {
+        if (data?.status === "approved") {
+            role !== "vendor" && dispatch(updateRole("vendor"));
+            router.push("/dashboard");
+            return;
         }
-        return null; // Stop execution after redirection
+
+        if (data?.current_step) {
+            switch (data.current_step) {
+                case "company_details":
+                    router.push("/become-a-vendor/company-details");
+                    break;
+                case "service_area":
+                    router.push("/become-a-vendor/service-area");
+                    break;
+                case "contact_details":
+                    router.push("/become-a-vendor/contact-details");
+                    break;
+                case "submit_for_review":
+                    router.push("/become-a-vendor/submit-for-review");
+                    break;
+                case "completed":
+                    router.push("/dashboard");
+                    break;
+
+                default:
+                    // Fallback for any other step
+                    router.push(`/become-a-vendor/${data.current_step}`);
+                    break;
+            }
+            return null; // Stop execution after redirection
+        }
+
+    }, [data?.status, role, dispatch, router]);
+
+  // If the query is still running, do nothing yet.
+    if (isLoading || isFetching) {
+        return <LoadingState />;
     }
 
     return (

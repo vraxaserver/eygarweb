@@ -22,9 +22,17 @@ const nextConfig = {
             },
             {
                 protocol: "https",
-                hostname: "example.com",
+                hostname: "img-s-msn-com.akamaized.net",
                 port: "",
                 pathname: "/**", // This allows any path under the hostname
+            },
+            {
+                protocol: "https",
+                hostname: "media.istockphoto.com",
+            },
+            {
+                protocol: "https",
+                hostname: "cdn.citymapia.com",
             },
             {
                 protocol: "https",

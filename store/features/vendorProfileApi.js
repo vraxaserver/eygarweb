@@ -1,9 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+
 export const vendorProfileApi = createApi({
     reducerPath: 'vendorProfileApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: 'http://127.0.0.1:8000/api/v1/profiles/vendors',
+        baseUrl: `${PROPERTIES_API_URL}/profiles/vendors`,
         prepareHeaders: (headers, { getState }) => {
             const token = getState().auth.token;
             if (token) {

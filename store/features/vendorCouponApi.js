@@ -1,10 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+
 // Define a service using a base URL and expected endpoints
 export const vendorCouponApi = createApi({
   reducerPath: 'vendorCouponApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://127.0.0.1:8001/api/v1/',
+    baseUrl: PROPERTIES_API_URL,
     // Prepare headers to include the authentication token
     prepareHeaders: (headers, { getState }) => {
       // Assumes the token is stored in an 'auth' slice of your Redux store
@@ -20,7 +22,7 @@ export const vendorCouponApi = createApi({
   endpoints: (builder) => ({
     // Endpoint for listing all vendor coupons
     getCoupons: builder.query({
-      query: () => 'vendors/coupons/',
+      query: () => '/vendors/coupons/',
       // Provides a 'Coupon' tag to the cached data.
       // This allows us to invalidate this cache when a new coupon is added.
       providesTags: (result) =>
@@ -35,7 +37,7 @@ export const vendorCouponApi = createApi({
     // Endpoint for adding a new vendor coupon
     addCoupon: builder.mutation({
       query: (newCoupon) => ({
-        url: 'vendors/coupons/',
+        url: '/vendors/coupons/',
         method: 'POST',
         body: newCoupon,
       }),

@@ -1,10 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
+const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+
 // Define a service using a base URL and expected endpoints
 export const vendorServiceApi = createApi({
     reducerPath: "vendorServiceApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: "http://127.0.0.1:8001/api/v1/",
+        baseUrl: PROPERTIES_API_URL,
         // Prepare headers to include the authentication token
         prepareHeaders: (headers, { getState }) => {
             const token = getState().auth.token; // Assuming your token is stored in the auth slice
@@ -19,7 +21,7 @@ export const vendorServiceApi = createApi({
     endpoints: (builder) => ({
         // Endpoint for listing all vendor services
         getServices: builder.query({
-            query: () => "vendors/services/",
+            query: () => "/vendors/services/",
             // Provides a 'Service' tag to the cached data
             providesTags: (result) =>
                 result
@@ -33,7 +35,7 @@ export const vendorServiceApi = createApi({
         // Endpoint for adding a new vendor service
         addService: builder.mutation({
             query: (newService) => ({
-                url: "vendors/services/",
+                url: "/vendors/services/",
                 method: "POST",
                 body: newService,
             }),
@@ -43,7 +45,7 @@ export const vendorServiceApi = createApi({
 
         // Endpoint for listing the logged-in user's vendor services
         getMyServices: builder.query({
-            query: () => "vendors/services/my",
+            query: () => "/vendors/services/my",
             // Provides a 'Service' tag to the cached data for the logged-in user
             providesTags: (result) =>
                 result

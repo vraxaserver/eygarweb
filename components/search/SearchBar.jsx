@@ -50,6 +50,12 @@ const SearchBar = () => {
 
     const totalGuests = adults + children;
 
+    const {data: categoriess, isLoading, error} = useGetCategoriesQuery()
+    
+    if(categoriess) {
+        setCategoryList(categoriess);
+    } 
+
     // Fetch amenities from API
     useEffect(() => {
         const fetchAmenities = async () => {
@@ -72,26 +78,27 @@ const SearchBar = () => {
         fetchAmenities();
     }, []);
 
-    useEffect(() => {
+    // useEffect(() => {
 
-        const fetchCategories = async () => {
-            try {
-                const response = await fetch(`${PROPERTIES_API_URL}/categories`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setCategoryList(data);
-                } else {
-                    console.error('Failed to fetch amenities');
-                }
-            } catch (error) {
-                console.error('Error fetching amenities:', error);
-            }                       
+    //     const fetchCategories = async () => {
+    //         // try {
+    //         //     const response = await fetch(`${PROPERTIES_API_URL}/categories`);
+    //         //     if (response.ok) {
+    //         //         const data = await response.json();
+    //         //         setCategoryList(data);
+    //         //     } else {
+    //         //         console.error('Failed to fetch amenities');
+    //         //     }
+    //         // } catch (error) {
+    //         //     console.error('Error fetching amenities:', error);
+    //         // } 
+                          
             
-        };
+    //     };
 
-        fetchCategories();
+    //     fetchCategories();
 
-    }, []);
+    // }, []);
 
     const handleSearch = () => {
         // Update Redux state with search query

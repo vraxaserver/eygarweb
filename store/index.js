@@ -10,6 +10,7 @@ import { categoryApi } from '@/store/features/categoryApi';
 import { experiencesApi } from "@/store/features/experienceApi";
 import { vendorProfileApi } from "@/store/features/vendorProfileApi";
 import { vendorServiceApi } from "./features/vendorServiceApi";
+import { vendorCouponApi } from "./features/vendorCouponApi";
 
 
 export const store = configureStore({
@@ -23,7 +24,8 @@ export const store = configureStore({
         [categoryApi.reducerPath]: categoryApi.reducer,
         [experiencesApi.reducerPath]: experiencesApi.reducer,
         [vendorProfileApi.reducerPath]: vendorProfileApi.reducer,
-        [vendorServiceApi.reducerPath]: vendorServiceApi.reducer
+        [vendorServiceApi.reducerPath]: vendorServiceApi.reducer,
+        [vendorCouponApi.reducerPath]: vendorCouponApi.reducer
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -37,7 +39,8 @@ export const store = configureStore({
             categoryApi.middleware,
             experiencesApi.middleware,
             vendorProfileApi.middleware,
-            vendorServiceApi.middleware
+            vendorServiceApi.middleware,
+            vendorCouponApi.middleware
         ),
     devTools: process.env.NODE_ENV !== 'production',
 });

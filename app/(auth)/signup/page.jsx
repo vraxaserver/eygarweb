@@ -98,7 +98,7 @@ const SignupPage = () => {
             router.push("/login");
             
         } catch (error) {
-            console.error("Signup error:", error);
+            console.log("Signup error:", error);
             
             // Handle different types of errors
             if (error?.data?.errors) {

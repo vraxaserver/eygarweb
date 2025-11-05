@@ -8,7 +8,7 @@ import { ServiceForm } from "./ServiceForm";
 import Image from "next/image";
 import {
     useAddServiceMutation,
-    useGetServicesQuery,
+    useGetMyServicesQuery,
 } from "@/store/features/vendorServiceApi";
 import { toast } from "sonner";
 
@@ -19,9 +19,8 @@ export const ServicesTab = ({ activeUser }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    const { data: services, isLoading, error } = useGetServicesQuery();
-    const [addService, { isLoading: isLoadingAddService }] =
-        useAddServiceMutation();
+    const { data: services, isLoading, error } = useGetMyServicesQuery();
+    const [addService, { isLoading: isLoadingAddService }] = useAddServiceMutation();
 
     if (isLoading) {
         return <h1>Loading...</h1>;

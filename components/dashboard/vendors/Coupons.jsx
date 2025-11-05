@@ -5,130 +5,38 @@ import { Plus, Search, Edit, Trash2, Tag, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CouponForm } from "./CouponForm";
-
-const mockServices = [
-    {
-        id: "service-1",
-        vendorId: "vendor-1",
-        vendorName: "Chef Maria",
-        title: "Authentic Italian Cooking Class",
-        description:
-            "Learn to make fresh pasta and traditional Italian dishes from scratch. Includes all ingredients and wine pairing.",
-        category: "Food",
-        duration: 3,
-        allowedGuests: 6,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 5,
-        },
-        images: [
-            "https://images.pexels.com/photos/4253320/pexels-photo-4253320.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-            "https://images.pexels.com/photos/4253302/pexels-photo-4253302.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
-        isActive: true,
-        price: 120,
-        rating: 4.8,
-        reviewCount: 34,
-        createdAt: "2025-01-10T10:00:00Z",
-    },
-    {
-        id: "service-2",
-        vendorId: "vendor-2",
-        vendorName: "Alex Tours",
-        title: "Historical City Walking Tour",
-        description:
-            "Discover hidden gems and fascinating stories of the city with a local expert guide. Small groups for personalized experience.",
-        category: "Local Guide",
-        duration: 4,
-        allowedGuests: 8,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 10,
-        },
-        images: [
-            "https://images.pexels.com/photos/1141853/pexels-photo-1141853.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-            "https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
-        isActive: true,
-        price: 45,
-        rating: 4.9,
-        reviewCount: 127,
-        createdAt: "2025-01-08T14:30:00Z",
-    },
-    {
-        id: "service-3",
-        vendorId: "vendor-1",
-        vendorName: "Chef Maria",
-        title: "Premium Breakfast Delivery",
-        description:
-            "Fresh, gourmet breakfast delivered to your property. Includes artisanal pastries, fresh fruit, and premium coffee.",
-        category: "Food",
-        duration: 1,
-        allowedGuests: 4,
-        serviceArea: {
-            lat: 40.7589,
-            lng: -73.9851,
-            radius: 3,
-        },
-        images: [
-            "https://images.pexels.com/photos/103124/pexels-photo-103124.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop",
-        ],
-        isActive: true,
-        price: 35,
-        rating: 4.6,
-        reviewCount: 89,
-        createdAt: "2025-01-12T08:00:00Z",
-    },
-];
-
-const mockCoupons = [
-    {
-        id: "coupon-1",
-        serviceId: "service-1",
-        code: "COOK20",
-        discountPercent: 20,
-        validFrom: "2025-01-15T00:00:00Z",
-        validTo: "2025-01-30T23:59:59Z",
-        usageLimit: 50,
-        usedCount: 12,
-        isActive: true,
-        createdAt: "2025-01-10T10:00:00Z",
-    },
-    {
-        id: "coupon-2",
-        serviceId: "service-2",
-        code: "EXPLORE15",
-        discountPercent: 15,
-        validFrom: "2025-01-01T00:00:00Z",
-        validTo: "2025-03-31T23:59:59Z",
-        usageLimit: 100,
-        usedCount: 23,
-        isActive: true,
-        createdAt: "2025-01-08T14:30:00Z",
-    },
-    {
-        id: "coupon-3",
-        serviceId: "service-3",
-        code: "BREAKFAST10",
-        discountPercent: 10,
-        validFrom: "2025-01-15T00:00:00Z",
-        validTo: "2025-02-15T23:59:59Z",
-        usageLimit: 30,
-        usedCount: 8,
-        isActive: true,
-        createdAt: "2025-01-12T08:00:00Z",
-    },
-];
+import {
+    useAddCouponMutation,
+    useGetCouponsQuery,
+} from "@/store/features/vendorCouponApi";
+import { useGetServicesQuery } from "@/store/features/vendorServiceApi";
+import { toast } from "sonner";
 
 export const CouponsTab = () => {
-    const [coupons, setCoupons] = useState(mockCoupons);
-    const [services] = useState(mockServices);
+    const [editCoupons, setEditCoupons] = useState([]);
+    // const [services] = useState(mockServices);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCoupon, setEditingCoupon] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+
+    const [addCoupon, { isLoading: isLoadingAddCoupon }] =
+        useAddCouponMutation();
+
+    const {
+        data: services,
+        isLoading: isLoadingService,
+        error: errorService,
+    } = useGetServicesQuery();
+
+    const { data: coupons, isLoading, error } = useGetCouponsQuery();
+
+    if (isLoading) {
+        return <h1>Loading coupons...</h1>;
+    }
+
+    console.log("coupons: ", coupons);
+    console.log("services: ", services);
 
     const now = new Date();
     const filteredCoupons = coupons.filter((coupon) => {
@@ -154,12 +62,12 @@ export const CouponsTab = () => {
     };
 
     const handleDeleteCoupon = (couponId) => {
-        setCoupons((prev) => prev.filter((c) => c.id !== couponId));
+        setEditCoupons((prev) => prev.filter((c) => c.id !== couponId));
     };
 
-    const handleSubmitCoupon = (data) => {
+    const handleSubmitCoupon = async (data) => {
         if (editingCoupon) {
-            setCoupons((prev) =>
+            setEditCoupons((prev) =>
                 prev.map((c) =>
                     c.id === editingCoupon.id ? { ...c, ...data } : c
                 )
@@ -171,11 +79,28 @@ export const CouponsTab = () => {
                 createdAt: new Date().toISOString(),
                 ...data,
             };
-            setCoupons((prev) => [newCoupon, ...prev]);
-            console.log("New Coupon data =================")
-            console.log(newCoupon)
-        }
 
+            console.log("New Coupon data =================");
+            console.log(newCoupon);
+            const toastId = toast.loading('Adding coupon...');
+
+            try {
+                // Call the mutation with the new coupon data
+                await addCoupon(newCoupon).unwrap();
+
+                toast.success("Coupon added successfully!", { id: toastId });
+
+                
+            } catch (err) {
+                // Handle potential errors from the API
+                const errorMessage =
+                    err.data?.message ||
+                    "Failed to add coupon. Please try again.";
+                toast.error(errorMessage, { id: toastId });
+                console.error("Failed to add coupon:", err);
+            }
+            setIsFormOpen(false);
+        }
     };
 
     const getServiceTitle = (serviceId) => {
@@ -241,7 +166,7 @@ export const CouponsTab = () => {
 
                 {/* Coupons Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredCoupons.map((coupon) => {
+                    {coupons.map((coupon) => {
                         const expired = isExpired(coupon.validTo);
                         const usagePercent =
                             (coupon.usedCount / coupon.usageLimit) * 100;
@@ -287,7 +212,8 @@ export const CouponsTab = () => {
                                     {/* Discount */}
                                     <div className="text-center mb-4">
                                         <span className="text-3xl font-bold text-emerald-600">
-                                            {coupon.discountPercent}%
+                                            {coupon.discountValue}
+                                            {coupon.discountType === "percentage" && " %"}
                                         </span>
                                         <span className="text-gray-600 ml-1">
                                             OFF
@@ -368,7 +294,7 @@ export const CouponsTab = () => {
                     })}
                 </div>
 
-                {filteredCoupons.length === 0 && (
+                {coupons.length === 0 && (
                     <div className="text-center py-12">
                         <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Tag className="w-8 h-8 text-gray-400" />

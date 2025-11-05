@@ -49,7 +49,7 @@ export default function UserSettingsPage() {
         if (user) {
             setFirstName(user.first_name || "");
             setLastName(user.last_name || "");
-            setAvatarPreview(user.avatar || "");
+            setAvatarPreview(user.avatar_url || "");
         }
     }, [user]);
 

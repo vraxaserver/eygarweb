@@ -1,11 +1,10 @@
 "use client";
-import { Globe, Menu, User } from "lucide-react";
+import { Globe, Menu, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-
 import { useSelector, useDispatch } from "react-redux";
 import {
     selectIsAuthenticated,
@@ -14,15 +13,7 @@ import {
     updateRole
 } from "@/store/slices/authSlice";
 import { useLogoutUserMutation } from "@/store/features/authApi";
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLanguage, useTranslation } from "@/lib/i18n";
 
 export default function Header() {
@@ -31,8 +22,8 @@ export default function Header() {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const currentUser = useSelector(selectCurrentUser);
     const role = useSelector(selectCurrentRole);
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [logoutUser] = useLogoutUserMutation();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const { language, changeLanguage } = useLanguage();
     const { t } = useTranslation();
@@ -41,46 +32,25 @@ export default function Header() {
         try {
             await logoutUser().unwrap();
         } catch (error) {
-            // Even if the API call fails, we still logout locally
             console.error("Logout error:", error);
         } finally {
-            // dispatch(logout());
-            setShowUserMenu(false);
+            setIsMobileMenuOpen(false);
             router.push("/");
         }
     };
 
-    const handleLogin = () => {
-        router.push("/login");
+    const handleLanguageChange = (lang) => {
+        changeLanguage(lang);
     };
 
-    const handleSignup = () => {
-        router.push("/signup");
-    };
-
-    const goToDashboard = () => {
-        setShowUserMenu(false);
-        router.push("/dashboard");
-    }
-
-    const becomeAVendor = () => {
-        setShowUserMenu(false);
-        router.push("/become-a-vendor");
-    }
-
+    const handleLogin = () => router.push("/login");
+    const handleSignup = () => router.push("/signup");
+    const goToDashboard = () => router.push("/dashboard");
+    const goToSettings = () => router.push("/settings");
+    const becomeAVendor = () => router.push("/become-a-vendor");
     const SwitchToTraveller = () => {
-        setShowUserMenu(false);
         dispatch(updateRole("guest"));
         router.push("/");
-    }
-
-    const goToSettings = () => {
-        setShowUserMenu(false);
-        router.push("/settings");
-    }
-
-    const handleLanguageChange = (newLanguage) => {
-        changeLanguage(newLanguage);
     };
 
     return (
@@ -92,7 +62,7 @@ export default function Header() {
                         <Link href="/">
                             <Image
                                 src="/images/logo.png"
-                                alt={"EYGAR Logo"}
+                                alt="EYGAR Logo"
                                 width={120}
                                 height={40}
                                 className="h-8 w-auto"
@@ -101,58 +71,36 @@ export default function Header() {
                         </Link>
                     </div>
 
-                    {/* Navigation - Desktop */}
-                    <nav className="hidden md:flex items-center space-x-8">
-                        <Link
-                            href="/properties"
-                            className="text-foreground hover:text-primary"
-                        >
-                            Places to Stay "{role}"
-                        </Link>
-                    </nav>
-
-                    {/* Right side controls */}
-                    <div className="flex items-center space-x-4">
+                    {/* Desktop Right Controls */}
+                    <div className="hidden md:flex items-center space-x-4">
                         {role !== "host" && (
-                            <Link
-                                href="/become-a-host"
-                                className="text-foreground hover:text-primary"
-                            >
+                            <Link href="/become-a-host" className="text-foreground hover:text-primary">
                                 {t("nav.becomeHost")}
                             </Link>
                         )}
 
                         {role === "host" && (
-                            <Link
-                                href="/"
-                                className="text-foreground hover:text-primary"
+                            <button
                                 onClick={SwitchToTraveller}
+                                className="text-foreground hover:text-primary"
                             >
                                 Switch to Traveller
-                            </Link>
+                            </button>
                         )}
 
                         {/* Language selector */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="hidden sm:flex"
-                                >
+                                <Button variant="ghost" size="sm" className="flex items-center">
                                     <Globe className="h-4 w-4 mr-2" />
                                     {language === "ar" ? "ع" : "EN"}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem
-                                    onClick={() => handleLanguageChange("en")}
-                                >
+                                <DropdownMenuItem onClick={() => handleLanguageChange("en")}>
                                     English
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleLanguageChange("ar")}
-                                >
+                                <DropdownMenuItem onClick={() => handleLanguageChange("ar")}>
                                     العربية
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -161,88 +109,126 @@ export default function Header() {
                         {/* User menu */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center space-x-2 bg-transparent"
-                                >
+                                <Button variant="outline" size="sm" className="flex items-center space-x-2">
                                     <Menu className="h-4 w-4" />
                                     <User className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                                <>
-                                    {!isAuthenticated ? (
-                                        <>
-                                            <DropdownMenuItem
-                                                onClick={handleSignup}
-                                            >
-                                                Signup
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={handleLogin}
-                                            >
-                                                Login
-                                            </DropdownMenuItem>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="p-2 bg-gray-400">
-                                                {currentUser?.email}
-                                            </p>
-                                            <DropdownMenuItem>
-                                                <Link href="/bookings">
-                                                    My Bookings
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <button onClick={goToDashboard}>
-                                                    Dashboard
-                                                </button>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <button onClick={goToSettings}>
-                                                    Settings
-                                                </button>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <button onClick={becomeAVendor}>
-                                                    Become A Vendor
-                                                </button>
-                                            </DropdownMenuItem>
-
-                                            <DropdownMenuItem
-                                                onClick={handleLogout}
-                                            >
-                                                Logout
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                    <DropdownMenuSeparator />
-                                    {role !== "host" && (
-                                        <DropdownMenuItem>
-                                            <Link href="/become-a-host">
-                                                Become a host
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )}
-
-                                    {role !== "vendor" && (
-                                        <DropdownMenuItem>
-                                            <Link href="/become-a-vendor">
-                                                Become a vendor
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem>Help</DropdownMenuItem>
-                                </>
+                                {!isAuthenticated ? (
+                                    <>
+                                        <DropdownMenuItem onClick={handleSignup}>Signup</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleLogin}>Login</DropdownMenuItem>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="p-2 text-sm text-gray-600">{currentUser?.email}</p>
+                                        <DropdownMenuItem onClick={goToDashboard}>Dashboard</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={goToSettings}>Settings</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={becomeAVendor}>Become A Vendor</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                                    </>
+                                )}
+                                <DropdownMenuItem>Help</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
+
+                    {/* Mobile Menu Button */}
+                    <div className="flex md:hidden">
+                        <Button variant="outline" size="sm" onClick={() => setIsMobileMenuOpen(true)}>
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
             </div>
+
+            {/* Mobile Slide-in Menu */}
+            {isMobileMenuOpen && (
+                <>
+                    <div
+                        className="fixed inset-0 bg-black/50 z-40"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    ></div>
+
+                    <div className="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-50 transform animate-slide-in">
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <Image src="/images/logo.png" alt="EYGAR Logo" width={100} height={32} />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <nav className="flex flex-col p-4 space-y-3">
+                            {!isAuthenticated ? (
+                                <>
+                                    <button onClick={handleSignup} className="text-left w-full py-2">
+                                        Signup
+                                    </button>
+                                    <button onClick={handleLogin} className="text-left w-full py-2">
+                                        Login
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-sm text-gray-600 mb-2">{currentUser?.email}</span>
+                                    <button onClick={goToDashboard} className="text-left w-full py-2">
+                                        Dashboard
+                                    </button>
+                                    <button onClick={goToSettings} className="text-left w-full py-2">
+                                        Settings
+                                    </button>
+                                    <button onClick={becomeAVendor} className="text-left w-full py-2">
+                                        Become A Vendor
+                                    </button>
+                                    <button onClick={handleLogout} className="text-left w-full py-2">
+                                        Logout
+                                    </button>
+                                </>
+                            )}
+
+                            {role === "host" ? (
+                                <button onClick={SwitchToTraveller} className="text-left w-full py-2">
+                                    Switch to Traveller
+                                </button>
+                            ) : (
+                                <Link href="/become-a-host" className="py-2">
+                                    Become a Host
+                                </Link>
+                            )}
+
+                            <button
+                                onClick={() =>
+                                    handleLanguageChange(language === "en" ? "ar" : "en")
+                                }
+                                className="flex items-center gap-2 py-2"
+                            >
+                                <Globe className="h-4 w-4" />
+                                {language === "ar" ? "English" : "العربية"}
+                            </button>
+
+                            <Link href="/help" className="py-2">
+                                Help
+                            </Link>
+                        </nav>
+                    </div>
+                </>
+            )}
         </header>
     );
 }
+
+/* Tailwind animation */
+<style jsx global>{`
+@keyframes slide-in {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out forwards;
+}
+`}</style>

@@ -13,7 +13,7 @@ import {
     updateRole
 } from "@/store/slices/authSlice";
 import { useLogoutUserMutation } from "@/store/features/authApi";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLanguage, useTranslation } from "@/lib/i18n";
 
 export default function Header() {
@@ -122,13 +122,30 @@ export default function Header() {
                                     </>
                                 ) : (
                                     <>
-                                        <p className="p-2 text-sm text-gray-600">{currentUser?.email}</p>
+                                        <p className="p-2 text-sm text-gray-600 bg-purple-500 text-white py-2">{currentUser?.email}</p>
                                         <DropdownMenuItem onClick={goToDashboard}>Dashboard</DropdownMenuItem>
                                         <DropdownMenuItem onClick={goToSettings}>Settings</DropdownMenuItem>
                                         <DropdownMenuItem onClick={becomeAVendor}>Become A Vendor</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                                     </>
                                 )}
+                                <DropdownMenuSeparator />
+                                {role !== "host" && (
+                                        <DropdownMenuItem>
+                                            <Link href="/become-a-host">
+                                                Become a host
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
+
+                                    {role !== "vendor" && (
+                                        <DropdownMenuItem>
+                                            <Link href="/become-a-vendor">
+                                                Become a vendor
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
+                                  <DropdownMenuSeparator />
                                 <DropdownMenuItem>Help</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

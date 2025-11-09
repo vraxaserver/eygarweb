@@ -32,6 +32,7 @@ export const useTranslation = () => {
     const translations = {
         en: {
             // Navigation
+            "nav.home": "Home",
             "nav.placesToStay": "Places to stay",
             "nav.complimentary_activities": "Complimentary Activities",
             "nav.stays": "Stays+",
@@ -139,6 +140,7 @@ export const useTranslation = () => {
         },
         ar: {
             // Navigation
+            "nav.home": "وطن",
             "nav.placesToStay": "أماكن الإقامة",
             "nav.complimentary_activities": "الأنشطة المجانية",
             "nav.stays": "إقامات +",

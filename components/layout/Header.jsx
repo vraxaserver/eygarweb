@@ -6,14 +6,23 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useSelector, useDispatch } from "react-redux";
+import { Home, Building2 } from "lucide-react"; // example icons
+import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import {
     selectIsAuthenticated,
     selectCurrentUser,
     selectCurrentRole,
-    updateRole
+    updateRole,
 } from "@/store/slices/authSlice";
 import { useLogoutUserMutation } from "@/store/features/authApi";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLanguage, useTranslation } from "@/lib/i18n";
 
 export default function Header() {
@@ -27,6 +36,17 @@ export default function Header() {
 
     const { language, changeLanguage } = useLanguage();
     const { t } = useTranslation();
+
+    const pathname = usePathname();
+
+    const links = [
+        { href: "/", label: t("nav.home"), icon: <Home size={18} /> },
+        {
+            href: "/properties",
+            label: t("nav.placesToStay"),
+            icon: <Building2 size={18} />,
+        },
+    ];
 
     const handleLogout = async () => {
         try {
@@ -70,17 +90,43 @@ export default function Header() {
                             />
                         </Link>
                     </div>
-                    <div className="hidden md:flex">
-                        <Link href="/properties" className="text-foreground hover:text-primary">
-                            {t("nav.placesToStay")}
-                        </Link>
+                    <div className="hidden md:flex space-x-6">
+                        {links.map(({ href, label, icon }) => {
+                            const isActive = pathname === href;
+
+                            return (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    className={`relative flex items-center gap-2 pb-1 transition-all ${
+                                        isActive
+                                            ? "text-primary font-semibold border-b-2 border-primary"
+                                            : "text-foreground hover:text-primary"
+                                    }`}
+                                >
+                                    <motion.span
+                                        initial={{ rotate: 0 }}
+                                        whileHover={{ rotate: 10 }}
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 300,
+                                        }}
+                                        className="text-primary"
+                                    >
+                                        {icon}
+                                    </motion.span>
+                                    <span>{label}</span>
+                                </Link>
+                            );
+                        })}
                     </div>
                     {/* Desktop Right Controls */}
                     <div className="hidden md:flex items-center space-x-4">
-                        
-                        
                         {role !== "host" && (
-                            <Link href="/become-a-host" className="text-foreground hover:text-primary">
+                            <Link
+                                href="/become-a-host"
+                                className="text-foreground hover:text-primary"
+                            >
                                 {t("nav.becomeHost")}
                             </Link>
                         )}
@@ -97,16 +143,24 @@ export default function Header() {
                         {/* Language selector */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="flex items-center">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex items-center"
+                                >
                                     <Globe className="h-4 w-4 mr-2" />
                                     {language === "ar" ? "ع" : "EN"}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => handleLanguageChange("en")}>
+                                <DropdownMenuItem
+                                    onClick={() => handleLanguageChange("en")}
+                                >
                                     English
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleLanguageChange("ar")}>
+                                <DropdownMenuItem
+                                    onClick={() => handleLanguageChange("ar")}
+                                >
                                     العربية
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -115,7 +169,11 @@ export default function Header() {
                         {/* User menu */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center space-x-2"
+                                >
                                     <Menu className="h-4 w-4" />
                                     <User className="h-4 w-4" />
                                 </Button>
@@ -123,35 +181,59 @@ export default function Header() {
                             <DropdownMenuContent align="end" className="w-56">
                                 {!isAuthenticated ? (
                                     <>
-                                        <DropdownMenuItem onClick={handleSignup}>Signup</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleLogin}>Login</DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={handleSignup}
+                                        >
+                                            Signup
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={handleLogin}>
+                                            Login
+                                        </DropdownMenuItem>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="p-2 text-sm text-gray-600 bg-purple-500 text-white py-2">{currentUser?.email}</p>
-                                        <DropdownMenuItem onClick={goToDashboard}>Dashboard</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={goToSettings}>Settings</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={becomeAVendor}>Become A Vendor</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                                        <p className="p-2 text-sm text-gray-600 bg-purple-500 text-white py-2">
+                                            {currentUser?.email}
+                                        </p>
+                                        <DropdownMenuItem
+                                            onClick={goToDashboard}
+                                        >
+                                            Dashboard
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={goToSettings}
+                                        >
+                                            Settings
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={becomeAVendor}
+                                        >
+                                            Become A Vendor
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={handleLogout}
+                                        >
+                                            Logout
+                                        </DropdownMenuItem>
                                     </>
                                 )}
                                 <DropdownMenuSeparator />
                                 {role !== "host" && (
-                                        <DropdownMenuItem>
-                                            <Link href="/become-a-host">
-                                                Become a host
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )}
+                                    <DropdownMenuItem>
+                                        <Link href="/become-a-host">
+                                            Become a host
+                                        </Link>
+                                    </DropdownMenuItem>
+                                )}
 
-                                    {role !== "vendor" && (
-                                        <DropdownMenuItem>
-                                            <Link href="/become-a-vendor">
-                                                Become a vendor
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )}
-                                  <DropdownMenuSeparator />
+                                {role !== "vendor" && (
+                                    <DropdownMenuItem>
+                                        <Link href="/become-a-vendor">
+                                            Become a vendor
+                                        </Link>
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem>Help</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -159,7 +241,11 @@ export default function Header() {
 
                     {/* Mobile Menu Button */}
                     <div className="flex md:hidden">
-                        <Button variant="outline" size="sm" onClick={() => setIsMobileMenuOpen(true)}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsMobileMenuOpen(true)}
+                        >
                             <Menu className="h-5 w-5" />
                         </Button>
                     </div>
@@ -176,7 +262,12 @@ export default function Header() {
 
                     <div className="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-50 transform animate-slide-in">
                         <div className="flex items-center justify-between p-4 border-b">
-                            <Image src="/images/logo.png" alt="EYGAR Logo" width={100} height={32} />
+                            <Image
+                                src="/images/logo.png"
+                                alt="EYGAR Logo"
+                                width={100}
+                                height={32}
+                            />
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -189,38 +280,61 @@ export default function Header() {
                         <nav className="flex flex-col p-4 space-y-3">
                             {!isAuthenticated ? (
                                 <>
-                                    <button onClick={handleSignup} className="text-left w-full py-2">
+                                    <button
+                                        onClick={handleSignup}
+                                        className="text-left w-full py-2"
+                                    >
                                         Signup
                                     </button>
-                                    <button onClick={handleLogin} className="text-left w-full py-2">
+                                    <button
+                                        onClick={handleLogin}
+                                        className="text-left w-full py-2"
+                                    >
                                         Login
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-sm text-gray-600 mb-2">{currentUser?.email}</span>
-                                    <button onClick={goToDashboard} className="text-left w-full py-2">
+                                    <span className="text-sm text-gray-600 mb-2">
+                                        {currentUser?.email}
+                                    </span>
+                                    <button
+                                        onClick={goToDashboard}
+                                        className="text-left w-full py-2"
+                                    >
                                         Dashboard
                                     </button>
-                                    <button onClick={goToSettings} className="text-left w-full py-2">
+                                    <button
+                                        onClick={goToSettings}
+                                        className="text-left w-full py-2"
+                                    >
                                         Settings
                                     </button>
-                                    <button onClick={becomeAVendor} className="text-left w-full py-2">
+                                    <button
+                                        onClick={becomeAVendor}
+                                        className="text-left w-full py-2"
+                                    >
                                         Become A Vendor
                                     </button>
-                                    <button onClick={handleLogout} className="text-left w-full py-2">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="text-left w-full py-2"
+                                    >
                                         Logout
                                     </button>
                                 </>
                             )}
-                            <hr/>
+                            <hr />
 
                             <Link href="/properties" className="py-2">
                                 {t("nav.placesToStay")}
                             </Link>
 
                             {role === "host" ? (
-                                <button onClick={SwitchToTraveller} className="text-left w-full py-2">
+                                <button
+                                    onClick={SwitchToTraveller}
+                                    className="text-left w-full py-2"
+                                >
                                     Switch to Traveller
                                 </button>
                             ) : (
@@ -231,7 +345,9 @@ export default function Header() {
 
                             <button
                                 onClick={() =>
-                                    handleLanguageChange(language === "en" ? "ar" : "en")
+                                    handleLanguageChange(
+                                        language === "en" ? "ar" : "en"
+                                    )
                                 }
                                 className="flex items-center gap-2 py-2"
                             >
@@ -252,11 +368,15 @@ export default function Header() {
 
 /* Tailwind animation */
 <style jsx global>{`
-@keyframes slide-in {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
-}
-.animate-slide-in {
-    animation: slide-in 0.3s ease-out forwards;
-}
-`}</style>
+    @keyframes slide-in {
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+    .animate-slide-in {
+        animation: slide-in 0.3s ease-out forwards;
+    }
+`}</style>;

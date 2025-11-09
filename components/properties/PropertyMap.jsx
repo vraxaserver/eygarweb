@@ -4,6 +4,8 @@
 import { GoogleMap, useJsApiLoader, OverlayView, InfoWindow } from '@react-google-maps/api';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useGoogleMaps } from '@/providers/GoogleMapsProvider';
+
 
 
 const mapContainerStyle = {
@@ -21,10 +23,7 @@ export default function PropertyMap({properties}) {
   const [hoveredId, setHoveredId] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const handlePropertyClick = (property) => {
     setSelectedProperty(property);

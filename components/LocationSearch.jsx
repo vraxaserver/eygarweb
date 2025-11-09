@@ -2,8 +2,9 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import useGoogleMapsScript from '@/hooks/useGoogleMapsScript'; // Adjust path
+// import useGoogleMapsScript from '@/hooks/useGoogleMapsScript'; // Adjust path
 import { setLocation } from '@/store/slices/searchSlice';
+import { useGoogleMaps } from '@/providers/GoogleMapsProvider';
 
 
 // Helper function from the previous answer
@@ -42,11 +43,11 @@ const LocationSearch = () => {
   const inputRef = useRef(null);
 
   // Check if the Google Maps script is loaded
-  const isScriptLoaded = useGoogleMapsScript();
+  const { isLoaded } = useGoogleMaps();
 
   useEffect(() => {
     // 1. Ensure the script is loaded AND the input ref is available
-    if (isScriptLoaded && inputRef.current) {
+    if (isLoaded && inputRef.current) {
       // Ensure the 'google.maps.places' object is available
       if (!window.google || !window.google.maps || !window.google.maps.places) {
         console.error("Google Places library is not available.");
@@ -94,9 +95,9 @@ const LocationSearch = () => {
         // a more sophisticated wrapper library like `@react-google-maps/api`.
       };
     }
-  }, [isScriptLoaded]); // Re-run effect when the script status changes
+  }, [isLoaded]); // Re-run effect when the script status changes
 
-  if (!isScriptLoaded) {
+  if (!isLoaded) {
     return <div>Loading map services...</div>;
   }
 

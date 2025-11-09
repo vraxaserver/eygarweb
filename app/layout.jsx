@@ -2,9 +2,10 @@ import { Montserrat, Roboto, Noto_Sans_Arabic } from "next/font/google";
 import ReduxProvider from "@/providers/ReduxProvider";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
-import { Toaster } from 'sonner';
+import { Toaster } from "sonner";
 import "@/styles/globals.css";
 import LocationFetcher from "@/components/LocationFetcher";
+import { GoogleMapsProvider } from "@/providers/GoogleMapsProvider";
 
 const montserrat = Montserrat({
     subsets: ["latin"],
@@ -40,17 +41,19 @@ export default function RootLayout({ children }) {
         >
             <body>
                 <ReduxProvider>
-                    <div className="min-h-screen">
-                        <Toaster position="top-right" richColors />
-                        <LocationFetcher /> 
-                        <Header />
-                        
-                        {/* Main Content */}
-                        {children}
+                    <GoogleMapsProvider>
+                        <div className="min-h-screen">
+                            <Toaster position="top-right" richColors />
+                            <LocationFetcher />
+                            <Header />
 
-                        {/* Footer */}
-                        <Footer />
-                    </div>
+                            {/* Main Content */}
+                            {children}
+
+                            {/* Footer */}
+                            <Footer />
+                        </div>
+                    </GoogleMapsProvider>
                 </ReduxProvider>
             </body>
         </html>

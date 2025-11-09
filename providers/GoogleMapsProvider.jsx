@@ -1,15 +1,15 @@
 "use client";
-
+import React, { createContext, useContext } from "react";
 import { useJsApiLoader } from "@react-google-maps/api";
 
-// Combine all libraries you need here
-const libraries = ["places", "maps"];
+const GoogleMapsContext = createContext({ isLoaded: false });
 
 export const GoogleMapsProvider = ({ children }) => {
     const { isLoaded, loadError } = useJsApiLoader({
         id: "google-map-script",
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-        libraries,
+        libraries: ["places", "maps"], // keep this consistent app-wide
+        version: "weekly",
     });
 
     if (loadError) {
@@ -20,5 +20,13 @@ export const GoogleMapsProvider = ({ children }) => {
         return <div>Loading...</div>; // Or a spinner component
     }
 
-    return children;
+    return (
+        <GoogleMapsContext.Provider value={{ isLoaded }}>
+            {children}
+        </GoogleMapsContext.Provider>
+    );
 };
+
+export function useGoogleMaps() {
+    return useContext(GoogleMapsContext);
+}

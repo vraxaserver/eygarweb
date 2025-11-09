@@ -5,11 +5,10 @@ import Link from 'next/link'; // Import the Link component
 import { Loader2 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import FeaturedPropertyCard from "@/components/properties/FeaturedPropertyCard";
-import { useLanguage, useTranslation } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 import { useGetFeaturedPropertiesQuery } from "@/store/features/propertiesApi"
 
 const FeaturedSection = () => {
-    const { language } = useLanguage();
     const { t } = useTranslation();
     const { data: featuredProperties, isLoading, isError } = useGetFeaturedPropertiesQuery();
 

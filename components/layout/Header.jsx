@@ -70,9 +70,15 @@ export default function Header() {
                             />
                         </Link>
                     </div>
-
+                    <div>
+                        <Link href="/properties" className="text-foreground hover:text-primary">
+                            {t("nav.placesToStay")}
+                        </Link>
+                    </div>
                     {/* Desktop Right Controls */}
                     <div className="hidden md:flex items-center space-x-4">
+                        
+                        
                         {role !== "host" && (
                             <Link href="/become-a-host" className="text-foreground hover:text-primary">
                                 {t("nav.becomeHost")}

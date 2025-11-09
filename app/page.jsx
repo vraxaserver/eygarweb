@@ -6,11 +6,7 @@ import SafetyCertifiedHostsSection from "@/components/home/SafetyCertifiedHostsS
 import SearchBar from "@/components/search/SearchBar";
 
 
-import { mockExperiences } from "@/data/properties";
-
 export default function Home() {
-
-    const experiences = mockExperiences;
 
     return (
         <>

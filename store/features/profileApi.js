@@ -68,6 +68,12 @@ export const profileApi = createApi({
                 body: data, // Body is a JSON object with additional_notes, terms_accepted, privacy_policy_accepted
             }),
             invalidatesTags: ['Profile'],
+        }),
+        getHostProfile: builder.query({
+            query: (id) => ({
+                url: `/profiles/hosts/${id}`,
+                method: "GET",
+            })
         })
     }),
 });
@@ -79,5 +85,6 @@ export const {
     useVerifyIdentityMutation, 
     useVerifyContactMutation,
     useSubmitForReviewMutation,
-    useUpdateProfileMutation
+    useUpdateProfileMutation,
+    useGetHostProfileQuery
 } = profileApi;

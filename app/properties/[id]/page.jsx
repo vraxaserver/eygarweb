@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ImageGallery from "@/components/property/ImageGallery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,14 +37,13 @@ import {
     Gift,
 } from "lucide-react";
 
-
 import { LocalCoupons } from "@/components/property/LocalCoupons";
 import FreeExperiences from "@/components/property/FreeExperiences";
 
 import {
     mockCoupons,
-    mockExperiences,
 } from "@/data/properties";
+
 import Location from "@/components/property/Location";
 import MeetHost from "@/components/property/MeetHost";
 import Reviews from "@/components/property/Reviews";
@@ -53,8 +52,12 @@ import Amenities from "@/components/property/Amenities";
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '@/store/slices/authSlice';
 import { useRouter } from 'next/navigation';
+import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
 
-export default function PropertyDetails() {
+export default function PropertyDetails({ params }) {
+    const { id } = React.use(params);
+    const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
+
     const [checkInDate, setCheckInDate] = useState(undefined);
     const [checkOutDate, setCheckOutDate] = useState(undefined);
     const [adults, setAdults] = useState(1);
@@ -77,14 +80,14 @@ export default function PropertyDetails() {
     };
 
     const nights = calculateNights();
-    const pricePerNight = 67;
-    const cleaningFee = 25;
-    const serviceFee = 51;
+    const pricePerNight = property ? property.price_per_night / 100 : 0;
+    const cleaningFee = 25; // This can also be fetched from property data if available
+    const serviceFee = 51; // This can also be fetched from property data if available
     const subtotal = nights * pricePerNight;
     const totalBeforeTaxes = subtotal + cleaningFee + serviceFee;
 
     const totalGuests = adults + children;
-    const maxGuests = 4;
+    const maxGuests = property ? property.max_guests : 2;
 
     const formatDate = (date) => {
         if (!date) return "Add date";
@@ -94,6 +97,7 @@ export default function PropertyDetails() {
             year: "numeric",
         });
     };
+
     useEffect(() => {
         const handleScroll = () => {
             if (photoSectionRef.current) {
@@ -122,14 +126,7 @@ export default function PropertyDetails() {
         }
     };
 
-    const images = [
-        "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800",
-        "https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&cs=tinysrgb&w=400",
-        "https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=400",
-        "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=400",
-        "https://images.pexels.com/photos/1454804/pexels-photo-1454804.jpeg?auto=compress&cs=tinysrgb&w=400",
-    ];
-
+    // This is mock data, will be replaced if your API provides it.
     const amenities = [
         { icon: <Wifi className="w-6 h-6" />, name: "Wifi", available: true },
         {
@@ -161,48 +158,26 @@ export default function PropertyDetails() {
         },
     ];
 
-    const reviews = [
-        {
-            id: 1,
-            author: "Sarah",
-            avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100",
-            date: "October 2024",
-            rating: 5,
-            comment:
-                "Amazing stay! The location was perfect and the house was exactly as described. Would definitely recommend to anyone looking for a peaceful getaway.",
-        },
-        {
-            id: 2,
-            author: "Michael",
-            avatar: "https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=100",
-            date: "September 2024",
-            rating: 5,
-            comment:
-                "Great experience! The host was very responsive and the place was spotless. The kitchen was well-equipped and we loved the outdoor space.",
-        },
-        {
-            id: 3,
-            author: "Emma",
-            avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100",
-            date: "August 2024",
-            rating: 4,
-            comment:
-                "Beautiful property with stunning views. Only minor issue was the WiFi could be stronger in some areas, but overall a fantastic stay.",
-        },
-    ];
-
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const router = useRouter();
 
     const handleReserve = () => {
         if (isAuthenticated) {
             // Proceed to the actual checkout page
-            router.push(`/checkout/${property.id}`);
+            router.push(`/checkout/${id}`);
         } else {
             // Redirect to login, passing the current page as the 'from' param
-            router.push(`/login?from=/properties/1`);
+            router.push(`/login?from=/properties/${id}`);
         }
     };
+
+    if (isLoading) {
+        return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">Loading...</div>;
+    }
+
+    if (isError || !property) {
+        return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">Error loading property details.</div>;
+    }
 
     return (
         <div>
@@ -247,7 +222,7 @@ export default function PropertyDetails() {
                 <div className="mb-6">
                     <div className="flex justify-between items-start mb-2">
                         <h1 className="text-2xl font-semibold text-gray-900">
-                            Tiny home in Nokiiska, Georgia
+                            {property.title}
                         </h1>
                         <div className="flex items-center space-x-2">
                             <Button variant="ghost" size="sm">
@@ -264,47 +239,47 @@ export default function PropertyDetails() {
                         <div className="flex items-center">
                             <Star className="w-4 h-4 fill-current text-black mr-1" />
                             <span className="font-semibold text-black">
-                                4.98
+                                {property.average_rating.toFixed(2)}
                             </span>
                         </div>
                         <span>•</span>
-                        <button className="underline">54 reviews</button>
+                        <button className="underline">{property.total_reviews} reviews</button>
                         <span>•</span>
-                        <button className="underline">Nokiiska, Georgia</button>
+                        <button className="underline">{`${property.location.city}, ${property.location.country}`}</button>
                     </div>
                 </div>
 
                 {/* Image Gallery */}
-                <ImageGallery ref={photoSectionRef} images={images} />
+                <ImageGallery ref={photoSectionRef} images={property.images} />
 
                 {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
                     <div className="lg:col-span-2">
                         {/* Property Info */}
                         <div className="mb-8">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h2 className="text-xl font-semibold mb-2">
-                                        Tiny home hosted by Melanie
+                                        {`${property.property_type} hosted by ${property.host_name}`}
                                     </h2>
                                     <div className="flex items-center space-x-4 text-gray-600">
                                         <div className="flex items-center">
                                             <Users className="w-4 h-4 mr-1" />
-                                            <span>2 guests</span>
+                                            <span>{property.max_guests} guests</span>
                                         </div>
                                         <div className="flex items-center">
                                             <Bed className="w-4 h-4 mr-1" />
-                                            <span>1 bedroom</span>
+                                            <span>{property.bedrooms} bedroom{property.bedrooms !== 1 ? 's' : ''}</span>
                                         </div>
                                         <div className="flex items-center">
                                             <Bath className="w-4 h-4 mr-1" />
-                                            <span>1 bath</span>
+                                            <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <Avatar className="w-14 h-14">
-                                    <AvatarImage src="https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100" />
-                                    <AvatarFallback>MA</AvatarFallback>
+                                    <AvatarImage src={property.host_avatar || "https://github.com/shadcn.png"} />
+                                    <AvatarFallback>{property.host_name?.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                             </div>
                             <Separator className="mb-6" />
@@ -315,10 +290,10 @@ export default function PropertyDetails() {
                                     <Home className="w-6 h-6 mt-1" />
                                     <div>
                                         <h3 className="font-semibold">
-                                            Entire home
+                                            {property.place_type === 'entire_place' ? 'Entire home' : 'Private room'}
                                         </h3>
                                         <p className="text-gray-600">
-                                            You'll have the house to yourself
+                                            You'll have the {property.property_type} to yourself.
                                         </p>
                                     </div>
                                 </div>
@@ -329,8 +304,7 @@ export default function PropertyDetails() {
                                             Enhanced Clean
                                         </h3>
                                         <p className="text-gray-600">
-                                            This host committed to Airbnb's
-                                            5-step enhanced cleaning process
+                                            This host has committed to a 5-step enhanced cleaning process.
                                         </p>
                                     </div>
                                 </div>
@@ -341,7 +315,7 @@ export default function PropertyDetails() {
                                             Self check-in
                                         </h3>
                                         <p className="text-gray-600">
-                                            Check yourself in with the lockbox
+                                            Check yourself in with the lockbox.
                                         </p>
                                     </div>
                                 </div>
@@ -351,20 +325,7 @@ export default function PropertyDetails() {
                             {/* Description */}
                             <div className="mb-8">
                                 <p className="text-gray-700 leading-relaxed mb-4">
-                                    Our cozy tiny house is the perfect retreat
-                                    for couples or solo travelers looking for a
-                                    peaceful getaway. Nestled in the beautiful
-                                    Georgia countryside, this charming home
-                                    offers all the amenities you need for a
-                                    comfortable stay while being surrounded by
-                                    nature.
-                                </p>
-                                <p className="text-gray-700 leading-relaxed mb-4">
-                                    The space features a comfortable queen bed,
-                                    a fully equipped kitchenette, and a modern
-                                    bathroom. Step outside to enjoy your private
-                                    deck with stunning views of the surrounding
-                                    forest.
+                                    {property.description || "Our cozy tiny house is the perfect retreat for couples or solo travelers looking for a peaceful getaway. Nestled in the beautiful Georgia countryside, this charming home offers all the amenities you need for a comfortable stay while being surrounded by nature."}
                                 </p>
                                 <Button
                                     variant="ghost"
@@ -378,16 +339,18 @@ export default function PropertyDetails() {
 
                         <LocalCoupons coupons={mockCoupons} />
                         <Separator className="my-10" />
-
-                        <FreeExperiences experiences={mockExperiences} />
-                        <Separator className="my-10" />
+                        {property.experiences && <>
+                            <FreeExperiences experiences={property.experiences} />
+                            <Separator className="my-10" />
+                        </>}
+                        
 
                         {/* Amenities */}
                         <Amenities amenities={amenities} />
                         <Separator className="mb-8" />
 
                         {/* Calendar */}
-                        <div className="mb-8">
+                        <div className="mb-10">
                             <h3 className="flex items-center space-x-2 text-lg font-semibold">
                                 <Gift className="h-7 w-7 text-cyan-600" />
                                 <span>Select check-in date</span>
@@ -400,14 +363,14 @@ export default function PropertyDetails() {
                                     mode="single"
                                     selected={checkInDate}
                                     onSelect={setCheckInDate}
-                                    className="rounded-md border"
+                                    className="rounded-md border w-full"
                                     disabled={(date) => date < new Date()}
                                 />
                                 <Calendar
                                     mode="single"
                                     selected={checkOutDate}
                                     onSelect={setCheckOutDate}
-                                    className="rounded-md border"
+                                    className="rounded-md border w-full"
                                     disabled={(date) =>
                                         date < new Date() ||
                                         (checkInDate && date <= checkInDate)
@@ -416,17 +379,20 @@ export default function PropertyDetails() {
                             </div>
                         </div>
                         <Separator className="mb-8" />
-
+                        
                         {/* Reviews */}
-                        <Reviews reviews={reviews} />
-                        <Separator className="mb-8" />
+                        {property.reviews && <>
+                            <Reviews reviews={property.reviews} />
+                            <Separator className="mb-8" />
+                        </>}
+                        
 
                         {/* Location */}
-                        <Location />
+                        <Location location={property.location} />
                         <Separator className="mb-8" />
 
                         {/* Host */}
-                        <MeetHost />
+                        <MeetHost host_id={property.host_id} />
                         <Separator className="mb-8" />
 
                         {/* Things to Know */}
@@ -442,7 +408,7 @@ export default function PropertyDetails() {
                                     <ul className="space-y-2 text-sm text-gray-600">
                                         <li>Check-in: 3:00 PM - 9:00 PM</li>
                                         <li>Checkout: 11:00 AM</li>
-                                        <li>2 guests maximum</li>
+                                        <li>{property.max_guests} guests maximum</li>
                                         <li>No smoking</li>
                                         <li>No pets</li>
                                     </ul>
@@ -486,7 +452,7 @@ export default function PropertyDetails() {
                             <CardContent className="p-6">
                                 <div className="flex items-baseline space-x-1 mb-4">
                                     <span className="text-2xl font-semibold">
-                                        $67
+                                        ${pricePerNight}
                                     </span>
                                     <span className="text-gray-600">night</span>
                                 </div>
@@ -863,27 +829,27 @@ export default function PropertyDetails() {
                                     <div className="space-y-2 text-sm">
                                         <div className="flex justify-between">
                                             <span className="underline">
-                                                ${pricePerNight} x {nights}{" "}
+                                                ${pricePerNight.toFixed(2)} x {nights}{" "}
                                                 night{nights !== 1 ? "s" : ""}
                                             </span>
-                                            <span>${subtotal}</span>
+                                            <span>${subtotal.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="underline">
                                                 Cleaning fee
                                             </span>
-                                            <span>${cleaningFee}</span>
+                                            <span>${cleaningFee.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="underline">
                                                 Service fee
                                             </span>
-                                            <span>${serviceFee}</span>
+                                            <span>${serviceFee.toFixed(2)}</span>
                                         </div>
                                         <Separator />
                                         <div className="flex justify-between font-semibold">
                                             <span>Total before taxes</span>
-                                            <span>${totalBeforeTaxes}</span>
+                                            <span>${totalBeforeTaxes.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 )}

@@ -1,12 +1,24 @@
 "use client";
-import { Globe, Menu, User, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useSelector, useDispatch } from "react-redux";
-import { Home, Building2 } from "lucide-react"; // example icons
+import {
+    Menu,
+    User,
+    X,
+    LogIn,
+    LogOut,
+    Grid,
+    Settings,
+    Home,
+    Building2,
+    Globe,
+    HelpCircle,
+    Star,
+} from "lucide-react"; // example icons
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
@@ -36,6 +48,7 @@ export default function Header() {
 
     const { language, changeLanguage } = useLanguage();
     const { t } = useTranslation();
+    const itemHover = { x: 4, transition: { type: 'spring', stiffness: 300 } };
 
     const pathname = usePathname();
 
@@ -282,64 +295,149 @@ export default function Header() {
                                 <>
                                     <button
                                         onClick={handleSignup}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                                        aria-label="Signup"
                                     >
-                                        Signup
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <User className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            {t?.("nav.signup") ?? "Signup"}
+                                        </span>
                                     </button>
+
                                     <button
                                         onClick={handleLogin}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                                        aria-label="Login"
                                     >
-                                        Login
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <LogIn className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            {t?.("nav.login") ?? "Login"}
+                                        </span>
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-sm text-gray-600 mb-2">
+                                    <span className="text-sm text-gray-600 mb-2 break-words">
                                         {currentUser?.email}
                                     </span>
+
                                     <button
                                         onClick={goToDashboard}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                                     >
-                                        Dashboard
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <Grid className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            Dashboard
+                                        </span>
                                     </button>
+
                                     <button
                                         onClick={goToSettings}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                                     >
-                                        Settings
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <Settings className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            Settings
+                                        </span>
                                     </button>
+
                                     <button
                                         onClick={becomeAVendor}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                                     >
-                                        Become A Vendor
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <Star className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            Become A Vendor
+                                        </span>
                                     </button>
+
                                     <button
                                         onClick={handleLogout}
-                                        className="text-left w-full py-2"
+                                        className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                                     >
-                                        Logout
+                                        <motion.span
+                                            whileHover={itemHover}
+                                            className="flex-shrink-0"
+                                        >
+                                            <LogOut className="h-5 w-5 text-gray-600" />
+                                        </motion.span>
+                                        <span className="text-left">
+                                            Logout
+                                        </span>
                                     </button>
                                 </>
                             )}
+
                             <hr />
 
-                            <Link href="/properties" className="py-2">
-                                {t("nav.placesToStay")}
+                            <Link
+                                href="/properties"
+                                className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                            >
+                                <motion.span
+                                    whileHover={itemHover}
+                                    className="flex-shrink-0"
+                                >
+                                    <Building2 className="h-5 w-5 text-gray-600" />
+                                </motion.span>
+                                <span>
+                                    {t?.("nav.placesToStay") ??
+                                        "Places to stay"}
+                                </span>
                             </Link>
 
                             {role === "host" ? (
                                 <button
                                     onClick={SwitchToTraveller}
-                                    className="text-left w-full py-2"
+                                    className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                                 >
-                                    Switch to Traveller
+                                    <motion.span
+                                        whileHover={itemHover}
+                                        className="flex-shrink-0"
+                                    >
+                                        <Home className="h-5 w-5 text-gray-600" />
+                                    </motion.span>
+                                    <span className="text-left">
+                                        Switch to Traveller
+                                    </span>
                                 </button>
                             ) : (
-                                <Link href="/become-a-host" className="py-2">
-                                    Become a Host
+                                <Link
+                                    href="/become-a-host"
+                                    className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                                >
+                                    <motion.span
+                                        whileHover={itemHover}
+                                        className="flex-shrink-0"
+                                    >
+                                        <Star className="h-5 w-5 text-gray-600" />
+                                    </motion.span>
+                                    <span>Become a Host</span>
                                 </Link>
                             )}
 
@@ -349,14 +447,30 @@ export default function Header() {
                                         language === "en" ? "ar" : "en"
                                     )
                                 }
-                                className="flex items-center gap-2 py-2"
+                                className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                             >
-                                <Globe className="h-4 w-4" />
-                                {language === "ar" ? "English" : "العربية"}
+                                <motion.span
+                                    whileHover={itemHover}
+                                    className="flex-shrink-0"
+                                >
+                                    <Globe className="h-5 w-5 text-gray-600" />
+                                </motion.span>
+                                <span>
+                                    {language === "ar" ? "English" : "العربية"}
+                                </span>
                             </button>
 
-                            <Link href="/help" className="py-2">
-                                Help
+                            <Link
+                                href="/help"
+                                className="w-full flex items-center gap-3 py-2 px-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                            >
+                                <motion.span
+                                    whileHover={itemHover}
+                                    className="flex-shrink-0"
+                                >
+                                    <HelpCircle className="h-5 w-5 text-gray-600" />
+                                </motion.span>
+                                <span>Help</span>
                             </Link>
                         </nav>
                     </div>

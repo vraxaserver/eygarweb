@@ -337,8 +337,9 @@ export default function PropertyDetails({ params }) {
                             <Separator className="mb-6" />
                         </div>
 
-                        <LocalCoupons coupons={mockCoupons} />
+                        <LocalCoupons />
                         <Separator className="my-10" />
+
                         {property.experiences && <>
                             <FreeExperiences experiences={property.experiences} />
                             <Separator className="my-10" />

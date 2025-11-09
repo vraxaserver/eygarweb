@@ -1,8 +1,14 @@
 import { Gift } from 'lucide-react';
 import { CouponCard } from '@/components/property/CouponCard'; // Adjust path if needed
+import { useGetCouponsQuery } from '@/store/features/vendorCouponApi';
 
 
-export const LocalCoupons = ({coupons}) => {
+export const LocalCoupons = () => {
+    const {data: coupons, isLoading, error} = useGetCouponsQuery()
+
+    if(isLoading) return <div>Loading....!</div>
+    console.log("coupons: ", coupons)
+
     return (
         <div className="space-y-8">
             

@@ -16,7 +16,7 @@ export const CouponCard = ({ coupon }) => {
                 {/* Image Section (Top Half) */}
                 <div className="relative w-full h-1/2">
                     <Image
-                        src={coupon.image}
+                        src={coupon?.service?.image}
                         alt={`Promotional image for ${coupon.company}`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Example sizes
@@ -26,8 +26,10 @@ export const CouponCard = ({ coupon }) => {
 
                 {/* Discount Section (Bottom Half) */}
                 <div className="flex flex-col items-center justify-center flex-grow bg-slate-50 text-center p-2">
-                    <h5 className="text-3xl font-extrabold text-red-500">{coupon.discount}</h5>
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Off</p>
+                    <h5 className="text-3xl font-extrabold text-red-500">
+                        {coupon.discountValue} {coupon.discountType == 'percentage' && '%'}
+                    </h5>
+                    <span className="text-xs font-semibold text-slate-600 uppercase">Off</span>                    
                 </div>
             </div>
 

@@ -70,7 +70,7 @@ export default function Header() {
                             />
                         </Link>
                     </div>
-                    <div>
+                    <div className="hidden md:flex">
                         <Link href="/properties" className="text-foreground hover:text-primary">
                             {t("nav.placesToStay")}
                         </Link>
@@ -213,6 +213,11 @@ export default function Header() {
                                     </button>
                                 </>
                             )}
+                            <hr/>
+
+                            <Link href="/properties" className="py-2">
+                                {t("nav.placesToStay")}
+                            </Link>
 
                             {role === "host" ? (
                                 <button onClick={SwitchToTraveller} className="text-left w-full py-2">

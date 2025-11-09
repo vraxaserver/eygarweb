@@ -197,10 +197,10 @@ export default function Header() {
                                         <DropdownMenuItem
                                             onClick={handleSignup}
                                         >
-                                            Signup
+                                            {t("nav.signup")}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleLogin}>
-                                            Login
+                                            {t("nav.login")}
                                         </DropdownMenuItem>
                                     </>
                                 ) : (
@@ -247,7 +247,7 @@ export default function Header() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Help</DropdownMenuItem>
+                                <DropdownMenuItem>{t("nav.help")}</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -470,7 +470,7 @@ export default function Header() {
                                 >
                                     <HelpCircle className="h-5 w-5 text-gray-600" />
                                 </motion.span>
-                                <span>Help</span>
+                                <span>{t("nav.placesToStay")}</span>
                             </Link>
                         </nav>
                     </div>

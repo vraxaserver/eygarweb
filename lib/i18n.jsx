@@ -40,6 +40,9 @@ export const useTranslation = () => {
             "nav.becomeHost": "Become A Host",
             "nav.findSafeProperty": "Find Safe Properties",
             "nav.helpCenter": "Help Center",
+            "nav.login": "Log in",
+            "nav.signup": "Sign up",
+            "nav.help": "Help",
 
             // Home page
             "home.featured_section_title": "Featured Properties",
@@ -148,6 +151,9 @@ export const useTranslation = () => {
             "nav.becomeHost": "كن مضيفاً",
             "nav.findSafeProperty": "البحث عن عقارات آمنة",
             "nav.helpCenter": "مركز المساعدة",
+            "nav.login": "تسجيل الدخول",
+            "nav.signup": "إنشاء حساب",
+            "nav.help": "مساعدة",
 
             // Home page
             "home.featured_section_title": "العقارات المميزة",

@@ -179,7 +179,8 @@ export default function PropertyListings() {
         <div>
             <SearchBar />
             {/* View Mode Switcher */}
-            <div className="border flex justify-end pr-4 sm:pr-6 lg:pr-8 py-4 bg-white-100">
+            {/* MODIFICATION: Added `hidden md:flex` to hide the switcher on mobile */}
+            <div className="border hidden md:flex justify-end pr-4 sm:pr-6 lg:pr-8 py-4 bg-white-100">
                 <div className="inline-flex rounded-md shadow-sm" role="group">
                     <Button
                         variant={viewMode === "grid" ? "default" : "outline"}
@@ -212,8 +213,12 @@ export default function PropertyListings() {
                 {page === 1 && isLoading && (
                     <div className="center">Loading..</div>
                 )}
-                {viewMode === "grid" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {/* 
+                  MODIFICATION: Since the switcher is hidden on mobile, we can simplify this logic. 
+                  On small screens, it will always be grid view. On larger screens, it respects the viewMode state.
+                */}
+                <div className="block md:hidden"> {/* Mobile view: Always grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                         {allProperties.map((property) => (
                             <PropertyCard
                                 className="py-0"
@@ -223,33 +228,48 @@ export default function PropertyListings() {
                             />
                         ))}
                     </div>
-                )}
+                </div>
 
-                {viewMode === "map" && allProperties.length > 0 && (
-                    <div className="space-y-4 sm:space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="">
-                                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                        {allProperties.map((property) => (
-                            <PropertyCard
-                                className="py-0"
-                                key={property.id}
-                                property={property}
-                                currentUserId={currentUserId}
-                            />
-                        ))}
-                    </div>
-                            </div>
-                            <div className="">
-                                {allProperties &&
-                                <PropertyMap properties={allProperties} />
-                                }
-                                
-                            </div>
+                <div className="hidden md:block"> {/* Desktop view: Respects viewMode */}
+                    {viewMode === "grid" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                            {allProperties.map((property) => (
+                                <PropertyCard
+                                    className="py-0"
+                                    key={property.id}
+                                    property={property}
+                                    currentUserId={currentUserId}
+                                />
+                            ))}
                         </div>
-                        
-                    </div>
-                )}
+                    )}
+
+                    {viewMode === "map" && allProperties.length > 0 && (
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="">
+                                    <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                                        {allProperties.map((property) => (
+                                            <PropertyCard
+                                                className="py-0"
+                                                key={property.id}
+                                                property={property}
+                                                currentUserId={currentUserId}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="">
+                                    {allProperties &&
+                                    <PropertyMap properties={allProperties} />
+                                    }
+                                    
+                                </div>
+                            </div>
+                            
+                        </div>
+                    )}
+                </div>
 
                 {/* Loading indicator for subsequent pages */}
                 {page > 1 && (isLoading || isFetching) && (

@@ -1,3 +1,5 @@
+"use client"
+
 import FeaturedPropertyCard from "@/components/properties/FeaturedPropertyCard";
 import { useGetFeaturedPropertiesQuery } from "@/store/features/propertiesApi";
 import SearchBar from "@/components/search/SearchBar";

@@ -124,7 +124,7 @@ const LocationSearch = () => {
                 ref={inputRef}
                 type="text"
                 placeholder="Enter a city or address..."
-                style={{ padding: "10px", width: "270px", border: "0px", width: "100%" }}
+                className="p-[10px] w-full border-0 shadow-none"
             />
         </div>
     );

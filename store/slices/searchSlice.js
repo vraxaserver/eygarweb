@@ -1,8 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    searchResults: [],
-    searchQuery: '',
     loading: false,
     totalResults: 0,
     currentPage: 1,
@@ -11,7 +9,7 @@ const initialState = {
         country: "",
         city: "",
         lat: null,
-        lon: null
+        long: null
     },
     filters: {
         checkIn: null,
@@ -31,6 +29,15 @@ const initialState = {
     sortBy: 'price_low_high',
 };
 
+const toggleItem = (array, item) => {
+    const index = array.indexOf(item);
+    if (index === -1) {
+        return [...array, item]; // add
+    } else {
+        return array.filter(i => i !== item); // remove
+    }
+};
+
 const searchSlice = createSlice({
     name: 'search',
     initialState,
@@ -38,18 +45,48 @@ const searchSlice = createSlice({
         setLocation: (state, action) => {
             state.location = action.payload;
         },
-        setDates: (state, action) => {
-            state.filters.checkIn = action.payload.checkIn;
-            state.filters.checkOut = action.payload.checkOut;
+        setCheckIn: (state, action) => {
+            state.filters.checkIn = action.payload;
+        },
+        setCheckOut: (state, action) => {
+            state.filters.checkOut = action.payload;
         },
         setGuests: (state, action) => {
             state.filters.guests = action.payload;
         },
-        setSearchResults: (state, action) => {
-            state.searchResults = action.payload;
+        setPriceRange: (state, action) => {
+            state.filters.priceRange = action.payload;
         },
-        setSearchQuery: (state, action) => {
-            state.searchQuery = action.payload;
+        setPropertyType: (state, action) => {
+            state.filters.propertyType = action.payload;
+        },
+        setPlaceType: (state, action) => {
+            state.filters.placeType = action.payload;
+        },
+        setBadges: (state, action) => {
+            // Merge or toggle badges
+            const { payload } = action;
+            if (Array.isArray(payload)) {
+                state.filters.badges = [...new Set([...state.filters.badges, ...payload])];
+            } else {
+                state.filters.badges = toggleItem(state.filters.badges, payload);
+            }
+        },
+        setAmenities: (state, action) => {
+            const { payload } = action;
+            if (Array.isArray(payload)) {
+                state.filters.amenities = [...new Set([...state.filters.amenities, ...payload])];
+            } else {
+                state.filters.amenities = toggleItem(state.filters.amenities, payload);
+            }
+        },
+        setCategories: (state, action) => {
+            const { payload } = action;
+            if (Array.isArray(payload)) {
+                state.filters.categories = [...new Set([...state.filters.categories, ...payload])];
+            } else {
+                state.filters.categories = toggleItem(state.filters.categories, payload);
+            }
         },
         setLoading: (state, action) => {
             state.loading = action.payload;
@@ -66,21 +103,21 @@ const searchSlice = createSlice({
         setTotalResults: (state, action) => {
             state.totalResults = action.payload;
         },
-        clearSearch: (state) => {
-            state.searchResults = [];
-            state.searchQuery = '';
-            state.totalResults = 0;
-            state.currentPage = 1;
-        },
+        clearSearch: () => initialState,
     },
 });
 
 export const {
     setLocation,
-    setDates,
+    setCheckIn,
+    setCheckOut,
     setGuests,
-    setSearchResults,
-    setSearchQuery,
+    setPriceRange,
+    setPropertyType,
+    setPlaceType,
+    setBadges,
+    setAmenities,
+    setCategories,
     setLoading,
     setFilters,
     setSortBy,

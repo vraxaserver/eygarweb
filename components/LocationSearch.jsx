@@ -99,7 +99,7 @@ const LocationSearch = () => {
                     country: countryName,
                     city: cityName,
                     lat: lat,
-                    lon: lng,
+                    long: lng,
                     formattedAddress: place.formatted_address,
                 };
                 dispatch(setLocation(loc));

@@ -140,6 +140,7 @@ export const useTranslation = () => {
             "common.showMap": "Show map",
             "common.accountSettings": "Account settings",
             "common.favorites": "Favorites",
+            "common.view_all": "View All"
         },
         ar: {
             // Navigation
@@ -250,6 +251,7 @@ export const useTranslation = () => {
             "common.showMap": "عرض الخريطة",
             "common.accountSettings": "إعدادات الحساب",
             "common.favorites": "المفضلة",
+            "common.view_all": "عرض الكل"
         },
     };
 

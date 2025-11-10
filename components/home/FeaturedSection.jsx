@@ -11,11 +11,7 @@ import { useGetFeaturedPropertiesQuery } from "@/store/features/propertiesApi"
 const FeaturedSection = () => {
     const { t } = useTranslation();
     const { data: featuredProperties, isLoading, isError } = useGetFeaturedPropertiesQuery();
-
-    if(featuredProperties){
-        console.log("featuredProperties: ", featuredProperties)
-    }
-
+    
     if(isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[300px]">

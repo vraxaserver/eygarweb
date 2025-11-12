@@ -42,7 +42,7 @@ const Page = () => {
     );
 
     if (error) {
-        console.error("Error checking vendor status:", error);
+        console.log("Error checking vendor status:", error);
     }
 
     console.log("data :", data)

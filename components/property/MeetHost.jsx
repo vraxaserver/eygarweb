@@ -5,7 +5,7 @@ import { Gift, Star, Phone, MapPin, Mail } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useGetHostProfileQuery } from '@/store/features/profileApi';
+import { useGetHostProfileQuery } from '@/store/features/hostProfileApi';
 
 export default function MeetHost({ host_id }) {
   const { data: host, isLoading, error } = useGetHostProfileQuery(host_id);

@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateProfileMutation } from "@/store/features/profileApi"; // 1. IMPORT THE HOOK
+import { useUpdateProfileMutation } from "@/store/features/hostProfileApi"; // 1. IMPORT THE HOOK
 import {
     User,
     Shield,

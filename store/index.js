@@ -5,7 +5,7 @@ import searchReducer from "@/store/slices/searchSlice";
 import { authApi } from "@/store/features/authApi";
 import authReducer from "@/store/slices/authSlice";
 import locationReducer from "@/store/slices/locationSlice"; 
-import { profileApi } from "@/store/features/profileApi";
+import { profileApi } from "@/store/features/hostProfileApi";
 import { categoryApi } from '@/store/features/categoryApi';
 import { experiencesApi } from "@/store/features/experienceApi";
 import { vendorProfileApi } from "@/store/features/vendorProfileApi";

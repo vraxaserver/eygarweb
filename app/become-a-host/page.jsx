@@ -7,7 +7,7 @@ import {
     selectCurrentRole,
     updateRole,
 } from "@/store/slices/authSlice";
-import { useGetCurrentStatusQuery } from "@/store/features/profileApi";
+import { useGetCurrentStatusQuery } from "@/store/features/hostProfileApi";
 
 import BenefitsSection from "@/components/become-a-host/BenefitsSection";
 import CTASection from "@/components/become-a-host/CTASection";
@@ -51,7 +51,7 @@ const Page = () => {
 
     useEffect(() => {
         // Check if host profile is fully submitted and under review
-        if (data?.completion_percentage === 100 && data?.status === "approved") {
+        if (data?.completion_percentage === 100 && (data?.status === "approved") || (data?.status === "submited")) {
             role !== "host" && dispatch(updateRole("host"));
             router.push("/dashboard"); // Or a pending review page
             return;

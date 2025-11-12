@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
-import { useSubmitForReviewMutation } from "@/store/features/profileApi";
+import { useSubmitForReviewMutation } from "@/store/features/hostProfileApi";
 
 // Checklist item component
 const ChecklistItem = ({ text, isComplete }) => (

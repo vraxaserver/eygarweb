@@ -10,7 +10,7 @@ import {
     Info,
 } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
-import { useVerifyIdentityMutation } from "@/store/features/profileApi";
+import { useVerifyIdentityMutation } from "@/store/features/hostProfileApi";
 
 // Reusable file upload component with error handling
 const FileUploader = ({ title, onFileChange, fileName, error }) => {

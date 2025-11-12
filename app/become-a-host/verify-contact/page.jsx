@@ -9,7 +9,7 @@ import {
     ArrowRight,
 } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
-import { useVerifyContactMutation } from "@/store/features/profileApi";
+import { useVerifyContactMutation } from "@/store/features/hostProfileApi";
 
 // Reusable input component for consistency
 const FormInput = ({ label, name, value, onChange, placeholder, error, isRequired = false }) => (

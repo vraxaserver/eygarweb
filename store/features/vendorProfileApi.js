@@ -1,13 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+const USER_SERVICE_URL = process.env.NEXT_PUBLIC_USER_SERVICE_URL;
 
 export const vendorProfileApi = createApi({
     reducerPath: 'vendorProfileApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `${PROPERTIES_API_URL}/profiles/vendors`,
+        baseUrl: `${USER_SERVICE_URL}/profiles/vendors`,
         prepareHeaders: (headers, { getState }) => {
             const token = getState().auth.token;
+            console.log("token inside vendor status: ", token)
             if (token) {
                 headers.set('authorization', `Bearer ${token}`);
             }

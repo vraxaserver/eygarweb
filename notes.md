@@ -1,7 +1,7 @@
 # User actions
-1. User can signup
-2. User can login
-3. User can become a host
+1. **User can signup**
+2. **User can login**
+3. **User can become a host**
 4. User can become a vendor
 5. User can search property by location
 6. User can filter property by checkin, checkout, amenities etc

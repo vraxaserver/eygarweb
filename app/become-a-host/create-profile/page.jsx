@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Building2, UploadCloud, ArrowRight, FileText, MapPin } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { useDispatch } from "react-redux";
-import { useCreateBusinessProfileMutation } from "@/store/features/profileApi";
+import { useCreateBusinessProfileMutation } from "@/store/features/hostProfileApi";
 
 
 const BUSINESS_TYPES = [

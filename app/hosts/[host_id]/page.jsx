@@ -1,6 +1,6 @@
 "use client"; 
 
-import { useGetHostProfileQuery } from "@/store/features/profileApi"; 
+import { useGetHostProfileQuery } from "@/store/features/hostProfileApi"; 
 import React from "react"; 
 import HostHeader from "./components/HostHeader"; 
 import UserInfo from "./components/UserInfo"; 

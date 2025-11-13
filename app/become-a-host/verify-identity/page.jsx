@@ -12,11 +12,11 @@ import {
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { useVerifyIdentityMutation } from "@/store/features/hostProfileApi";
 
-// Reusable file upload component with error handling
+// Reusable file upload component
 const FileUploader = ({ title, onFileChange, fileName, error }) => {
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
-        onFileChange(file || null); // Pass file or null to parent
+        onFileChange(file || null);
     };
 
     const borderColor = error ? "border-red-400" : "border-gray-300";
@@ -67,10 +67,9 @@ export default function VerifyIdentityPage() {
     const [backFile, setBackFile] = useState(null);
     const [errors, setErrors] = useState({});
 
-    // Clear back file if user switches from ID to Passport
     const handleDocTypeChange = (type) => {
         if (type === "passport" && backFile) {
-            setBackFile(null);
+            setBackFile(null); // Clear back file when switching to passport
         }
         setDocType(type);
     };
@@ -98,21 +97,33 @@ export default function VerifyIdentityPage() {
             return;
         }
 
+        // FormData is correctly populated here.
         const formData = new FormData();
         formData.append("document_type", docType);
         formData.append("document_number", documentNumber);
-        formData.append("front_image", frontFile);
-        if (docType === "id" && backFile) {
-            formData.append("back_image", backFile);
+        
+        // Ensure files are appended correctly before submission.
+        if (frontFile) {
+            formData.append("document_image_front", frontFile);
         }
+        if (docType === "id" && backFile) {
+            formData.append("document_image_back", backFile);
+        }
+        
+        // For debugging: To properly view FormData contents, iterate over its entries.
+        // for (let [key, value] of formData.entries()) {
+        //     console.log(`${key}:`, value);
+        // }
 
         try {
-            await verifyIdentity(formData).unwrap();
+            // The API call logic is now active.
+            const res = await verifyIdentity(formData).unwrap();
+            
             // Navigate to the next step on success
             router.push("/become-a-host/verify-contact");
         } catch (err) {
             console.error("Failed to verify identity:", err);
-            const errorMessage = err.data?.detail || 'Verification failed. Please try again.';
+            const errorMessage = err.data?.detail || 'Verification failed. Please check your files and try again.';
             setErrors(prev => ({ ...prev, submit: errorMessage }));
         }
     };

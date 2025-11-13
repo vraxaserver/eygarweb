@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Building2, UploadCloud, ArrowRight, FileText, MapPin } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
-import { useDispatch } from "react-redux";
 import { useCreateBusinessProfileMutation } from "@/store/features/hostProfileApi";
 
 
@@ -37,7 +36,6 @@ const COUNTRIES = [
 export default function CreateBusinessProfilePage() {
     // console.log("apiModule:", apiModule);
     const router = useRouter();
-    const dispatch = useDispatch();
     const [createBusinessProfile, { isLoading: loding }] = useCreateBusinessProfileMutation();
 
     const [formDataState, setFormDataState] = useState({

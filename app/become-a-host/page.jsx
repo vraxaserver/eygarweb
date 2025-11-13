@@ -31,32 +31,32 @@ const Page = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
 
-    // First, handle authentication. If not authenticated, redirect to login.
-    if (!isAuthenticated) {
-        router.push("/login");
-        
-    }
-
-    // Use the RTK Query hook. It will only run if the user is authenticated.
-    // It automatically handles fetching, caching, loading, and error states.
+    // Always call the RTK Query hook to preserve hooks order, but skip when not authenticated
     const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(
+        // pass arguments expected by your query or `undefined`/`null`
         undefined,
         { skip: !isAuthenticated }
     );
 
-    // If there's an error fetching status, log it. You might want to show a UI message.
-    if (error) {
-        console.log("Error checking host status:", error);
-    }
-
+    // Handle authentication redirect as a side effect (not during render)
     useEffect(() => {
-        // Check if host profile is fully submitted and under review
-        if (data?.completion_percentage === 100 && (data?.status === "approved") || (data?.status === "submited")) {
-            role !== "host" && dispatch(updateRole("host"));
-            router.push("/dashboard"); // Or a pending review page
-            return;
+        if (!isAuthenticated) {
+            router.push("/login");
         }
+    }, [isAuthenticated, router]);
 
+    //   return (
+    //     <>
+    //     {JSON.stringify(data)}
+    //     </>
+    //   )
+
+    // Handle redirection based on fetched status as a side effect
+    useEffect(() => {
+        // If query was skipped (not authenticated) or data not available yet, do nothing
+        if (!data) return;
+
+        // Redirect based on current_step
         if (data?.current_step) {
             switch (data.current_step) {
                 case "business_profile":
@@ -65,27 +65,39 @@ const Page = () => {
                 case "identity_verification":
                     router.push("/become-a-host/verify-identity");
                     break;
-                case "contact_info": // Ensure this matches your API response
+                case "contact_details":
                     router.push("/become-a-host/verify-contact");
                     break;
-                case "review_submission":
-                    router.push("/become-a-host/review-submit");
-                    break;
-                case "compelted":
+                default:
+                    dispatch(updateRole("host"));
                     router.push("/dashboard");
                     break;
-                default:
-                    // Fallback for any other step, though explicit cases are better
-                    router.push(`/become-a-host/${data.current_step}`);
-                    break;
             }
-            return; // Stop execution after redirection
         }
-    }, [data?.status, role, dispatch, router]);
 
-    // If the query is still running, do nothing yet.
+        // If complete and approved/submitted/pending completed state -> become host
+        if (
+            data?.completion_percentage === 100 &&
+            (data?.status === "approved" ||
+                data?.status === "submited" ||
+                data?.next_step === "completed")
+        ) {
+            if (role !== "host") {
+                dispatch(updateRole("host"));
+            }
+            router.push("/dashboard"); // Or a pending review page
+            return;
+        }
+    }, [data, role, dispatch, router]);
+
+    // Show loader while query is in progress (only happens when not skipped)
     if (isLoading || isFetching) {
         return <LoadingState />;
+    }
+
+    // Log error if any (you can display UI if you want)
+    if (error) {
+        console.log("Error checking host status:", error);
     }
 
     // Render the main landing page content if no redirection is needed.

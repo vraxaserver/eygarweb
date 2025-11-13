@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { selectCurrentRole, selectCurrentUser } from "@/store/slices/authSlice";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
 import { Menu } from 'lucide-react';
 import { VendorSidebar } from "./VendorSidebar";
@@ -11,12 +11,12 @@ import { CouponsTab } from "./Coupons";
 import { RequestsTab } from "./RequestsTab";
 import { ReviewsTab } from "./ReviewsTab";
 
-export default function VendorDashboard () {
+export default function VendorDashboard() {
     const [activeTab, setActiveTab] = useState("services");
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const user = useSelector(selectCurrentUser);
-    console.log("vendor user", user)
 
+    // This function remains the same, correctly rendering the active tab's component
     const renderContent = () => {
         switch (activeTab) {
             case "services":
@@ -28,13 +28,15 @@ export default function VendorDashboard () {
             case "reviews":
                 return <ReviewsTab />;
             default:
-                return <ServicesTab />;
+                // It's good practice for the default to match one of the primary states
+                return <ServicesTab activeUser={user} />;
         }
     };
 
     return (
-        <div id="vendor-dashboard" className="lg:flex min-h-screen bg-slate-50 p-10 bg-green-500">
-            {/* The sidebar now receives state for mobile view */}
+        // The root div now focuses only on the flex layout
+        <div id="vendor-dashboard" className="flex min-h-screen bg-slate-50">
+            {/* The sidebar handles its own visibility and state */}
             <VendorSidebar
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
@@ -43,21 +45,21 @@ export default function VendorDashboard () {
             />
 
             {/* Main Content Area */}
-            {/* The `flex-1` class makes this div take all available space */}
-            <div className="flex-1 flex flex-col">
-                {/* Mobile Header with Menu Button */}
-                <div className="lg:hidden flex items-center justify-between p-4 border-b bg-white">
+            <div className="flex-1 flex flex-col w-full">
+                {/* Mobile Header with Menu Button, sits above the main content */}
+                <header className="lg:hidden flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
                     <h2 className="text-lg font-semibold">Vendor Dashboard</h2>
                     <Button
                         variant="outline"
                         size="icon"
                         onClick={() => setIsMobileOpen(true)}
+                        aria-label="Open menu"
                     >
                         <Menu className="w-5 h-5" />
                     </Button>
-                </div>
+                </header>
 
-                {/* The actual content */}
+                {/* The main content area where tabs are rendered */}
                 <main className="flex-grow p-4 sm:p-6 lg:p-8">
                     {renderContent()}
                 </main>

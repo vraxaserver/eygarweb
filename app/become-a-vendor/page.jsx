@@ -31,10 +31,12 @@ const Page = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
 
-    if (!isAuthenticated) {
-        router.push("/login");
-        return null;
-    }
+    // Handle authentication redirect as a side effect (not during render)
+    useEffect(() => {
+        if (!isAuthenticated) {
+            router.push("/login");
+        }
+    }, [isAuthenticated, router]);
 
     const { data, error, isLoading, isFetching } = useGetVendorStatusQuery(
         undefined,
@@ -45,11 +47,16 @@ const Page = () => {
         console.log("Error checking vendor status:", error);
     }
 
-    console.log("data :", data)
+    // return (
+    //     <>
+    //     {JSON.stringify(data)}
+    //     </>
+    // )
 
     useEffect(() => {
+        role !== "vendor" && dispatch(updateRole("vendor"));
+        
         if (data?.status === "approved") {
-            role !== "vendor" && dispatch(updateRole("vendor"));
             router.push("/dashboard");
             return;
         }

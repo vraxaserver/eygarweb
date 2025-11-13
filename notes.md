@@ -2,7 +2,7 @@
 1. **User can signup**
 2. **User can login**
 3. **User can become a host**
-4. User can become a vendor
+4. **User can become a vendor**
 5. User can search property by location
 6. User can filter property by checkin, checkout, amenities etc
 7. User can Update profile settings (Name, Avatar)

@@ -27,6 +27,12 @@ export default function DashboardPage() {
         router.push("/login");
     }
 
+    // return (
+    //     <>
+    //     {JSON.stringify(role)}
+    //     </>
+    //   )
+
     const isLoading = false
 
     if (isLoading) {

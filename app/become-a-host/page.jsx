@@ -38,6 +38,12 @@ const Page = () => {
         { skip: !isAuthenticated }
     );
 
+    useEffect(() => {
+        if(role !== "host") {
+            dispatch(updateRole("host"))
+        }
+    }, [])
+
     // Handle authentication redirect as a side effect (not during render)
     useEffect(() => {
         if (!isAuthenticated) {
@@ -45,11 +51,12 @@ const Page = () => {
         }
     }, [isAuthenticated, router]);
 
-    //   return (
+    // return (
     //     <>
-    //     {JSON.stringify(data)}
+    //         {JSON.stringify(data)}
+    //         {JSON.stringify(role)}
     //     </>
-    //   )
+    // )
 
     // Handle redirection based on fetched status as a side effect
     useEffect(() => {
@@ -68,26 +75,28 @@ const Page = () => {
                 case "contact_details":
                     router.push("/become-a-host/verify-contact");
                     break;
+                case "completed":
+                    router.push("/dashboard");
+                    break;
                 default:
-                    dispatch(updateRole("host"));
                     router.push("/dashboard");
                     break;
             }
         }
 
         // If complete and approved/submitted/pending completed state -> become host
-        if (
-            data?.completion_percentage === 100 &&
-            (data?.status === "approved" ||
-                data?.status === "submited" ||
-                data?.next_step === "completed")
-        ) {
-            if (role !== "host") {
-                dispatch(updateRole("host"));
-            }
-            router.push("/dashboard"); // Or a pending review page
-            return;
-        }
+        // if (
+        //     data?.completion_percentage === 100 &&
+        //     (data?.status === "approved" ||
+        //         data?.status === "submited" ||
+        //         data?.next_step === "completed")
+        // ) {
+        //     if (role !== "host") {
+        //         dispatch(updateRole("host"));
+        //     }
+        //     router.push("/dashboard"); // Or a pending review page
+        //     return;
+        // }
     }, [data, role, dispatch, router]);
 
     // Show loader while query is in progress (only happens when not skipped)

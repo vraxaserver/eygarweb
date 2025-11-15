@@ -69,9 +69,9 @@ const TabOverview = ({upcomingBookings, setShowAddModal}) => {
                         ))}
                     </CardContent>
                 </Card>
-
+                
                 {/* Quick Actions */}
-                <Card>
+                <Card >
                     <CardHeader>
                         <CardTitle className="text-lg">Quick Actions</CardTitle>
                     </CardHeader>
@@ -106,7 +106,7 @@ const TabOverview = ({upcomingBookings, setShowAddModal}) => {
             </div>
 
             {/* Performance Chart Placeholder */}
-            <Card>
+            <Card className="mt-5">
                 <CardHeader>
                     <CardTitle className="text-lg">Earnings Overview</CardTitle>
                 </CardHeader>

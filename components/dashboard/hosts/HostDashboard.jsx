@@ -55,7 +55,7 @@ export default function HostDashboard() {
     //     </>
     // )
 
-    if (user?.eygar_host?.status === "submitted") {
+    if (user?.eygar_host?.status !== "approved") {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="text-center p-8 bg-white shadow-lg rounded-lg">

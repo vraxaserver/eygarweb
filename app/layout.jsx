@@ -5,7 +5,6 @@ import Header from "@/components/layout/Header";
 import { Toaster } from "sonner";
 import "@/styles/globals.css";
 import LocationFetcher from "@/components/LocationFetcher";
-import { GoogleMapsProvider } from "@/providers/GoogleMapsProvider";
 
 const montserrat = Montserrat({
     subsets: ["latin"],
@@ -41,8 +40,8 @@ export default function RootLayout({ children }) {
         >
             <body>
                 <ReduxProvider>
-                    <GoogleMapsProvider>
                         <div className="min-h-screen">
+                            <p>redux store</p>
                             <Toaster position="top-right" richColors />
                             <LocationFetcher />
                             <Header />
@@ -53,7 +52,7 @@ export default function RootLayout({ children }) {
                             {/* Footer */}
                             <Footer />
                         </div>
-                    </GoogleMapsProvider>
+                   
                 </ReduxProvider>
             </body>
         </html>

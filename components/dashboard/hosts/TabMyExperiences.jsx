@@ -104,7 +104,7 @@ const TabMyExperiences = () => {
                     <h2 className="text-xl font-semibold mb-2">Experience Management</h2>
                     <p className="text-gray-600">Create and manage unique experiences for your guests</p>
                 </div>
-                <Button onClick={handleCreateClick} className="bg-purple-600 hover:bg-purple-700">
+                <Button onClick={handleCreateClick} className="bg-[#7a3d8a] hover:bg-purple-800">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Experience
                 </Button>
@@ -113,7 +113,7 @@ const TabMyExperiences = () => {
             {experiences && experiences.length > 0 ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {experiences.map((experience) => (
-                     <Card key={experience.id} className="group hover:shadow-lg transition-all">
+                     <Card key={experience.id} className="p-0 group hover:shadow-lg transition-all">
                          <CardContent className="p-0">
                              <div className="relative">
                                  <img
@@ -167,7 +167,7 @@ const TabMyExperiences = () => {
                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
                     <h3 className="text-lg font-medium">No experiences found</h3>
                     <p className="text-gray-600 mt-2">Get started by creating your first experience.</p>
-                    <Button onClick={handleCreateClick} className="mt-4 bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={handleCreateClick} className="mt-4 bg-[#7a3d8a] hover:bg-purple-700">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Experience
                     </Button>

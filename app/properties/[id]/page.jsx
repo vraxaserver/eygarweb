@@ -39,7 +39,7 @@ import {
 
 import { LocalCoupons } from "@/components/property/LocalCoupons";
 import FreeExperiences from "@/components/property/FreeExperiences";
-
+import {formatCurrency} from "@/lib/utils"
 import {
     mockCoupons,
 } from "@/data/properties";
@@ -80,7 +80,7 @@ export default function PropertyDetails({ params }) {
     };
 
     const nights = calculateNights();
-    const pricePerNight = property ? property.price_per_night / 100 : 0;
+    const pricePerNight = property ? property.price_per_night : 0;
     const cleaningFee = 25; // This can also be fetched from property data if available
     const serviceFee = 51; // This can also be fetched from property data if available
     const subtotal = nights * pricePerNight;
@@ -453,7 +453,8 @@ export default function PropertyDetails({ params }) {
                             <CardContent className="p-6">
                                 <div className="flex items-baseline space-x-1 mb-4">
                                     <span className="text-2xl font-semibold">
-                                        ${pricePerNight}
+                                        
+                                        {formatCurrency(pricePerNight, property.currency)}
                                     </span>
                                     <span className="text-gray-600">night</span>
                                 </div>

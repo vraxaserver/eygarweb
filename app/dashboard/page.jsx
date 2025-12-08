@@ -9,15 +9,10 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import {
     selectIsAuthenticated,
-    selectCurrentToken,
     selectCurrentRole,
-    logout
 } from "@/store/slices/authSlice";
 
 export default function DashboardPage() {
-    // This is a placeholder for your real authentication logic.
-    // It should provide the user object and a loading state.
-    // const { user, isLoading } = useAuth();
     const router = useRouter();
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole)
@@ -26,13 +21,7 @@ export default function DashboardPage() {
     if(!isAuthenticated) {
         router.push("/login");
     }
-
-    // return (
-    //     <>
-    //     {JSON.stringify(role)}
-    //     </>
-    //   )
-
+    
     const isLoading = false
 
     if (isLoading) {

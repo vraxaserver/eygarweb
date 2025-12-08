@@ -6,23 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatCurrency = (
-    amountInCents: number | null | undefined,
+    amount: number | null | undefined, // Renamed from amountInCents to amount
     currencyCode: string | null | undefined
 ): string => {
     // Provide a default if data is missing
-    if (typeof amountInCents !== "number" || !currencyCode) {
+    if (typeof amount !== "number" || !currencyCode) {
         return "N/A";
     }
-
-    // Convert from cents to the main unit (e.g., 15000 -> 150.00)
-    const amount: number = amountInCents / 100;
 
     // Use the browser's Internationalization API for perfect formatting
     return new Intl.NumberFormat(undefined, {
         style: "currency",
         currency: currencyCode,
-        minimumFractionDigits: 0, // Hides .00 for whole numbers
-        maximumFractionDigits: 2,
+        minimumFractionDigits: 0, // Hides .00 for whole numbers (e.g., $100)
+        maximumFractionDigits: 2, // Shows decimals if they exist (e.g., $100.50)
     }).format(amount);
 };
 

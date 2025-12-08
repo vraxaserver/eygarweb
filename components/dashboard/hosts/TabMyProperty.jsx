@@ -25,9 +25,9 @@ const TabMyProperty = ({setShowAddModal}) => {
 
     return (
         <>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-5">
                 <h2 className="text-xl font-semibold">Your Properties</h2>
-                <Button onClick={setShowAddModal} className="bg-purple-500 hover:bg-purple-700">
+                <Button onClick={setShowAddModal} className="bg-[#7a3d8a] hover:bg-purple-800">
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Property
                 </Button>

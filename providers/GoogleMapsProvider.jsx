@@ -1,14 +1,16 @@
 "use client";
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { useJsApiLoader } from "@react-google-maps/api";
 
 const GoogleMapsContext = createContext({ isLoaded: false });
+
+const libraries = ["places", "maps"];
 
 export const GoogleMapsProvider = ({ children }) => {
     const { isLoaded, loadError } = useJsApiLoader({
         id: "google-map-script",
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-        libraries: ["places", "maps"], // keep this consistent app-wide
+        libraries: useMemo(() => ["places", "maps"], []), // keep this consistent app-wide
         version: "weekly",
     });
 

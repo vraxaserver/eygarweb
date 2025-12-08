@@ -76,7 +76,7 @@ const TabOverview = ({upcomingBookings, setShowAddModal}) => {
                         <CardTitle className="text-lg">Quick Actions</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4">
-                        <Button onClick={setShowAddModal} className="h-20 flex-col space-y-2 bg-purple-600 hover:bg-purple-700">
+                        <Button onClick={setShowAddModal} className="h-20 flex-col space-y-2 bg-[#7a3d8a] hover:bg-purple-800">
                             <Plus className="w-6 h-6" />
                             <span className="text-sm">Add Property</span>
                         </Button>

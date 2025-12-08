@@ -17,7 +17,6 @@ import StepProgressIndicator from "@/components/become-a-host/StepProgressIndica
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
-// A simple loading component to show while checking status
 const LoadingState = () => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
@@ -31,85 +30,56 @@ const Page = () => {
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
 
-    // Always call the RTK Query hook to preserve hooks order, but skip when not authenticated
+    // Call RTKQ always, skip when not authenticated
     const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(
-        // pass arguments expected by your query or `undefined`/`null`
         undefined,
         { skip: !isAuthenticated }
     );
 
+    // Ensure role = host once
     useEffect(() => {
-        if(role !== "host") {
-            dispatch(updateRole("host"))
+        if (role !== "host") {
+            dispatch(updateRole("host"));
         }
-    }, [])
+    }, [role, dispatch]);
 
-    // Handle authentication redirect as a side effect (not during render)
+    // Redirect unauthenticated users
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (isAuthenticated === false) {
             router.push("/login");
         }
     }, [isAuthenticated, router]);
 
-    // return (
-    //     <>
-    //         {JSON.stringify(data)}
-    //         {JSON.stringify(role)}
-    //     </>
-    // )
-
-    // Handle redirection based on fetched status as a side effect
+    // Redirect based on host onboarding step
     useEffect(() => {
-        // If query was skipped (not authenticated) or data not available yet, do nothing
         if (!data) return;
 
-        // Redirect based on current_step
-        if (data?.current_step) {
-            switch (data.current_step) {
-                case "business_profile":
-                    router.push("/become-a-host/create-profile");
-                    break;
-                case "identity_verification":
-                    router.push("/become-a-host/verify-identity");
-                    break;
-                case "contact_details":
-                    router.push("/become-a-host/verify-contact");
-                    break;
-                case "completed":
-                    router.push("/dashboard");
-                    break;
-                default:
-                    router.push("/dashboard");
-                    break;
-            }
-        }
+        const step = data.current_step;
+        if (!step) return;
 
-        // If complete and approved/submitted/pending completed state -> become host
-        // if (
-        //     data?.completion_percentage === 100 &&
-        //     (data?.status === "approved" ||
-        //         data?.status === "submited" ||
-        //         data?.next_step === "completed")
-        // ) {
-        //     if (role !== "host") {
-        //         dispatch(updateRole("host"));
-        //     }
-        //     router.push("/dashboard"); // Or a pending review page
-        //     return;
-        // }
-    }, [data, role, dispatch, router]);
+        const redirects = {
+            business_profile: "/become-a-host/create-profile",
+            identity_verification: "/become-a-host/verify-identity",
+            contact_details: "/become-a-host/verify-contact",
+            completed: "/dashboard",
+        };
 
-    // Show loader while query is in progress (only happens when not skipped)
+        const path = redirects[step];
+        if (path) router.replace(path);
+
+    }, [data, router]);
+
+    // Show loader while data is loading
     if (isLoading || isFetching) {
         return <LoadingState />;
     }
 
-    // Log error if any (you can display UI if you want)
+    // Optional: log errors
     if (error) {
         console.log("Error checking host status:", error);
     }
 
-    // Render the main landing page content if no redirection is needed.
+    // If no redirect needed, show landing page
     return (
         <div className="min-h-screen bg-background">
             <StepProgressIndicator />

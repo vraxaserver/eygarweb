@@ -41,7 +41,6 @@ export default function RootLayout({ children }) {
             <body>
                 <ReduxProvider>
                         <div className="min-h-screen">
-                            <p>redux store</p>
                             <Toaster position="top-right" richColors />
                             <LocationFetcher />
                             <Header />

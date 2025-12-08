@@ -5,7 +5,7 @@ const PROPERTIES_API_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
 // Base query with conditional authentication
 const baseQueryWithAuth = fetchBaseQuery({
     baseUrl: PROPERTIES_API_URL,
-    prepareHeaders: (headers, { endpoint }) => {
+    prepareHeaders: (headers, { endpoint, arg }) => {
         // Endpoints requiring authentication (mutations and protected queries)
         const protectedEndpoints = [
             "createProperty",
@@ -24,7 +24,8 @@ const baseQueryWithAuth = fetchBaseQuery({
             }
         }
 
-        headers.set("Content-Type", "application/json");
+        // headers.set("Content-Type", "application/json");
+        
         return headers;
     },
 });
@@ -110,8 +111,8 @@ export const propertiesApi = createApi({
 
         // Only property owner can update
         updateProperty: builder.mutation({
-            query: ({ id, ...propertyData }) => ({
-                url: `/properties/${id}`,
+            query: (propertyData) => ({
+                url: `/properties/${propertyData.id}`,
                 method: "PATCH",
                 body: propertyData,
             }),

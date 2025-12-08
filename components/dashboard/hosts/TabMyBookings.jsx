@@ -209,7 +209,7 @@ const TabMyBookings = ({ongoingBookings, upcomingBookings}) => {
                                 </Button>
                                 <Button
                                     size="sm"
-                                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                    className="flex-1 bg-[#7a3d8a] hover:bg-purple-800"
                                 >
                                     Approve
                                 </Button>

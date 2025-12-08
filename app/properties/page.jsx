@@ -117,6 +117,10 @@ export default function PropertyListings() {
         error,
         isFetching,
     } = useGetPropertiesQuery(queryParams);
+    if(!isLoading) {
+        console.log("allProperties: ", properties)
+    }
+    
 
     // Reset pagination when filters or category change
     useEffect(() => {

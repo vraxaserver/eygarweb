@@ -44,6 +44,10 @@ const nextConfig = {
                 protocol: "https",
                 hostname: "media.istockphoto.com",
             },
+            {
+                protocol: "https",
+                hostname: "eygar-dev.s3.me-central-1.amazonaws.com",
+            },
         ],
     },
 };

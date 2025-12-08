@@ -49,7 +49,7 @@ const TabAnalytics = () => {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
                 <Card>
                     <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-purple-600 mb-1">

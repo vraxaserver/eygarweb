@@ -1,66 +1,56 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
     initializeAuth,
     selectIsAuthenticated,
     selectCurrentToken,
-    logout
 } from "@/store/slices/authSlice";
 import { useGetProfileQuery } from "@/store/features/authApi";
 
 const AuthProvider = ({ children }) => {
     const dispatch = useDispatch();
-    const [isInitialized, setIsInitialized] = useState(false);
+    const [isAuthInitialized, setIsAuthInitialized] = useState(false);
+
+    // Selectors
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const token = useSelector(selectCurrentToken);
-    
 
-    // Initialize auth state from localStorage on app start
+    // 1. Initialize Auth State from LocalStorage on mount
     useEffect(() => {
-        console.log('🚀 AuthProvider: Initializing...');
         dispatch(initializeAuth());
-        setIsInitialized(true);
+        setIsAuthInitialized(true);
     }, [dispatch]);
 
-    // Fetch user profile if token exists but no user data
-    const {
-        data: profileData,
-        isLoading: profileLoading,
-        error: profileError,
-        isSuccess: profileSuccess,
-    } = useGetProfileQuery(undefined, {
-        skip: !isAuthenticated || !token,
+    // 2. Fetch Profile: Only if authenticated and we have a token
+    const { isLoading: profileLoading } = useGetProfileQuery(undefined, {
+        skip: !token, // Skip if no token (reduces 401 errors)
     });
 
-    // Handle profile fetch errors (token might be invalid)
-    useEffect(() => {
-        if (profileError?.status === 401) {
-            dispatch(logout());
-        }
-    }, [profileError, dispatch]);
-
-    // Show loading spinner during initial auth check
-    if (!isInitialized) {
+    // 3. Loading Gate: Don't render app until we've checked LocalStorage
+    if (!isAuthInitialized) {
         return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
         );
     }
 
     return (
         <>
-            {/* Global loading indicator for profile fetch */}
-            {profileLoading && (
+            {/* Optional: Overlay spinner if fetching profile takes time on initial load */}
+            {profileLoading && isAuthenticated && (
                 <div className="fixed top-4 right-4 z-50">
-                    <div className="bg-blue-100 border border-blue-300 text-blue-800 px-3 py-2 rounded-lg shadow-md flex items-center space-x-2">
+                    <div className="bg-white border border-blue-200 text-blue-800 px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        <span className="text-sm">Loading profile...</span>
+                        <span className="text-sm font-medium">
+                            Syncing profile...
+                        </span>
                     </div>
                 </div>
             )}
-            
-            {/* Your app content */}
+
             {children}
         </>
     );

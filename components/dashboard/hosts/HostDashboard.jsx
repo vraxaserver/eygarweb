@@ -1,6 +1,7 @@
 "use client";
-import axios from "axios";
+
 import React, { useState, Suspense } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -96,7 +97,26 @@ export default function HostDashboard() {
     });
 
     if (user?.eygar_host?.status !== "approved") {
-        // ... (Keep existing check logic if needed)
+        return (
+            <div className="bg-indigo-600 p-8 text-center">
+                <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="mx-auto bg-white/20 w-20 h-20 rounded-full flex items-center justify-center backdrop-blur-sm mb-4"
+                >
+                    <Clock className="w-10 h-10 text-white" />
+                </motion.div>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                    Application Under Review
+                </h1>
+                <p className="text-indigo-100 max-w-md mx-auto">
+                    Thanks for setting up your host profile! We are currently
+                    verifying your details to ensure the safety of the Eygar
+                    community.
+                </p>
+            </div>
+        );
     }
 
     const steps = [

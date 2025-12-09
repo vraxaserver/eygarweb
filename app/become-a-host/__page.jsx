@@ -9,7 +9,6 @@ import {
     selectIsAuthenticated,
     selectCurrentRole,
     updateRole,
-    selectAuthLoading, // Import loading selector
 } from "@/store/slices/authSlice";
 import { useGetCurrentStatusQuery } from "@/store/features/hostProfileApi";
 
@@ -30,18 +29,27 @@ const Page = () => {
     const router = useRouter();
     const dispatch = useDispatch();
 
+    // Auth State
     const isAuthenticated = useSelector(selectIsAuthenticated);
     const role = useSelector(selectCurrentRole);
-    const authLoading = useSelector(selectAuthLoading);
 
-    // 1. Handle Role Switch Logic immediately
+    // 1. Redirect Unauthenticated Users Immediately
+    useEffect(() => {
+        if (isAuthenticated === false) {
+            // Encode the current path so the user returns here after login
+            const returnUrl = encodeURIComponent("/become-a-host");
+            router.push(`/login?returnUrl=${returnUrl}`);
+        }
+    }, [isAuthenticated, router]);
+
+    // 2. Set Role to 'Host' if Authenticated
     useEffect(() => {
         if (isAuthenticated && role !== "host") {
             dispatch(updateRole("host"));
         }
-    }, [isAuthenticated, role, dispatch]);
+    }, []);
 
-    // 2. Fetch Host Status (Only if authenticated)
+    // 3. Fetch Status (Skip if not authenticated to prevent 401s)
     const { data, error, isLoading, isFetching } = useGetCurrentStatusQuery(
         undefined,
         {
@@ -50,46 +58,50 @@ const Page = () => {
         }
     );
 
-    // 3. Auth Redirect Logic
+    // 4. Redirect based on API Status
     useEffect(() => {
-        if (!authLoading && isAuthenticated === false) {
-            const returnUrl = encodeURIComponent("/become-a-host");
-            router.push(`/login?returnUrl=${returnUrl}`);
+        // Wait for data to exist
+        if (!data || !data.current_step) return;
+
+        const step = data.current_step;
+
+        const redirects = {
+            business_profile: "/become-a-host/create-profile",
+            identity_verification: "/become-a-host/verify-identity",
+            contact_details: "/become-a-host/verify-contact",
+            // If completed, send to dashboard (Host View)
+            completed: "/dashboard",
+        };
+
+        const targetPath = redirects[step];
+
+        if (targetPath) {
+            // Use replace to prevent back-button loops
+            router.replace(targetPath);
         }
-    }, [isAuthenticated, authLoading, router]);
+    }, [data, router]);
 
-    // 4. Status Redirect Logic
-    useEffect(() => {
-        // Only redirect if data exists AND we have successfully switched to host role
-        if (data?.current_step && role === "host") {
-            const step = data.current_step;
+    // --- RENDER LOGIC ---
 
-            const redirects = {
-                business_profile: "/become-a-host/create-profile",
-                identity_verification: "/become-a-host/verify-identity",
-                contact_details: "/become-a-host/verify-contact",
-                completed: "/dashboard",
-            };
-
-            const targetPath = redirects[step];
-            if (targetPath) {
-                router.push(targetPath);
-            }
-        }
-    }, [data, role, router]);
-
-    // --- RENDER ---
-
-    if (authLoading) return <LoadingState message="Verifying session..." />;
-
-    if (isAuthenticated === false) return null; // Wait for redirect
-
-    if (isLoading || isFetching) return <LoadingState />;
-
-    if (error) {
-        console.error("Host status error:", error);
+    // Case A: Not authenticated (Wait for useEffect to redirect)
+    if (isAuthenticated === false) {
+        return null; // Render nothing while redirecting
     }
 
+    // Case B: Loading API data or Initial Auth Check
+    if (isLoading || isFetching) {
+        return <LoadingState />;
+    }
+
+    // Case C: Error in API
+    if (error) {
+        console.error("Error checking host status:", error);
+        // Optionally show an error state or fall through to landing page
+        // allowing them to try clicking "Start" again
+    }
+
+    // Case D: Authenticated, Role Set, No Active Step (New Host)
+    // Show the Landing Page to encourage them to start
     return (
         <div className="min-h-screen bg-background">
             <StepProgressIndicator />

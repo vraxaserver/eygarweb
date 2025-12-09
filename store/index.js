@@ -4,7 +4,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import { authApi } from "@/store/features/authApi";
 import { profileApi } from "@/store/features/hostProfileApi";
 import { propertiesApi } from "@/store/features/propertiesApi";
-import { categoryApi } from '@/store/features/categoryApi';
+import { categoryApi } from "@/store/features/categoryApi";
 import { experiencesApi } from "@/store/features/experienceApi";
 import { vendorProfileApi } from "@/store/features/vendorProfileApi";
 import { vendorServiceApi } from "@/store/features/vendorServiceApi";
@@ -12,8 +12,7 @@ import { vendorCouponApi } from "@/store/features/vendorCouponApi";
 
 import searchReducer from "@/store/slices/searchSlice";
 import authReducer from "@/store/slices/authSlice";
-import locationReducer from "@/store/slices/locationSlice"; 
-
+import locationReducer from "@/store/slices/locationSlice";
 
 export const store = configureStore({
     reducer: {
@@ -27,24 +26,24 @@ export const store = configureStore({
         [experiencesApi.reducerPath]: experiencesApi.reducer,
         [vendorProfileApi.reducerPath]: vendorProfileApi.reducer,
         [vendorServiceApi.reducerPath]: vendorServiceApi.reducer,
-        [vendorCouponApi.reducerPath]: vendorCouponApi.reducer
+        [vendorCouponApi.reducerPath]: vendorCouponApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: {
-                ignoredActions: ["persist/PERSIST", 'persist/REHYDRATE',],
+                ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
             },
         }).concat(
-            propertiesApi.middleware, 
-            authApi.middleware, 
-            profileApi.middleware, 
+            propertiesApi.middleware,
+            authApi.middleware,
+            profileApi.middleware,
             categoryApi.middleware,
             experiencesApi.middleware,
             vendorProfileApi.middleware,
             vendorServiceApi.middleware,
             vendorCouponApi.middleware
         ),
-    devTools: process.env.NODE_ENV !== 'production',
+    devTools: process.env.NODE_ENV !== "production",
 });
 
 setupListeners(store.dispatch);

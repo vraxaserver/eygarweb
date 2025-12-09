@@ -40,17 +40,17 @@ export default function RootLayout({ children }) {
         >
             <body>
                 <ReduxProvider>
-                        <div className="min-h-screen">
-                            <Toaster position="top-right" richColors />
-                            <LocationFetcher />
-                            <Header />
+                    <div className="min-h-screen">
+                        <Toaster position="top-right" richColors />
+                        <LocationFetcher />
+                        <Header />
 
-                            {/* Main Content */}
-                            {children}
+                        {/* Main Content */}
+                        {children}
 
-                            {/* Footer */}
-                            <Footer />
-                        </div>
+                        {/* Footer */}
+                        <Footer />
+                    </div>
                    
                 </ReduxProvider>
             </body>

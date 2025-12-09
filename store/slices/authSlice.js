@@ -60,7 +60,6 @@ const authSlice = createSlice({
         },
         
         updateRole: (state, action) => {
-            console.log("Inside updateRole: action ",action)
             state.role = action.payload;
         },
 

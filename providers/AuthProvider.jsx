@@ -4,7 +4,6 @@ import {
     initializeAuth,
     selectIsAuthenticated,
     selectCurrentToken,
-    selectCurrentUser,
     logout
 } from "@/store/slices/authSlice";
 import { useGetProfileQuery } from "@/store/features/authApi";

@@ -54,7 +54,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
             api.dispatch(logout());
         }
     }
-
+    
     return result;
 };
 

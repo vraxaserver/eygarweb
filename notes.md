@@ -18,14 +18,14 @@
     3. Booking Tab
         1. View Active guest listing
     4. Guest Tab
-    5. Experience Tab
+    5. **Experience Tab**
         1. **View Experiences**
         2. **Add Experiences**
         3. **Edit/Update Experiences**
         4. **Delete Experiences** 
     6. Analytics tab
         1. View the analytics
-
+        
 9. User can Go to Guest Dashboard
     1. View Upcoming bookings
     2. View history of bookings

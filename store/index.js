@@ -1,16 +1,18 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import { propertiesApi } from "@/store/features/propertiesApi";
-import searchReducer from "@/store/slices/searchSlice";
+
 import { authApi } from "@/store/features/authApi";
-import authReducer from "@/store/slices/authSlice";
-import locationReducer from "@/store/slices/locationSlice"; 
 import { profileApi } from "@/store/features/hostProfileApi";
+import { propertiesApi } from "@/store/features/propertiesApi";
 import { categoryApi } from '@/store/features/categoryApi';
 import { experiencesApi } from "@/store/features/experienceApi";
 import { vendorProfileApi } from "@/store/features/vendorProfileApi";
-import { vendorServiceApi } from "./features/vendorServiceApi";
-import { vendorCouponApi } from "./features/vendorCouponApi";
+import { vendorServiceApi } from "@/store/features/vendorServiceApi";
+import { vendorCouponApi } from "@/store/features/vendorCouponApi";
+
+import searchReducer from "@/store/slices/searchSlice";
+import authReducer from "@/store/slices/authSlice";
+import locationReducer from "@/store/slices/locationSlice"; 
 
 
 export const store = configureStore({

@@ -1,4 +1,5 @@
 # User actions
+
 1. **User can signup**
 2. **User can login**
 3. **User can become a host**
@@ -22,12 +23,11 @@
         1. **View Experiences**
         2. **Add Experiences**
         3. **Edit/Update Experiences**
-        4. **Delete Experiences** 
+        4. **Delete Experiences**
     6. Analytics tab
         1. View the analytics
-        
 9. User can Go to Guest Dashboard
     1. View Upcoming bookings
     2. View history of bookings
 10. User can become a vendor and go the vendor dashboard and perform following actions:
-    1. 
+    1.

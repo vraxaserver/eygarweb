@@ -1,13 +1,22 @@
 import { Bath, Bed, MapPin, Star, Users } from "lucide-react";
-
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 // This is the new, reusable card component.
 // It accepts a 'property' object as a prop.
 export default function SafetyCertifierPropertyCard({ property }) {
+    const router = useRouter();
     // Check if there is at least one free experience.
     const hasFreeExperience = property.experiences?.some((exp) => exp.isFree);
 
+    const handleCardClick = () => {
+        router.push(`/properties/${property.id}`);
+    };
+
     return (
-        <div className="group overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200 rounded-xl bg-white">
+        <Card
+            className="group overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 border border-gray-200 rounded-xl bg-white pt-0"
+            onClick={handleCardClick}
+        >
             <div className="relative">
                 <div className="relative h-48 w-full overflow-hidden rounded-t-xl">
                     <img
@@ -107,6 +116,6 @@ export default function SafetyCertifierPropertyCard({ property }) {
                     </p>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }

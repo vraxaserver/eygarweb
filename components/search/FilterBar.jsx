@@ -1,45 +1,61 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
-import { X, Filter, SlidersHorizontal } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '@/hooks';
-import { setFilters } from '@/store/slices/searchSlice';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { X, Filter, SlidersHorizontal } from "lucide-react";
+// import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useDispatch, useSelector } from "react-redux";
+import { setFilters } from "@/store/slices/searchSlice";
 
 const FilterBar = () => {
-    const dispatch = useAppDispatch();
-    const { filters } = useAppSelector((state) => state.search);
+    const dispatch = useDispatch();
+    const { filters } = useSelector((state) => state.search);
     const [showFilters, setShowFilters] = useState(false);
 
     const activeFilters = [
-        { id: 'price', label: `$${filters.priceRange.min} - $${filters.priceRange.max}`, type: 'price' },
-        { id: 'experiences', label: 'Free experiences', type: 'experiences', active: filters.hasExperiences },
-    ].filter(filter => filter.active !== false);
+        {
+            id: "price",
+            label: `$${filters.priceRange.min} - $${filters.priceRange.max}`,
+            type: "price",
+        },
+        {
+            id: "experiences",
+            label: "Free experiences",
+            type: "experiences",
+            active: filters.hasExperiences,
+        },
+    ].filter((filter) => filter.active !== false);
 
     const clearFilter = (filterId) => {
         switch (filterId) {
-            case 'price':
+            case "price":
                 dispatch(setFilters({ priceRange: { min: 0, max: 1000 } }));
                 break;
-            case 'experiences':
+            case "experiences":
                 dispatch(setFilters({ hasExperiences: false }));
                 break;
         }
     };
 
     const clearAllFilters = () => {
-        dispatch(setFilters({
-            priceRange: { min: 0, max: 1000 },
-            propertyType: [],
-            amenities: [],
-            hostLanguages: [],
-            bookingOptions: [],
-            hasExperiences: false,
-        }));
+        dispatch(
+            setFilters({
+                priceRange: { min: 0, max: 1000 },
+                propertyType: [],
+                amenities: [],
+                hostLanguages: [],
+                bookingOptions: [],
+                hasExperiences: false,
+            })
+        );
     };
 
     return (
@@ -48,9 +64,15 @@ const FilterBar = () => {
                 <div className="flex items-center justify-between">
                     {/* Active Filters */}
                     <div className="flex items-center space-x-3">
-                        <Popover open={showFilters} onOpenChange={setShowFilters}>
+                        <Popover
+                            open={showFilters}
+                            onOpenChange={setShowFilters}
+                        >
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="flex items-center space-x-2 rounded-full border-gray-300 hover:border-[#814193]">
+                                <Button
+                                    variant="outline"
+                                    className="flex items-center space-x-2 rounded-full border-gray-300 hover:border-[#814193]"
+                                >
                                     <SlidersHorizontal className="h-4 w-4" />
                                     <span>Filters</span>
                                     {activeFilters.length > 0 && (
@@ -64,11 +86,15 @@ const FilterBar = () => {
                                 <div className="p-6 max-h-[600px] overflow-y-auto">
                                     {/* Header */}
                                     <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-semibold">Filters</h3>
+                                        <h3 className="text-lg font-semibold">
+                                            Filters
+                                        </h3>
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setShowFilters(false)}
+                                            onClick={() =>
+                                                setShowFilters(false)
+                                            }
                                             className="h-auto p-1"
                                         >
                                             <X className="h-4 w-4" />
@@ -77,14 +103,24 @@ const FilterBar = () => {
 
                                     {/* Price Range */}
                                     <div className="mb-6">
-                                        <h4 className="text-base font-medium mb-3">Price range</h4>
+                                        <h4 className="text-base font-medium mb-3">
+                                            Price range
+                                        </h4>
                                         <div className="px-3">
                                             <Slider
-                                                value={[filters.priceRange.min, filters.priceRange.max]}
+                                                value={[
+                                                    filters.priceRange.min,
+                                                    filters.priceRange.max,
+                                                ]}
                                                 onValueChange={(value) =>
-                                                    dispatch(setFilters({
-                                                        priceRange: { min: value[0], max: value[1] }
-                                                    }))
+                                                    dispatch(
+                                                        setFilters({
+                                                            priceRange: {
+                                                                min: value[0],
+                                                                max: value[1],
+                                                            },
+                                                        })
+                                                    )
                                                 }
                                                 max={1000}
                                                 min={0}
@@ -92,8 +128,12 @@ const FilterBar = () => {
                                                 className="mb-3"
                                             />
                                             <div className="flex justify-between text-sm text-gray-600">
-                                                <span>${filters.priceRange.min}</span>
-                                                <span>${filters.priceRange.max}</span>
+                                                <span>
+                                                    ${filters.priceRange.min}
+                                                </span>
+                                                <span>
+                                                    ${filters.priceRange.max}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -105,10 +145,18 @@ const FilterBar = () => {
                                                 id="hasExperiences"
                                                 checked={filters.hasExperiences}
                                                 onCheckedChange={(checked) =>
-                                                    dispatch(setFilters({ hasExperiences: checked }))
+                                                    dispatch(
+                                                        setFilters({
+                                                            hasExperiences:
+                                                                checked,
+                                                        })
+                                                    )
                                                 }
                                             />
-                                            <label htmlFor="hasExperiences" className="text-base font-medium">
+                                            <label
+                                                htmlFor="hasExperiences"
+                                                className="text-base font-medium"
+                                            >
                                                 Free experiences
                                             </label>
                                         </div>
@@ -124,7 +172,9 @@ const FilterBar = () => {
                                         </Button>
                                         <Button
                                             className="bg-[#814193] hover:bg-[#6d3580] text-white"
-                                            onClick={() => setShowFilters(false)}
+                                            onClick={() =>
+                                                setShowFilters(false)
+                                            }
                                         >
                                             Show results
                                         </Button>

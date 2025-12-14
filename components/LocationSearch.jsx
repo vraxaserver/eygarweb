@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 // import useGoogleMapsScript from '@/hooks/useGoogleMapsScript'; // Adjust path
 import { setLocation } from "@/store/slices/searchSlice";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
 
 // Helper function from the previous answer
 function getCityNameFromComponents(address_components) {

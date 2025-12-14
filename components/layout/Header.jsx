@@ -48,7 +48,7 @@ export default function Header() {
 
     const { language, changeLanguage } = useLanguage();
     const { t } = useTranslation();
-    const itemHover = { x: 4, transition: { type: 'spring', stiffness: 300 } };
+    const itemHover = { x: 4, transition: { type: "spring", stiffness: 300 } };
 
     const pathname = usePathname();
 
@@ -103,6 +103,7 @@ export default function Header() {
                             />
                         </Link>
                     </div>
+
                     <div className="hidden md:flex space-x-6">
                         {links.map(({ href, label, icon }) => {
                             const isActive = pathname === href;
@@ -247,7 +248,9 @@ export default function Header() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>{t("nav.help")}</DropdownMenuItem>
+                                <DropdownMenuItem>
+                                    {t("nav.help")}
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

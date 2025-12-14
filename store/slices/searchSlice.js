@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     loading: false,
@@ -9,7 +9,7 @@ const initialState = {
         country: "",
         city: "",
         lat: null,
-        long: null
+        long: null,
     },
     filters: {
         checkIn: null,
@@ -17,16 +17,16 @@ const initialState = {
         guests: {
             adults: 1,
             children: 0,
-            pets: 0
+            pets: 0,
         },
         priceRange: [0, 1000],
-        propertyType: '',
-        placeType: '',
+        propertyType: "",
+        placeType: "",
         badges: [],
         amenities: [],
         categories: [],
     },
-    sortBy: 'price_low_high',
+    sortBy: "price_low_high",
 };
 
 const toggleItem = (array, item) => {
@@ -34,16 +34,16 @@ const toggleItem = (array, item) => {
     if (index === -1) {
         return [...array, item]; // add
     } else {
-        return array.filter(i => i !== item); // remove
+        return array.filter((i) => i !== item); // remove
     }
 };
 
 const searchSlice = createSlice({
-    name: 'search',
+    name: "search",
     initialState,
     reducers: {
         setLocation: (state, action) => {
-            state.location = action.payload;
+            state.filters.checkIn = action.payload;
         },
         setCheckIn: (state, action) => {
             state.filters.checkIn = action.payload;
@@ -67,25 +67,40 @@ const searchSlice = createSlice({
             // Merge or toggle badges
             const { payload } = action;
             if (Array.isArray(payload)) {
-                state.filters.badges = [...new Set([...state.filters.badges, ...payload])];
+                state.filters.badges = [
+                    ...new Set([...state.filters.badges, ...payload]),
+                ];
             } else {
-                state.filters.badges = toggleItem(state.filters.badges, payload);
+                state.filters.badges = toggleItem(
+                    state.filters.badges,
+                    payload
+                );
             }
         },
         setAmenities: (state, action) => {
             const { payload } = action;
             if (Array.isArray(payload)) {
-                state.filters.amenities = [...new Set([...state.filters.amenities, ...payload])];
+                state.filters.amenities = [
+                    ...new Set([...state.filters.amenities, ...payload]),
+                ];
             } else {
-                state.filters.amenities = toggleItem(state.filters.amenities, payload);
+                state.filters.amenities = toggleItem(
+                    state.filters.amenities,
+                    payload
+                );
             }
         },
         setCategories: (state, action) => {
             const { payload } = action;
             if (Array.isArray(payload)) {
-                state.filters.categories = [...new Set([...state.filters.categories, ...payload])];
+                state.filters.categories = [
+                    ...new Set([...state.filters.categories, ...payload]),
+                ];
             } else {
-                state.filters.categories = toggleItem(state.filters.categories, payload);
+                state.filters.categories = toggleItem(
+                    state.filters.categories,
+                    payload
+                );
             }
         },
         setLoading: (state, action) => {

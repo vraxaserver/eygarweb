@@ -13,12 +13,14 @@ import { vendorCouponApi } from "@/store/features/vendorCouponApi";
 import searchReducer from "@/store/slices/searchSlice";
 import authReducer from "@/store/slices/authSlice";
 import locationReducer from "@/store/slices/locationSlice";
+import bookingReducer from "./slices/bookingSlice";
 
 export const store = configureStore({
     reducer: {
         auth: authReducer,
         search: searchReducer,
         location: locationReducer,
+        booking: bookingReducer,
         [authApi.reducerPath]: authApi.reducer,
         [profileApi.reducerPath]: profileApi.reducer,
         [propertiesApi.reducerPath]: propertiesApi.reducer,

@@ -9,6 +9,7 @@ import { experiencesApi } from "@/store/features/experienceApi";
 import { vendorProfileApi } from "@/store/features/vendorProfileApi";
 import { vendorServiceApi } from "@/store/features/vendorServiceApi";
 import { vendorCouponApi } from "@/store/features/vendorCouponApi";
+import { stripeApi } from "@/store/features/stripeApi";
 
 import searchReducer from "@/store/slices/searchSlice";
 import authReducer from "@/store/slices/authSlice";
@@ -22,6 +23,7 @@ export const store = configureStore({
         location: locationReducer,
         booking: bookingReducer,
         [authApi.reducerPath]: authApi.reducer,
+        [stripeApi.reducerPath]: stripeApi.reducer,
         [profileApi.reducerPath]: profileApi.reducer,
         [propertiesApi.reducerPath]: propertiesApi.reducer,
         [categoryApi.reducerPath]: categoryApi.reducer,
@@ -43,7 +45,8 @@ export const store = configureStore({
             experiencesApi.middleware,
             vendorProfileApi.middleware,
             vendorServiceApi.middleware,
-            vendorCouponApi.middleware
+            vendorCouponApi.middleware,
+            stripeApi.middleware
         ),
     devTools: process.env.NODE_ENV !== "production",
 });

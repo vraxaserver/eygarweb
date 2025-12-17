@@ -1,179 +1,322 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import {
-    ChevronLeft,
-    Star,
-    Lock,
-    CreditCard,
-    Bitcoin,
-    Calendar as CalendarIcon,
-} from "lucide-react";
+import React, { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, CreditCard, Star } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useRouter } from "next/navigation";
-import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
-import { useSelector, useDispatch } from "react-redux";
-import {
-    selectIsAuthenticated,
-    selectStripeCustomerId,
-} from "@/store/slices/authSlice";
-import {
-    selectBooking,
-    selectBookingDates,
-    selectBookingGuests,
-    setBookingDates,
-    setPropertyId,
-} from "@/store/slices/bookingSlice";
-import CheckoutClient from "@/app/payment/checkout/CheckoutClient";
 
-// Helper to safely parse dates
+import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
+import { useSelector } from "react-redux";
+import { selectStripeCustomerId } from "@/store/slices/authSlice";
+import {
+    selectBookingDates,
+    selectBookingFees,
+    selectBookingGuests,
+} from "@/store/slices/bookingSlice";
+
+import {
+    useGetPaymentMethodsQuery,
+    useAddPaymentMethodMutation,
+    useMakePaymentMutation,
+} from "@/store/features/stripeApi";
+
+// ---------------------------
+// Helpers
+// ---------------------------
 const parseDate = (dateString) => {
     if (!dateString) return null;
-    return new Date(dateString);
+    const d = new Date(dateString);
+    return Number.isNaN(d.getTime()) ? null : d;
 };
 
-import { stripe, getCustomer } from "@/lib/stripe";
+const formatDateRange = (checkInDate, checkOutDate) => {
+    if (
+        !(checkInDate instanceof Date) ||
+        !(checkOutDate instanceof Date) ||
+        isNaN(checkInDate.getTime()) ||
+        isNaN(checkOutDate.getTime())
+    ) {
+        return null;
+    }
+
+    const dateOptions = { month: "short", day: "numeric" };
+    const yearOptions = { year: "numeric" };
+
+    return `${checkInDate.toLocaleDateString(
+        "en-US",
+        dateOptions
+    )} – ${checkOutDate.toLocaleDateString(
+        "en-US",
+        dateOptions
+    )}, ${checkOutDate.toLocaleDateString("en-US", yearOptions)}`;
+};
+
+const buildGuestString = (guests) => {
+    const totalGuests = (guests?.adults || 0) + (guests?.children || 0);
+    const infants = guests?.infants || 0;
+
+    return `${totalGuests} guest${totalGuests !== 1 ? "s" : ""}${
+        infants > 0 ? `, ${infants} infant${infants !== 1 ? "s" : ""}` : ""
+    }`;
+};
+
+const toMinorUnits = (amountMajor) => {
+    // Stripe Checkout expects smallest unit (e.g., QAR => *100)
+    const n = Number(amountMajor || 0);
+    return Math.round(n * 100);
+};
 
 export default function ReservePage({ params }) {
+    // For compatibility with your current setup, keep it direct:
     const { id } = React.use(params);
+
     const router = useRouter();
-    const dispatch = useDispatch();
 
-    const stripe_customer_id = useSelector(selectStripeCustomerId);
-    const booking = useSelector(selectBooking);
-    console.log("booking: (@reserve)", booking);
+    const stripeCustomerId = useSelector(selectStripeCustomerId);
+    const { checkInDate, checkOutDate } = useSelector(selectBookingDates);
+    const guests = useSelector(selectBookingGuests);
+    const fees = useSelector(selectBookingFees);
 
-    // 1. Fetch Property Data
     const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
 
-    // 2. Get Booking State from Redux
-    const { checkInDate: checkIn, checkOutDate: checkOut } =
-        useSelector(selectBookingDates);
-    const guests = useSelector(selectBookingGuests);
+    // Flow state
+    const [currentStep, setCurrentStep] = useState(1); // 1 Review -> 2 Payment method -> 3 Pay
+    const [bookingId, setBookingId] = useState(null);
 
-    const [currentStep, setCurrentStep] = useState(1);
-    const [selectedMethod, setSelectedMethod] = useState("saved_1");
+    // Store a snapshot of the selected payment method so Step 2 summary works reliably
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
-    useEffect(() => {
-        const fetchPaymentMethods = async () => {
-            try {
-                const paymentMethods = await stripe.paymentMethods.list({
-                    customer: stripe_customer_id,
-                    type: "card",
-                });
-                console.log("paymentMethods:", paymentMethods);
-            } catch (error) {
-                console.error("Failed to fetch paymentMethods:", error);
-            }
-        };
+    const [confirmingBooking, setConfirmingBooking] = useState(false);
 
-        fetchPaymentMethods();
-    }, []);
+    // Stripe RTK
+    const [addPaymentMethod, { isLoading: addingPaymentMethod }] =
+        useAddPaymentMethodMutation();
+    const [makePayment, { isLoading: creatingPayment }] =
+        useMakePaymentMutation();
 
-    // 3. Calculation Logic (Memoized)
     const bookingDetails = useMemo(() => {
         if (!property) return null;
 
-        // Fallback dates if Redux is empty (e.g. direct page refresh without coming from details)
-        const checkInDate = parseDate(checkIn) || new Date();
-        const checkOutDate =
-            parseDate(checkOut) ||
-            new Date(new Date().setDate(new Date().getDate() + 1));
+        // const checkInDate = parseDate(checkIn) || new Date();
+        // const checkOutDate =
+        //     parseDate(checkOut) ||
+        //     new Date(new Date().setDate(new Date().getDate() + 1));
 
-        // Calculate nights
-        const diffTime = Math.abs(checkOutDate - checkInDate);
-        const nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const validNights = nights > 0 ? nights : 1; // Prevent 0 division or weird display
+        // const diffTime = Math.abs(checkOutDate - checkInDate);
+        const nights = fees.nights;
+        const validNights = nights > 0 ? nights : 1;
 
-        // Calculate Costs
-        const pricePerNight = property.price_per_night;
-        const subtotal = pricePerNight * validNights;
-        const cleaningFee = property.cleaning_fee || 0;
-        const serviceFee = property.service_fee || 0;
-        const total = subtotal + cleaningFee + serviceFee;
+        const pricePerNight = fees.price_per_night;
+        const subtotal = fees.subtotal;
 
-        // Strings for display
-        const dateOptions = { month: "short", day: "numeric" };
-        const yearOptions = { year: "numeric" };
-        const dateString = `${checkInDate.toLocaleDateString(
-            "en-US",
-            dateOptions
-        )} – ${checkOutDate.toLocaleDateString(
-            "en-US",
-            dateOptions
-        )}, ${checkOutDate.toLocaleDateString("en-US", yearOptions)}`;
+        const cleaningFee = fees.cleaning_fee || 0;
+        const serviceFee = fees.service_fee || 0;
 
-        const totalGuests = guests.adults + guests.children;
-        const guestString = `${totalGuests} guest${
-            totalGuests !== 1 ? "s" : ""
-        }${guests.infants > 0 ? `, ${guests.infants} infant` : ""}`;
-
-        // dispatch(
-        //     setFees({
-        //         total_amount: total,
-        //         subtotal: subtotal,
-        //         total_stay: nights,
-        //         currency: property.currency,
-        //         cleaning: cleaningFee,
-        //         service: serviceFee,
-        //     })
-        // );
-
-        dispatch(setPropertyId(property.id));
+        const total = fees.total_amount;
+        const currency = fees.currency;
+        const description = `Booking payment - ${property.title}`;
+        const line_items = [
+            {
+                price_data: {
+                    currency: currency || "qar",
+                    product_data: {
+                        id: property.id,
+                        name: description || "Booking payment",
+                    },
+                    unit_amount: total,
+                },
+                quantity: 1,
+            },
+        ];
 
         return {
+            propertyId: property.id,
+            propertyTitle: property.title,
+            currency: currency,
+
             checkIn: checkInDate,
             checkOut: checkOutDate,
             nights: validNights,
+            dateString: formatDateRange(checkInDate, checkOutDate),
+
+            guests,
+            guestString: buildGuestString(guests),
+
+            pricePerNight,
             subtotal,
             cleaningFee,
             serviceFee,
             total,
-            dateString,
-            guestString,
-            currency: property.currency,
-            mode: "payment",
-            line_items: [
-                {
-                    price_data: {
-                        currency: property.currency,
-                        product_data: { name: property.title },
-                        unit_amount: total,
-                    },
-                    quantity: 1,
-                },
-            ],
+            line_items,
+
             coverImage:
                 property.images?.find((img) => img.is_cover)?.image_url ||
                 property.images?.[0]?.image_url,
         };
-    }, [property, checkIn, checkOut, guests]);
+    }, [property, checkInDate, checkOutDate, guests]);
 
-    // Mock functionality to change dates on this page
-    // In a real app, this would open a ShadCN Dialog with the Calendar component
-    const handleChangeDates = () => {
-        // Example: Extending stay by 1 day to demonstrate calculation update
-        if (bookingDetails) {
-            const newCheckOut = new Date(bookingDetails.checkOut);
-            newCheckOut.setDate(newCheckOut.getDate() + 1);
+    const {
+        data: paymentMethodsData,
+        isLoading: paymentMethodsLoading,
+        isError: paymentMethodsIsError,
+        error: paymentMethodsError,
+        refetch: refetchPaymentMethods,
+    } = useGetPaymentMethodsQuery(
+        { customerId: stripeCustomerId, type: "card" },
+        { skip: !stripeCustomerId || currentStep < 2 }
+    );
 
-            dispatch(
-                setBookingDates({
-                    checkIn: bookingDetails.checkIn.toISOString(),
-                    checkOut: newCheckOut.toISOString(),
-                })
-            );
-            alert("Date extended by 1 day to demonstrate Redux update.");
+    const paymentMethods = paymentMethodsData?.paymentMethods || [];
+
+    const handleConfirmBooking = useCallback(async () => {
+        if (!bookingDetails || !property) return;
+
+        setConfirmingBooking(true);
+        try {
+            //     const res = await fetch("/api/bookings", {
+            //         method: "POST",
+            //         headers: { "Content-Type": "application/json" },
+            //         body: JSON.stringify({
+            //             property_id: property.id,
+            //             check_in: bookingDetails.checkIn.toISOString(),
+            //             check_out: bookingDetails.checkOut.toISOString(),
+            //             guests: bookingDetails.guests,
+            //             pricing: {
+            //                 currency: bookingDetails.currency,
+            //                 nights: bookingDetails.nights,
+            //                 price_per_night: bookingDetails.pricePerNight,
+            //                 subtotal: bookingDetails.subtotal,
+            //                 cleaning_fee: bookingDetails.cleaningFee,
+            //                 service_fee: bookingDetails.serviceFee,
+            //                 total: bookingDetails.total,
+            //             },
+            //         }),
+            //     });
+
+            //     const data = await res.json();
+            //     if (!res.ok)
+            //         throw new Error(data?.error || "Failed to confirm booking.");
+
+            //     const idFromApi =
+            //         data?.bookingId || data?.booking_id || data?.id || null;
+            //     setBookingId(idFromApi);
+            setCurrentStep(2);
+        } catch (e) {
+            alert(e?.message || "Failed to confirm booking.");
+        } finally {
+            setConfirmingBooking(false);
         }
-    };
+    }, [bookingDetails, property]);
 
-    const handleConfirmPay = () => {
-        if (!bookingDetails) return;
-        alert(
-            `Processing payment of ${bookingDetails.currency} ${bookingDetails.total} for ${bookingDetails.nights} nights.`
-        );
-    };
+    const handleAddNewPaymentMethod = useCallback(async () => {
+        if (!stripeCustomerId) {
+            alert("Stripe customer is not available.");
+            return;
+        }
+
+        try {
+            const result = await addPaymentMethod({
+                customerId: stripeCustomerId,
+                flow: "customer_portal",
+                return_url: window.location.href,
+            }).unwrap();
+
+            if (result?.url) {
+                window.location.href = result.url;
+                return;
+            }
+
+            throw new Error(result?.error || "No redirect url returned.");
+        } catch (e) {
+            const msg =
+                e?.data?.error ||
+                e?.error ||
+                e?.message ||
+                "Failed to open payment settings.";
+            alert(msg);
+        }
+    }, [stripeCustomerId, addPaymentMethod]);
+
+    const handleSelectPaymentMethod = useCallback((pm) => {
+        setSelectedPaymentMethod(pm);
+    }, []);
+
+    const handleContinueFromPaymentMethods = useCallback(() => {
+        if (!selectedPaymentMethod?.id) return;
+        setCurrentStep(3);
+    }, [selectedPaymentMethod]);
+
+    const handlePay = useCallback(async () => {
+        if (!bookingDetails || !stripeCustomerId || !selectedPaymentMethod?.id)
+            return;
+
+        try {
+            // Always send amount+currency so the server can create Checkout even if bookingId is not ready yet.
+
+            const successUrl = `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+            const cancelUrl = `${window.location.origin}/payment/cancel${
+                bookingId ? `?booking_id=${encodeURIComponent(bookingId)}` : ""
+            }`;
+
+            const result = await makePayment({
+                customerId: stripeCustomerId,
+                booking_id: bookingId || undefined,
+                // payment_method_id: selectedPaymentMethod.id,
+
+                line_items: [
+                    {
+                        price_data: {
+                            currency: bookingDetails.currency || "qar",
+                            product_data: {
+                                name: property.title,
+                                description:
+                                    property.title || "Booking payment",
+                            },
+                            unit_amount: bookingDetails.total,
+                        },
+                        quantity: 1,
+                    },
+                ],
+
+                amount: bookingDetails.total,
+                currency: bookingDetails.currency,
+
+                description: bookingDetails.description,
+                metadata: {
+                    booking_id: bookingId || "",
+                    property_id: bookingDetails.propertyId,
+                },
+
+                success_url: successUrl,
+                cancel_url: cancelUrl,
+            }).unwrap();
+            console.log("results: ", result);
+
+            if (result?.url) {
+                window.location.assign(result.url);
+                return;
+            }
+
+            throw new Error(
+                result?.error || "No payment redirect url returned."
+            );
+        } catch (e) {
+            const msg =
+                e?.data?.error ||
+                e?.error ||
+                e?.message ||
+                "Failed to start payment.";
+            alert(msg);
+        }
+    }, [
+        bookingDetails,
+        bookingId,
+        stripeCustomerId,
+        selectedPaymentMethod,
+        makePayment,
+    ]);
 
     if (isLoading)
         return (
@@ -181,26 +324,13 @@ export default function ReservePage({ params }) {
                 Loading...
             </div>
         );
+
     if (isError || !property)
         return (
             <div className="min-h-screen flex items-center justify-center">
                 Error loading property
             </div>
         );
-
-    const checkoutData = {
-        mode: "payment",
-        line_items: [
-            {
-                price_data: {
-                    currency: "qar",
-                    product_data: { name: "T-shirt" },
-                    unit_amount: 24344,
-                },
-                quantity: 1,
-            },
-        ],
-    };
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -223,13 +353,13 @@ export default function ReservePage({ params }) {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
-                    {/* LEFT COLUMN: Payment Steps */}
+                    {/* LEFT COLUMN */}
                     <div className="space-y-10">
-                        {/* 1. Pay with */}
+                        {/* 1. Review your booking */}
                         <section>
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-semibold text-gray-900">
-                                    1. Pay with
+                                    1. Review your booking
                                 </h2>
                                 {currentStep > 1 && (
                                     <Button
@@ -244,45 +374,253 @@ export default function ReservePage({ params }) {
 
                             {currentStep === 1 ? (
                                 <div className="space-y-6">
-                                    {/* ... Saved Cards & Payment Methods Code from previous response ... */}
-                                    {/* (Code hidden for brevity, assuming same as previous step) */}
-                                    <div className="border rounded-xl p-4">
-                                        <div className="flex items-center gap-3">
-                                            <CreditCard className="w-6 h-6" />
-                                            <span>Visa •••• 4242</span>
+                                    <div className="space-y-4">
+                                        <div className="text-sm text-gray-600">
+                                            <div className="font-semibold text-gray-900 mb-1">
+                                                Cancellation policy
+                                            </div>
+                                            <div>
+                                                Free cancellation before
+                                                check-in. Terms apply.
+                                            </div>
+                                        </div>
+
+                                        <div className="text-sm text-gray-600">
+                                            <div className="font-semibold text-gray-900 mb-1">
+                                                Refund policy
+                                            </div>
+                                            <div>
+                                                Eligible refunds are processed
+                                                back to the original payment
+                                                method.
+                                            </div>
+                                        </div>
+
+                                        <div className="text-sm text-gray-600">
+                                            <div className="font-semibold text-gray-900 mb-1">
+                                                Check-in / Check-out
+                                            </div>
+                                            <div>
+                                                {bookingDetails?.dateString}
+                                            </div>
+                                            <div className="mt-1">
+                                                Guests:{" "}
+                                                {bookingDetails?.guestString}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-sm text-gray-600">
+                                            <div className="font-semibold text-gray-900 mb-1">
+                                                Fees
+                                            </div>
+                                            <div className="text-xs leading-relaxed">
+                                                Total:{" "}
+                                                <span className="font-bold text-black">
+                                                    {bookingDetails?.currency}{" "}
+                                                    {bookingDetails?.total.toLocaleString()}
+                                                </span>{" "}
+                                                for {bookingDetails?.nights}{" "}
+                                                nights.
+                                            </div>
                                         </div>
                                     </div>
 
                                     <Button
-                                        className="w-full sm:w-[160px] bg-black text-white h-12 rounded-lg"
-                                        onClick={() => setCurrentStep(2)}
+                                        className="w-full sm:w-[220px] bg-black text-white h-12 rounded-lg"
+                                        onClick={handleConfirmBooking}
+                                        disabled={confirmingBooking}
                                     >
-                                        Continue
+                                        {confirmingBooking
+                                            ? "Confirming..."
+                                            : "Confirm booking"}
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2 text-gray-600">
-                                    <CreditCard className="w-5 h-5" />
-                                    <span>Visa •••• 4242</span>
+                                <div className="text-sm text-gray-600">
+                                    Booking confirmed
+                                    {bookingId ? ` (Ref: ${bookingId})` : ""}.
                                 </div>
                             )}
                         </section>
 
                         <Separator />
 
-                        {/* 2. Review and Pay */}
+                        {/* 2. Select payment method */}
+                        <section>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2
+                                    className={`text-xl font-semibold ${
+                                        currentStep >= 2
+                                            ? "text-gray-900"
+                                            : "text-gray-400"
+                                    }`}
+                                >
+                                    2. Select payment method
+                                </h2>
+                                {currentStep > 2 && (
+                                    <Button
+                                        variant="ghost"
+                                        className="font-semibold underline hover:bg-transparent px-0"
+                                        onClick={() => setCurrentStep(2)}
+                                    >
+                                        Change
+                                    </Button>
+                                )}
+                            </div>
+
+                            {currentStep === 2 ? (
+                                <div className="space-y-6 animate-in fade-in duration-500">
+                                    {!stripeCustomerId && (
+                                        <div className="text-sm text-gray-600">
+                                            No Stripe customer found for this
+                                            user.
+                                        </div>
+                                    )}
+
+                                    {stripeCustomerId &&
+                                        paymentMethodsLoading && (
+                                            <div className="text-sm text-gray-600">
+                                                Loading payment methods...
+                                            </div>
+                                        )}
+
+                                    {stripeCustomerId &&
+                                        paymentMethodsIsError && (
+                                            <div className="text-sm text-red-600">
+                                                {paymentMethodsError?.data
+                                                    ?.error ||
+                                                    paymentMethodsError?.error ||
+                                                    "Failed to load payment methods."}
+                                            </div>
+                                        )}
+
+                                    {stripeCustomerId &&
+                                        !paymentMethodsLoading &&
+                                        !paymentMethodsIsError && (
+                                            <div className="space-y-3">
+                                                {paymentMethods.length > 0 ? (
+                                                    paymentMethods.map((pm) => {
+                                                        const isSelected =
+                                                            selectedPaymentMethod?.id ===
+                                                            pm.id;
+                                                        return (
+                                                            <button
+                                                                key={pm.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleSelectPaymentMethod(
+                                                                        pm
+                                                                    )
+                                                                }
+                                                                className={`w-full border rounded-xl p-4 text-left ${
+                                                                    isSelected
+                                                                        ? "border-black"
+                                                                        : ""
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <CreditCard className="w-6 h-6" />
+                                                                        <span>
+                                                                            {pm.brand?.toUpperCase?.() ||
+                                                                                "Card"}{" "}
+                                                                            ••••{" "}
+                                                                            {
+                                                                                pm.last4
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-500">
+                                                                        {
+                                                                            pm.exp_month
+                                                                        }
+                                                                        /
+                                                                        {
+                                                                            pm.exp_year
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="text-sm text-gray-600">
+                                                        No saved payment methods
+                                                        found.
+                                                    </div>
+                                                )}
+
+                                                <div className="flex gap-3 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="h-12 rounded-lg"
+                                                        onClick={
+                                                            handleAddNewPaymentMethod
+                                                        }
+                                                        disabled={
+                                                            addingPaymentMethod
+                                                        }
+                                                    >
+                                                        {addingPaymentMethod
+                                                            ? "Opening..."
+                                                            : "Add new payment method"}
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-12 rounded-lg underline"
+                                                        onClick={
+                                                            refetchPaymentMethods
+                                                        }
+                                                    >
+                                                        Refresh
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    <Button
+                                        className="w-full sm:w-[160px] bg-black text-white h-12 rounded-lg"
+                                        onClick={
+                                            handleContinueFromPaymentMethods
+                                        }
+                                        disabled={!selectedPaymentMethod?.id}
+                                    >
+                                        Continue
+                                    </Button>
+                                </div>
+                            ) : (
+                                // ✅ FIX #1: Show selected payment method summary after continuing
+                                <div className="flex items-center gap-2 text-gray-600">
+                                    <CreditCard className="w-5 h-5" />
+                                    {selectedPaymentMethod?.id ? (
+                                        <span>
+                                            {selectedPaymentMethod.brand?.toUpperCase?.() ||
+                                                "Card"}{" "}
+                                            •••• {selectedPaymentMethod.last4}
+                                        </span>
+                                    ) : (
+                                        <span>Not selected</span>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+
+                        <Separator />
+
+                        {/* 3. Pay */}
                         <section>
                             <h2
                                 className={`text-xl font-semibold mb-4 ${
-                                    currentStep === 2
+                                    currentStep === 3
                                         ? "text-gray-900"
                                         : "text-gray-400"
                                 }`}
                             >
-                                2. Review and pay
+                                3. Pay
                             </h2>
 
-                            {currentStep === 2 && (
+                            {currentStep === 3 && (
                                 <div className="space-y-6 animate-in fade-in duration-500">
                                     <div className="text-xs text-gray-600 leading-relaxed">
                                         Total:{" "}
@@ -292,18 +630,25 @@ export default function ReservePage({ params }) {
                                         </span>{" "}
                                         for {bookingDetails?.nights} nights.
                                     </div>
-                                    <CheckoutClient
-                                        checkoutData={bookingDetails}
-                                    />
+
+                                    {/* ✅ FIX #2: Redirect to Stripe Checkout URL returned by API */}
+                                    <Button
+                                        className="w-full sm:w-[160px] bg-black text-white h-12 rounded-lg"
+                                        onClick={handlePay}
+                                        disabled={creatingPayment}
+                                    >
+                                        {creatingPayment
+                                            ? "Redirecting..."
+                                            : "Pay"}
+                                    </Button>
                                 </div>
                             )}
                         </section>
                     </div>
 
-                    {/* RIGHT COLUMN: Order Summary */}
+                    {/* RIGHT COLUMN: Order Summary (unchanged) */}
                     <div className="lg:pl-10">
                         <div className="sticky top-28 border rounded-xl p-6 shadow-sm bg-white">
-                            {/* Property Header */}
                             <div className="flex gap-4 mb-6">
                                 <div className="relative w-28 h-24 flex-shrink-0">
                                     <img
@@ -353,49 +698,35 @@ export default function ReservePage({ params }) {
 
                             <Separator className="my-6" />
 
-                            {/* Booking Dates & Guests */}
                             <div className="space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="font-semibold text-gray-900">
-                                            Dates
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {bookingDetails?.dateString}
-                                        </div>
+                                <div>
+                                    <div className="font-semibold text-gray-900">
+                                        Dates
                                     </div>
-                                    <button
-                                        onClick={handleChangeDates}
-                                        className="font-semibold underline hover:text-gray-600 text-sm"
-                                    >
-                                        Change
-                                    </button>
+                                    <div className="text-gray-600">
+                                        {bookingDetails?.dateString}
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="font-semibold text-gray-900">
-                                            Guests
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {bookingDetails?.guestString}
-                                        </div>
+                                <div>
+                                    <div className="font-semibold text-gray-900">
+                                        Guests
                                     </div>
-                                    <button className="font-semibold underline hover:text-gray-600 text-sm">
-                                        Change
-                                    </button>
+                                    <div className="text-gray-600">
+                                        {bookingDetails?.guestString}
+                                    </div>
                                 </div>
                             </div>
 
                             <Separator className="my-6" />
 
-                            {/* Price Breakdown */}
                             <div className="space-y-4">
                                 <div className="flex justify-between text-gray-600">
                                     <div className="underline">
                                         Price details
                                     </div>
                                 </div>
+
                                 <div className="flex justify-between text-gray-600">
                                     <div>
                                         {bookingDetails?.currency}{" "}
@@ -422,6 +753,7 @@ export default function ReservePage({ params }) {
                                         </div>
                                     </div>
                                 )}
+
                                 {bookingDetails?.serviceFee > 0 && (
                                     <div className="flex justify-between text-gray-600">
                                         <div className="underline">
@@ -451,6 +783,7 @@ export default function ReservePage({ params }) {
                             </div>
                         </div>
                     </div>
+                    {/* END RIGHT COLUMN */}
                 </div>
             </div>
         </div>

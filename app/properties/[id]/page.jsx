@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    useMemo,
+    useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import ImageGallery from "@/components/property/ImageGallery";
 import { Button } from "@/components/ui/button";
@@ -17,18 +23,12 @@ import {
     Heart,
     Share,
     Star,
-    Users,
-    Bed,
-    Bath,
     Wifi,
     Car,
     Tv,
     Coffee,
-    Utensils,
     AirVent,
     Waves,
-    Dumbbell,
-    MapPin,
     Shield,
     Calendar as CalendarIcon,
     Home,
@@ -38,7 +38,7 @@ import {
     Gift,
 } from "lucide-react";
 
-// Sub-components (Assuming these exist based on context)
+// Sub-components
 import { LocalCoupons } from "@/components/property/LocalCoupons";
 import FreeExperiences from "@/components/property/FreeExperiences";
 import Location from "@/components/property/Location";
@@ -51,26 +51,21 @@ import { formatCurrency } from "@/lib/utils";
 import { useSelector, useDispatch } from "react-redux";
 import { selectIsAuthenticated } from "@/store/slices/authSlice";
 import {
-    selectBooking,
     setBookingDates,
     setBookingGuests,
-    selectBookingDates,
     setFees,
     setPropertyId,
 } from "@/store/slices/bookingSlice";
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
 
 export default function PropertyDetails({ params }) {
-    // 1. Unwrap params (Next.js 15+)
+    // 1. Params (Client components receive params already resolved)
     const { id } = React.use(params);
 
     // 2. Redux & Router
     const router = useRouter();
     const dispatch = useDispatch();
     const isAuthenticated = useSelector(selectIsAuthenticated);
-
-    const booking = useSelector(selectBooking);
-    console.log("booking: ", booking);
 
     // 3. Data Fetching
     const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
@@ -92,73 +87,75 @@ export default function PropertyDetails({ params }) {
     const [showStickyNav, setShowStickyNav] = useState(false);
     const photoSectionRef = useRef(null);
 
-    // 5. Derived State & Calculations
-    const calculateNights = () => {
-        if (checkInDate && checkOutDate) {
-            const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
-            return Math.ceil(timeDiff / (1000 * 3600 * 24));
-        }
-        return 0;
-    };
+    // 5. Derived State & Calculations (memoized)
+    const nights = useMemo(() => {
+        if (!checkInDate || !checkOutDate) return 0;
+        const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
+        return Math.ceil(timeDiff / (1000 * 3600 * 24));
+    }, [checkInDate, checkOutDate]);
 
-    const nights = calculateNights();
-    const pricePerNight = property ? property.price_per_night : 0;
-    // Fallback values if API doesn't provide them yet
-    const cleaningFee = property?.cleaning_fee || 0;
-    const serviceFee = property?.service_fee || 0;
+    const pricePerNight = property?.price_per_night ?? 0;
+    const cleaningFee = property?.cleaning_fee ?? 0;
+    const serviceFee = property?.service_fee ?? 0;
 
-    const subtotal = nights * pricePerNight;
-    const totalBeforeTaxes = subtotal + cleaningFee + serviceFee;
+    const subtotal = useMemo(
+        () => nights * pricePerNight,
+        [nights, pricePerNight]
+    );
 
-    const totalGuests = adults + children;
-    const maxGuests = property ? property.max_guests : 2;
+    const totalBeforeTaxes = useMemo(
+        () => subtotal + cleaningFee + serviceFee,
+        [subtotal, cleaningFee, serviceFee]
+    );
 
-    // 6. Helpers
-    const formatDate = (date) => {
+    const totalGuests = useMemo(() => adults + children, [adults, children]);
+    const maxGuests = property?.max_guests ?? 2;
+
+    // 6. Helpers (stable callbacks)
+    const formatDate = useCallback((date) => {
         if (!date) return "Add date";
         return date.toLocaleDateString("en-US", {
             month: "numeric",
             day: "numeric",
             year: "numeric",
         });
-    };
+    }, []);
 
-    const scrollToSection = (sectionId) => {
+    const scrollToSection = useCallback((sectionId) => {
         const element = document.getElementById(sectionId);
-        if (element) {
-            const headerOffset = 140;
-            const elementPosition = element.offsetTop - headerOffset;
-            window.scrollTo({
-                top: elementPosition,
-                behavior: "smooth",
-            });
-        }
-    };
+        if (!element) return;
+
+        const headerOffset = 140;
+        const elementPosition = element.offsetTop - headerOffset;
+
+        window.scrollTo({
+            top: elementPosition,
+            behavior: "smooth",
+        });
+    }, []);
 
     // 7. Effects
     useEffect(() => {
         const handleScroll = () => {
-            if (photoSectionRef.current) {
-                const photoSectionBottom =
-                    photoSectionRef.current.offsetTop +
-                    photoSectionRef.current.offsetHeight;
-                const scrollPosition = window.scrollY + 80;
-                setShowStickyNav(scrollPosition >= photoSectionBottom);
-            }
+            const el = photoSectionRef.current;
+            if (!el) return;
+
+            const photoSectionBottom = el.offsetTop + el.offsetHeight;
+            const scrollPosition = window.scrollY + 80;
+            setShowStickyNav(scrollPosition >= photoSectionBottom);
         };
 
-        window.addEventListener("scroll", handleScroll);
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll(); // set initial state
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // 8. Handlers
-    const handleReserve = () => {
+    // 8. Handlers (stable callbacks)
+    const handleReserve = useCallback(() => {
         // Validation
-        if (!checkInDate || !checkOutDate) return;
+        if (!checkInDate || !checkOutDate || !property) return;
 
-        // Dispatch to Redux Store
-        // We allow non-authenticated users to click reserve, but redirect them to login
-        // Storing dates in redux before redirecting allows us to restore them after login
+        // Store selection before navigation
         dispatch(
             setBookingDates({
                 checkIn: checkInDate.toISOString(),
@@ -179,48 +176,80 @@ export default function PropertyDetails({ params }) {
             setFees({
                 total_amount: totalBeforeTaxes,
                 subtotal: subtotal,
-                total_stay: nights,
+                price_per_night: pricePerNight,
+                nights: nights,
                 currency: property.currency,
-                cleaning: cleaningFee,
-                service: serviceFee,
+                cleaning_fee: cleaningFee,
+                service_fee: serviceFee,
             })
         );
+
+        dispatch(setPropertyId(property.id));
 
         if (isAuthenticated) {
             router.push(`/reserve/${id}`);
         } else {
-            // Redirect to login, passing the reserve page as the destination
-            // Alternatively, redirect to current page to preserve flow, but usually booking flow forces login
             router.push(`/login?from=/reserve/${id}`);
         }
-    };
+    }, [
+        checkInDate,
+        checkOutDate,
+        property,
+        dispatch,
+        adults,
+        children,
+        infants,
+        pets,
+        totalBeforeTaxes,
+        subtotal,
+        nights,
+        cleaningFee,
+        serviceFee,
+        isAuthenticated,
+        router,
+        id,
+    ]);
 
-    const handleMainAction = () => {
+    const handleMainAction = useCallback(() => {
         if (checkInDate && checkOutDate) {
             handleReserve();
         } else {
-            // Open calendar if dates aren't selected
             setIsCheckInCalendarOpen(true);
         }
-    };
+    }, [checkInDate, checkOutDate, handleReserve]);
 
-    // Amenities Mock (Or derived from property)
-    const amenitiesList = [
-        { icon: <Wifi className="w-6 h-6" />, name: "Wifi", available: true },
-        {
-            icon: <Car className="w-6 h-6" />,
-            name: "Free parking",
-            available: true,
-        },
-        { icon: <Tv className="w-6 h-6" />, name: "TV", available: true },
-        { icon: <AirVent className="w-6 h-6" />, name: "AC", available: false },
-        {
-            icon: <Coffee className="w-6 h-6" />,
-            name: "Kitchen",
-            available: true,
-        },
-        { icon: <Waves className="w-6 h-6" />, name: "Pool", available: true },
-    ];
+    // Amenities Mock (memoized)
+    const amenitiesList = useMemo(
+        () => [
+            {
+                icon: <Wifi className="w-6 h-6" />,
+                name: "Wifi",
+                available: true,
+            },
+            {
+                icon: <Car className="w-6 h-6" />,
+                name: "Free parking",
+                available: true,
+            },
+            { icon: <Tv className="w-6 h-6" />, name: "TV", available: true },
+            {
+                icon: <AirVent className="w-6 h-6" />,
+                name: "AC",
+                available: false,
+            },
+            {
+                icon: <Coffee className="w-6 h-6" />,
+                name: "Kitchen",
+                available: true,
+            },
+            {
+                icon: <Waves className="w-6 h-6" />,
+                name: "Pool",
+                available: true,
+            },
+        ],
+        []
+    );
 
     if (isLoading)
         return (
@@ -228,6 +257,7 @@ export default function PropertyDetails({ params }) {
                 Loading property details...
             </div>
         );
+
     if (isError || !property)
         return (
             <div className="max-w-7xl mx-auto px-4 py-6">
@@ -574,6 +604,7 @@ export default function PropertyDetails({ params }) {
                                                         setIsCheckInCalendarOpen(
                                                             false
                                                         );
+
                                                         // Reset checkout if invalid
                                                         if (
                                                             checkOutDate &&
@@ -732,6 +763,7 @@ export default function PropertyDetails({ params }) {
                                                         </Button>
                                                     </div>
                                                 </div>
+
                                                 {/* Children */}
                                                 <div className="flex justify-between items-center">
                                                     <div>
@@ -788,6 +820,7 @@ export default function PropertyDetails({ params }) {
                                                         </Button>
                                                     </div>
                                                 </div>
+
                                                 {/* Infants */}
                                                 <div className="flex justify-between items-center">
                                                     <div>
@@ -835,6 +868,7 @@ export default function PropertyDetails({ params }) {
                                                         </Button>
                                                     </div>
                                                 </div>
+
                                                 {/* Pets */}
                                                 <div className="flex justify-between items-center">
                                                     <div>

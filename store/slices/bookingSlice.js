@@ -15,10 +15,11 @@ const initialState = {
     fees: {
         total_amount: 0,
         subtotal: 0,
-        total_stay: 1,
+        price_per_night: 0,
+        nights: 1,
         currency: "QAR",
-        cleaning: 0,
-        service: 0,
+        cleaning_fee: 0,
+        service_fee: 0,
     },
     property_id: null,
 };
@@ -62,6 +63,7 @@ export const {
 // Selectors
 export const selectBookingDates = (state) => state.booking.bookingDates;
 export const selectBookingGuests = (state) => state.booking.guests;
+export const selectBookingFees = (state) => state.booking.fees;
 
 export const selectBooking = (state) => state.booking;
 

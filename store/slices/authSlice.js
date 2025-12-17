@@ -119,6 +119,8 @@ export default authSlice.reducer;
 
 // Selectors
 export const selectCurrentUser = (state) => state.auth.user;
+export const selectStripeCustomerId = (state) =>
+    state.auth.user?.stripe_customer_id;
 export const selectCurrentToken = (state) => state.auth.token;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.isLoading;

@@ -11,15 +11,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
 import { useSelector, useDispatch } from "react-redux";
 import {
+    selectIsAuthenticated,
+    selectStripeCustomerId,
+} from "@/store/slices/authSlice";
+import {
+    selectBooking,
     selectBookingDates,
     selectBookingGuests,
-    setBookingDates, // Imported to allow updating dates on this page
+    setBookingDates,
+    setPropertyId,
 } from "@/store/slices/bookingSlice";
+import CheckoutClient from "@/app/payment/checkout/CheckoutClient";
 
 // Helper to safely parse dates
 const parseDate = (dateString) => {
@@ -27,23 +33,45 @@ const parseDate = (dateString) => {
     return new Date(dateString);
 };
 
+import { stripe, getCustomer } from "@/lib/stripe";
+
 export default function ReservePage({ params }) {
     const { id } = React.use(params);
     const router = useRouter();
     const dispatch = useDispatch();
 
+    const stripe_customer_id = useSelector(selectStripeCustomerId);
+    const booking = useSelector(selectBooking);
+    console.log("booking: (@reserve)", booking);
+
     // 1. Fetch Property Data
     const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
 
     // 2. Get Booking State from Redux
-    const { checkIn, checkOut } = useSelector(selectBookingDates);
+    const { checkInDate: checkIn, checkOutDate: checkOut } =
+        useSelector(selectBookingDates);
     const guests = useSelector(selectBookingGuests);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedMethod, setSelectedMethod] = useState("saved_1");
 
+    useEffect(() => {
+        const fetchPaymentMethods = async () => {
+            try {
+                const paymentMethods = await stripe.paymentMethods.list({
+                    customer: stripe_customer_id,
+                    type: "card",
+                });
+                console.log("paymentMethods:", paymentMethods);
+            } catch (error) {
+                console.error("Failed to fetch paymentMethods:", error);
+            }
+        };
+
+        fetchPaymentMethods();
+    }, []);
+
     // 3. Calculation Logic (Memoized)
-    // This automatically updates if property, checkIn, or checkOut changes
     const bookingDetails = useMemo(() => {
         if (!property) return null;
 
@@ -81,6 +109,19 @@ export default function ReservePage({ params }) {
             totalGuests !== 1 ? "s" : ""
         }${guests.infants > 0 ? `, ${guests.infants} infant` : ""}`;
 
+        // dispatch(
+        //     setFees({
+        //         total_amount: total,
+        //         subtotal: subtotal,
+        //         total_stay: nights,
+        //         currency: property.currency,
+        //         cleaning: cleaningFee,
+        //         service: serviceFee,
+        //     })
+        // );
+
+        dispatch(setPropertyId(property.id));
+
         return {
             checkIn: checkInDate,
             checkOut: checkOutDate,
@@ -92,6 +133,17 @@ export default function ReservePage({ params }) {
             dateString,
             guestString,
             currency: property.currency,
+            mode: "payment",
+            line_items: [
+                {
+                    price_data: {
+                        currency: property.currency,
+                        product_data: { name: property.title },
+                        unit_amount: total,
+                    },
+                    quantity: 1,
+                },
+            ],
             coverImage:
                 property.images?.find((img) => img.is_cover)?.image_url ||
                 property.images?.[0]?.image_url,
@@ -135,6 +187,20 @@ export default function ReservePage({ params }) {
                 Error loading property
             </div>
         );
+
+    const checkoutData = {
+        mode: "payment",
+        line_items: [
+            {
+                price_data: {
+                    currency: "qar",
+                    product_data: { name: "T-shirt" },
+                    unit_amount: 24344,
+                },
+                quantity: 1,
+            },
+        ],
+    };
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -226,13 +292,9 @@ export default function ReservePage({ params }) {
                                         </span>{" "}
                                         for {bookingDetails?.nights} nights.
                                     </div>
-
-                                    <Button
-                                        className="w-full lg:w-1/2 bg-[#E31C5F] hover:bg-[#D11152] text-white font-bold text-lg h-14 rounded-lg shadow-md"
-                                        onClick={handleConfirmPay}
-                                    >
-                                        Confirm and pay
-                                    </Button>
+                                    <CheckoutClient
+                                        checkoutData={bookingDetails}
+                                    />
                                 </div>
                             )}
                         </section>

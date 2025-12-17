@@ -1,23 +1,28 @@
 "use client";
 
 import { selectCurrentUser } from "@/store/slices/authSlice";
+
 import { useSelector } from "react-redux";
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import DetailsStep from './_components/DetailsStep';
-import LocationStep from './_components/LocationStep';
-import ImagesDisplay from './_components/ImagesDisplay';
-import ConfirmStep from './_components/ConfirmStep';
-import { useGetPropertyByIdQuery, useUpdatePropertyMutation } from "@/store/features/propertiesApi";
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import DetailsStep from "./_components/DetailsStep";
+import LocationStep from "./_components/LocationStep";
+import ImagesDisplay from "./_components/ImagesDisplay";
+import ConfirmStep from "./_components/ConfirmStep";
+import {
+    useGetPropertyByIdQuery,
+    useUpdatePropertyMutation,
+} from "@/store/features/propertiesApi";
 
 export default function PropertyEditPage({ params }) {
-    const user = useSelector(selectCurrentUser);
     const { id: propertyId } = use(params);
     const router = useRouter();
 
+    const user = useSelector(selectCurrentUser);
+
     const [formData, setFormData] = useState({});
-    
+
     // Image Management State
     const [existingImages, setExistingImages] = useState([]);
     const [newImages, setNewImages] = useState([]);
@@ -25,13 +30,26 @@ export default function PropertyEditPage({ params }) {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState('');
+    const [submitMessage, setSubmitMessage] = useState("");
     const [hasPermission, setHasPermission] = useState(false);
 
     const currentUserId = user?.eygar_host?.id;
 
-    const { data: propertyData, isLoading, isError, error: fetchError } = useGetPropertyByIdQuery(propertyId);
-    const [updateProperty, { isLoading: isUpdating, isError: isUpdateError, error: updateError, isSuccess: isUpdateSuccess }] = useUpdatePropertyMutation();
+    const {
+        data: propertyData,
+        isLoading,
+        isError,
+        error: fetchError,
+    } = useGetPropertyByIdQuery(propertyId);
+    const [
+        updateProperty,
+        {
+            isLoading: isUpdating,
+            isError: isUpdateError,
+            error: updateError,
+            isSuccess: isUpdateSuccess,
+        },
+    ] = useUpdatePropertyMutation();
 
     // 1. Initialize Data
     useEffect(() => {
@@ -39,10 +57,10 @@ export default function PropertyEditPage({ params }) {
             if (propertyData.host_id === currentUserId) {
                 setHasPermission(true);
                 setFormData({
-                    property_type: propertyData.property_type || '',
-                    place_type: propertyData.place_type || '',
+                    property_type: propertyData.property_type || "",
+                    place_type: propertyData.place_type || "",
                     price_per_night: propertyData.price_per_night,
-                    currency: propertyData.currency || '',
+                    currency: propertyData.currency || "",
                     bedrooms: propertyData.bedrooms,
                     beds: propertyData.beds,
                     bathrooms: propertyData.bathrooms,
@@ -52,7 +70,7 @@ export default function PropertyEditPage({ params }) {
                 });
                 setExistingImages(propertyData.images || []);
             } else {
-                router.push('/');
+                router.push("/");
             }
         }
     }, [propertyData, currentUserId, router]);
@@ -60,15 +78,21 @@ export default function PropertyEditPage({ params }) {
     // 2. Handle Success/Error Redirects
     useEffect(() => {
         if (isUpdateSuccess) {
-            setSubmitMessage('Property updated successfully!');
+            setSubmitMessage("Property updated successfully!");
             setIsSubmitting(false);
             // Small delay so user sees the success message
             setTimeout(() => {
-                router.push("/dashboard"); 
+                router.push("/dashboard");
             }, 1000);
         }
         if (isUpdateError) {
-            setSubmitMessage(`Error updating property: ${updateError?.data?.detail || updateError?.message || 'Unknown error'}`);
+            setSubmitMessage(
+                `Error updating property: ${
+                    updateError?.data?.detail ||
+                    updateError?.message ||
+                    "Unknown error"
+                }`
+            );
             setIsSubmitting(false);
         }
     }, [isUpdateSuccess, isUpdateError, updateError, router]);
@@ -83,7 +107,9 @@ export default function PropertyEditPage({ params }) {
     };
 
     const handleRemoveNewImage = (indexToRemove) => {
-        setNewImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+        setNewImages((prev) =>
+            prev.filter((_, index) => index !== indexToRemove)
+        );
     };
 
     const handleRemoveExistingImage = (imageId) => {
@@ -93,7 +119,7 @@ export default function PropertyEditPage({ params }) {
 
     // FIXED: Added preventDefault to stop auto-submission
     const handleNext = (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         if (currentStep < steps.length - 1) {
             setCurrentStep((prev) => prev + 1);
         }
@@ -110,7 +136,7 @@ export default function PropertyEditPage({ params }) {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value,
+            [name]: type === "checkbox" ? checked : value,
         }));
     };
 
@@ -127,9 +153,9 @@ export default function PropertyEditPage({ params }) {
     const handleSubmit = async (e) => {
         e.preventDefault(); // Final prevention of default submission
         setIsSubmitting(true);
-        setSubmitMessage('');
-        console.log("=== formData ========")
-        console.log(formData)
+        setSubmitMessage("");
+        console.log("=== formData ========");
+        console.log(formData);
 
         if (!hasPermission) return;
 
@@ -137,46 +163,70 @@ export default function PropertyEditPage({ params }) {
             const payload = new FormData();
 
             // Append Basic Fields (Safe Number Conversion)
-            payload.append('id', propertyId);
-            payload.append('property_type', formData.property_type || '');
-            payload.append('place_type', formData.place_type || '');
-            payload.append('currency', formData.currency || '');
-            payload.append('is_featured', formData.is_featured);
+            payload.append("id", propertyId);
+            payload.append("property_type", formData.property_type || "");
+            payload.append("place_type", formData.place_type || "");
+            payload.append("currency", formData.currency || "");
+            payload.append("is_featured", formData.is_featured);
 
             // FIXED: Handle empty numbers becoming NaN
-            payload.append('price_per_night', formData.price_per_night ? parseFloat(formData.price_per_night) : 0);
-            payload.append('bedrooms', formData.bedrooms ? parseInt(formData.bedrooms, 10) : 0);
-            payload.append('beds', formData.beds ? parseInt(formData.beds, 10) : 0);
-            payload.append('bathrooms', formData.bathrooms ? parseFloat(formData.bathrooms) : 0);
-            payload.append('max_guests', formData.max_guests ? parseInt(formData.max_guests, 10) : 1);
+            payload.append(
+                "price_per_night",
+                formData.price_per_night
+                    ? parseFloat(formData.price_per_night)
+                    : 0
+            );
+            payload.append(
+                "bedrooms",
+                formData.bedrooms ? parseInt(formData.bedrooms, 10) : 0
+            );
+            payload.append(
+                "beds",
+                formData.beds ? parseInt(formData.beds, 10) : 0
+            );
+            payload.append(
+                "bathrooms",
+                formData.bathrooms ? parseFloat(formData.bathrooms) : 0
+            );
+            payload.append(
+                "max_guests",
+                formData.max_guests ? parseInt(formData.max_guests, 10) : 1
+            );
 
             // Handle Location
             // We stringify it because FormData can't handle nested objects natively easily
             // Ensure your backend parses this, OR append individual fields if your backend prefers that.
-            payload.append('location', JSON.stringify({
-                address: formData.location.address || '',
-                city: formData.location.city || '',
-                state: formData.location.state || '',
-                country: formData.location.country || '',
-                postal_code: formData.location.postal_code || '',
-                latitude: formData.location.latitude ? parseFloat(formData.location.latitude) : 0,
-                longitude: formData.location.longitude ? parseFloat(formData.location.longitude) : 0,
-                id: formData.location.id,
-            }));
+            payload.append(
+                "location",
+                JSON.stringify({
+                    address: formData.location.address || "",
+                    city: formData.location.city || "",
+                    state: formData.location.state || "",
+                    country: formData.location.country || "",
+                    postal_code: formData.location.postal_code || "",
+                    latitude: formData.location.latitude
+                        ? parseFloat(formData.location.latitude)
+                        : 0,
+                    longitude: formData.location.longitude
+                        ? parseFloat(formData.location.longitude)
+                        : 0,
+                    id: formData.location.id,
+                })
+            );
 
             // Handle Images
             newImages.forEach((file) => {
-                payload.append('uploaded_images', file);
+                payload.append("uploaded_images", file);
             });
 
             deletedImageIds.forEach((id) => {
-                payload.append('deleted_image_ids', id);
+                payload.append("deleted_image_ids", id);
             });
 
-            // FIXED: Manually attach ID to the FormData object instance 
+            // FIXED: Manually attach ID to the FormData object instance
             // so the Redux Query can find it for the URL construction.
             payload.id = propertyId;
-            console.log("payload: ", payload)
+            console.log("payload: ", payload);
             await updateProperty(payload).unwrap();
         } catch (err) {
             console.error("Failed to update property:", err);
@@ -184,24 +234,38 @@ export default function PropertyEditPage({ params }) {
         }
     };
 
-    if (isLoading) return <div className="p-8 text-center">Loading property data...</div>;
-    if (isError) return <div className="p-8 text-red-600 text-center">Error: {fetchError?.data?.detail || 'Failed to load property'}</div>;
+    if (isLoading)
+        return <div className="p-8 text-center">Loading property data...</div>;
+    if (isError)
+        return (
+            <div className="p-8 text-red-600 text-center">
+                Error: {fetchError?.data?.detail || "Failed to load property"}
+            </div>
+        );
     if (!hasPermission || !propertyData) return null;
 
     const steps = [
-        <DetailsStep key="details" formData={formData} handleChange={handleChange} />,
-        <LocationStep key="location" formData={formData} handleChange={handleLocationChange} />,
-        <ImagesDisplay 
-            key="images" 
+        <DetailsStep
+            key="details"
+            formData={formData}
+            handleChange={handleChange}
+        />,
+        <LocationStep
+            key="location"
+            formData={formData}
+            handleChange={handleLocationChange}
+        />,
+        <ImagesDisplay
+            key="images"
             existingImages={existingImages}
             newImages={newImages}
             onAddImages={handleAddImages}
             onRemoveNewImage={handleRemoveNewImage}
             onRemoveExistingImage={handleRemoveExistingImage}
         />,
-        <ConfirmStep 
-            key="confirm" 
-            formData={formData} 
+        <ConfirmStep
+            key="confirm"
+            formData={formData}
             newImagesCount={newImages.length}
             deletedImagesCount={deletedImageIds.length}
         />,
@@ -209,12 +273,21 @@ export default function PropertyEditPage({ params }) {
 
     return (
         <div className="container mx-auto p-8 max-w-2xl bg-white shadow-lg rounded-lg my-8">
-            <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Edit Property: {propertyData.title}</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+                Edit Property: {propertyData.title}
+            </h1>
 
             <div className="mb-6">
                 <div className="flex justify-between items-center text-sm text-gray-600">
                     {steps.map((_, index) => (
-                        <div key={index} className={`flex-1 text-center py-2 ${index === currentStep ? 'font-bold text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}>
+                        <div
+                            key={index}
+                            className={`flex-1 text-center py-2 ${
+                                index === currentStep
+                                    ? "font-bold text-blue-600 border-b-2 border-blue-600"
+                                    : "text-gray-500"
+                            }`}
+                        >
                             Step {index + 1}
                         </div>
                     ))}
@@ -234,7 +307,7 @@ export default function PropertyEditPage({ params }) {
                             Back
                         </button>
                     )}
-                    
+
                     {currentStep < steps.length - 1 ? (
                         <button
                             type="button" // CRITICAL: explicit type="button" prevents auto-submit
@@ -248,15 +321,25 @@ export default function PropertyEditPage({ params }) {
                             type="submit" // Only the last button submits
                             disabled={isSubmitting || isUpdating}
                             className={`ml-auto px-6 py-3 rounded-md transition duration-200 ${
-                                (isSubmitting || isUpdating) ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'
+                                isSubmitting || isUpdating
+                                    ? "bg-green-400 cursor-not-allowed"
+                                    : "bg-green-600 hover:bg-green-700 text-white"
                             }`}
                         >
-                            {(isSubmitting || isUpdating) ? 'Updating...' : 'Update Property'}
+                            {isSubmitting || isUpdating
+                                ? "Updating..."
+                                : "Update Property"}
                         </button>
                     )}
                 </div>
                 {submitMessage && (
-                    <p className={`mt-4 text-center ${submitMessage.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
+                    <p
+                        className={`mt-4 text-center ${
+                            submitMessage.includes("Error")
+                                ? "text-red-600"
+                                : "text-green-600"
+                        }`}
+                    >
                         {submitMessage}
                     </p>
                 )}

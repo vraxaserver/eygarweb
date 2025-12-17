@@ -1,59 +1,34 @@
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 
-const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-});
+import { stripe } from "@/lib/stripe";
 
 export async function POST(req) {
+    const body = await req.json();
+    const items = body["line_items"];
+    const mode = body["mode"];
+
+    // return NextResponse.json(body);
     try {
-        const origin = req.headers.get("origin");
+        const headersList = await headers();
+        const origin = headersList.get("origin");
+        // return NextResponse.json(body);
 
-        if (!origin) {
-            return NextResponse.json(
-                { error: "Missing origin header" },
-                { status: 400 }
-            );
-        }
-
+        // Create Checkout Sessions from body params.
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            line_items: [
-                {
-                    price_data: {
-                        currency: "QAR",
-                        product_data: {
-                            name: "Your Product Name",
-                        },
-                        unit_amount: 1000, // $10.00
-                    },
-                    quantity: 1,
-                },
-            ],
-            mode: "payment",
-            success_url: `${origin}/success`,
-            cancel_url: `${origin}/cancel`,
+            line_items: items,
+            mode: mode,
+            success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            // saved_payment_method_options: {
+            //     payment_method_save: "enabled",
+            // },
         });
-
-        return NextResponse.json({ id: session.id }, { status: 200 });
-    } catch (error) {
-        console.error("Stripe checkout error:", error);
+        return NextResponse.json(session);
+        // return NextResponse.redirect(session.url, 303);
+    } catch (err) {
         return NextResponse.json(
-            { error: "Failed to create checkout session" },
-            { status: 500 }
+            { error: err.message },
+            { status: err.statusCode || 500 }
         );
     }
-}
-
-/**
- * Optional: Explicitly block other methods
- */
-export async function GET() {
-    return NextResponse.json(
-        { error: "Method Not Allowed" },
-        {
-            status: 405,
-            headers: { Allow: "POST" },
-        }
-    );
 }

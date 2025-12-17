@@ -50,7 +50,14 @@ import Amenities from "@/components/property/Amenities";
 import { formatCurrency } from "@/lib/utils";
 import { useSelector, useDispatch } from "react-redux";
 import { selectIsAuthenticated } from "@/store/slices/authSlice";
-import { setBookingDates, setBookingGuests } from "@/store/slices/bookingSlice";
+import {
+    selectBooking,
+    setBookingDates,
+    setBookingGuests,
+    selectBookingDates,
+    setFees,
+    setPropertyId,
+} from "@/store/slices/bookingSlice";
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
 
 export default function PropertyDetails({ params }) {
@@ -61,6 +68,9 @@ export default function PropertyDetails({ params }) {
     const router = useRouter();
     const dispatch = useDispatch();
     const isAuthenticated = useSelector(selectIsAuthenticated);
+
+    const booking = useSelector(selectBooking);
+    console.log("booking: ", booking);
 
     // 3. Data Fetching
     const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
@@ -94,8 +104,8 @@ export default function PropertyDetails({ params }) {
     const nights = calculateNights();
     const pricePerNight = property ? property.price_per_night : 0;
     // Fallback values if API doesn't provide them yet
-    const cleaningFee = property?.cleaning_fee || 25;
-    const serviceFee = property?.service_fee || 51;
+    const cleaningFee = property?.cleaning_fee || 0;
+    const serviceFee = property?.service_fee || 0;
 
     const subtotal = nights * pricePerNight;
     const totalBeforeTaxes = subtotal + cleaningFee + serviceFee;
@@ -162,6 +172,17 @@ export default function PropertyDetails({ params }) {
                 children,
                 infants,
                 pets,
+            })
+        );
+
+        dispatch(
+            setFees({
+                total_amount: totalBeforeTaxes,
+                subtotal: subtotal,
+                total_stay: nights,
+                currency: property.currency,
+                cleaning: cleaningFee,
+                service: serviceFee,
             })
         );
 

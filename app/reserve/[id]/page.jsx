@@ -499,50 +499,91 @@ export default function ReservePage({ params }) {
                                         !paymentMethodsIsError && (
                                             <div className="space-y-3">
                                                 {paymentMethods.length > 0 ? (
-                                                    paymentMethods.map((pm) => {
-                                                        const isSelected =
-                                                            selectedPaymentMethod?.id ===
-                                                            pm.id;
+                                                    (() => {
+                                                        // If your API already returns newest-first, keep as-is.
+                                                        // If it returns oldest-first, reverse it:
+                                                        // const ordered = [...paymentMethods].reverse();
+
+                                                        const ordered =
+                                                            paymentMethods; // assume newest-first
+                                                        const topThree =
+                                                            ordered.slice(0, 3);
+                                                        const rest =
+                                                            ordered.slice(3);
+                                                        const finalList = [
+                                                            ...topThree,
+                                                            ...rest,
+                                                        ];
+
                                                         return (
-                                                            <button
-                                                                key={pm.id}
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleSelectPaymentMethod(
-                                                                        pm
-                                                                    )
-                                                                }
-                                                                className={`w-full border rounded-xl p-4 text-left ${
-                                                                    isSelected
-                                                                        ? "border-black"
-                                                                        : ""
-                                                                }`}
-                                                            >
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <CreditCard className="w-6 h-6" />
-                                                                        <span>
-                                                                            {pm.brand?.toUpperCase?.() ||
-                                                                                "Card"}{" "}
-                                                                            ••••{" "}
-                                                                            {
-                                                                                pm.last4
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-sm text-gray-500">
-                                                                        {
-                                                                            pm.exp_month
-                                                                        }
-                                                                        /
-                                                                        {
-                                                                            pm.exp_year
-                                                                        }
-                                                                    </div>
-                                                                </div>
-                                                            </button>
+                                                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                                                                {finalList.map(
+                                                                    (
+                                                                        pm,
+                                                                        index
+                                                                    ) => {
+                                                                        const isSelected =
+                                                                            selectedPaymentMethod?.id ===
+                                                                            pm.id;
+
+                                                                        // Optional: visually indicate the top 3 (most recent)
+                                                                        const isRecent =
+                                                                            index <
+                                                                            3;
+
+                                                                        return (
+                                                                            <button
+                                                                                key={
+                                                                                    pm.id
+                                                                                }
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    handleSelectPaymentMethod(
+                                                                                        pm
+                                                                                    )
+                                                                                }
+                                                                                className={`w-full border rounded-xl p-4 text-left ${
+                                                                                    isSelected
+                                                                                        ? "border-black"
+                                                                                        : ""
+                                                                                }`}
+                                                                            >
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <CreditCard className="w-6 h-6" />
+                                                                                        <span>
+                                                                                            {pm.brand?.toUpperCase?.() ||
+                                                                                                "Card"}{" "}
+                                                                                            ••••{" "}
+                                                                                            {
+                                                                                                pm.last4
+                                                                                            }
+                                                                                        </span>
+
+                                                                                        {isRecent && (
+                                                                                            <span className="text-xs text-gray-500 border rounded-full px-2 py-0.5">
+                                                                                                Recent
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="text-sm text-gray-500">
+                                                                                        {
+                                                                                            pm.exp_month
+                                                                                        }
+
+                                                                                        /
+                                                                                        {
+                                                                                            pm.exp_year
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    }
+                                                                )}
+                                                            </div>
                                                         );
-                                                    })
+                                                    })()
                                                 ) : (
                                                     <div className="text-sm text-gray-600">
                                                         No saved payment methods

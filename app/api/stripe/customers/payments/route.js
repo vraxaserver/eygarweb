@@ -54,6 +54,9 @@ export async function POST(req) {
                 setup_future_usage: "off_session",
                 metadata: { booking_id: booking_id || "", ...(metadata || {}) },
             },
+            saved_payment_method_options: {
+                payment_method_save: "enabled",
+            },
 
             line_items: line_items,
 

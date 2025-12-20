@@ -24,12 +24,13 @@ const LoginForm = () => {
         try {
             // unwrap() throws an error if the promise is rejected
             await login(formData).unwrap();
+            console.log(searchParams);
 
             // Get return URL or default to dashboard
-            const returnUrl = searchParams.get("returnUrl") || "/dashboard";
+            // const returnUrl = searchParams.get("redirectTo") || "/dashboard";
 
             // Use replace instead of push prevents user from going 'back' to login page
-            router.replace(returnUrl);
+            // router.replace(returnUrl);
         } catch (error) {
             console.error("Login failed:", error);
             // Error is displayed via useSelector(selectAuthError)

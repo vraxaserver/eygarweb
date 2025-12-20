@@ -186,10 +186,13 @@ export default function PropertyDetails({ params }) {
 
         dispatch(setPropertyId(property.id));
 
+        const targetUrl = `/properties/${id}`;
+        const encodedRedirect = encodeURIComponent(targetUrl);
+
         if (isAuthenticated) {
             router.push(`/reserve/${id}`);
         } else {
-            router.push(`/login?from=/reserve/${id}`);
+            router.push(`/login?redirectTo=${encodedRedirect}`);
         }
     }, [
         checkInDate,

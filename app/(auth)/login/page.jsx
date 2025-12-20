@@ -16,7 +16,7 @@ export default function LoginPage() {
     useEffect(() => {
         if (isAuthenticated) {
             const urlParams = new URLSearchParams(window.location.search);
-            const returnUrl = urlParams.get("returnUrl") || "/dashboard";
+            const returnUrl = urlParams.get("redirectTo") || "/dashboard";
             router.push(returnUrl);
         }
     }, [isAuthenticated, router]);

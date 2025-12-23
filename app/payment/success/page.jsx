@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { stripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe"; // Ensure this runs server-side
+import PaymentSync from "@/components/payment/PaymentSync"; // Import the client component
 
 function formatMoney(amountInMinor, currency = "usd") {
-    // Stripe amounts are in the smallest currency unit (e.g., cents)
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: currency.toUpperCase(),
@@ -22,45 +22,84 @@ function formatDateFromUnix(unixSeconds) {
 }
 
 export default async function Success({ searchParams }) {
-    const { session_id } = await searchParams;
+    // Await searchParams in Next.js 15+ (safe for older versions too)
+    const params = await searchParams;
+    const { session_id } = params;
 
     if (!session_id) {
-        throw new Error("Please provide a valid session_id (`cs_test_...`).");
+        redirect("/dashboard"); // Better UX than throwing Error
     }
 
-    const session = await stripe.checkout.sessions.retrieve(session_id, {
-        expand: ["line_items.data.price.product", "payment_intent"],
-    });
-
-    if (session.status === "open") {
-        return redirect("/dashboard");
+    // 1. Fetch Stripe Data on the Server (Fastest performance)
+    let session;
+    try {
+        session = await stripe.checkout.sessions.retrieve(session_id, {
+            expand: ["line_items.data.price.product", "payment_intent"],
+        });
+    } catch (err) {
+        console.error("Stripe retrieval error:", err);
+        throw new Error("Invalid Session");
     }
 
+    // 2. Validate Status
     if (session.status !== "complete") {
+        // If payment failed or is open, don't show success page
         return redirect("/dashboard");
     }
 
-    const customerEmail = session.customer_details?.email ?? "—";
+    // 3. Prepare Payment Payload for the Client Component
+    // We expect booking_id/property_id to be stored in Stripe Metadata during checkout creation
+    const paymentPayload = {
+        checkout_session_id: session_id,
 
-    const currency = session.currency ?? "usd";
-    const totalPaid = formatMoney(session.amount_total, currency);
+        booking_id: session.metadata?.booking_id
+            ? session.metadata.booking_id
+            : "0",
+        property_id: session.metadata?.property_id
+            ? session.metadata.property_id
+            : "0",
+        amount_total: (session.amount_total || 0) / 100, // Convert cents to dollars for DB
+        currency: session.currency || "usd",
+        description: `Booking Payment - ${
+            session.metadata?.booking_reference || "Ref " + session_id.slice(-4)
+        }`,
+        provider: "stripe",
+        payment_status: session.payment_status,
+        payment_method_type: session.payment_method_types[0],
+        payment_method_id: session.payment_intent?.payment_method,
+        payment_id: session?.payment_intent?.id,
+        customer_email: session.customer_details?.email,
+        customer_id: session.customer,
+    };
+    console.log(
+        "============================= paymentPayload: ==========================="
+    );
+    console.log(paymentPayload);
+
+    // 4. Formatting for Display
+    const totalPaid = formatMoney(session.amount_total, session.currency);
     const purchasedAt = formatDateFromUnix(session.created);
+    const customerEmail = session.customer_details?.email ?? "—";
 
     const items = session.line_items?.data ?? [];
     const productNames = items
         .map((li) => {
             const product = li.price?.product;
-            // product can be a string ID or expanded object
-            if (product && typeof product === "object" && "name" in product)
-                return product.name;
-            return li.description || "Item";
+            return product && typeof product === "object" && "name" in product
+                ? product.name
+                : li.description || "Item";
         })
         .filter(Boolean);
-
     const primaryProduct = productNames[0] ?? "Your purchase";
 
     return (
         <main className="min-h-[70vh] bg-neutral-50 px-4 py-10">
+            {/* 
+         This Client Component triggers the Redux Mutation.
+         It runs in the background while the user views the receipt.
+      */}
+            <PaymentSync paymentData={paymentPayload} />
+
             <div className="mx-auto w-full max-w-2xl">
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
@@ -130,7 +169,7 @@ export default async function Success({ searchParams }) {
                             Need help? Contact{" "}
                             <a
                                 className="font-medium text-neutral-900 underline"
-                                href="mailto:orders@example.com"
+                                href="mailto:bookings@eygar.com"
                             >
                                 bookings@eygar.com
                             </a>

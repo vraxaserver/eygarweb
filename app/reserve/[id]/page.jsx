@@ -9,7 +9,10 @@ import { Separator } from "@/components/ui/separator";
 
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
 import { useSelector } from "react-redux";
-import { selectStripeCustomerId } from "@/store/slices/authSlice";
+import {
+    selectStripeCustomerId,
+    selectCurrentUser,
+} from "@/store/slices/authSlice";
 import {
     selectBookingDates,
     selectBookingFees,
@@ -68,6 +71,20 @@ const toMinorUnits = (amountMajor) => {
     return Math.round(n * 100);
 };
 
+function generateStripeLikeId(prefix = "bi_", length = 24) {
+    const chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const randomValues = new Uint8Array(length);
+    crypto.getRandomValues(randomValues);
+
+    let id = "";
+    for (let i = 0; i < length; i++) {
+        id += chars[randomValues[i] % chars.length];
+    }
+
+    return prefix + id;
+}
+
 export default function ReservePage({ params }) {
     // For compatibility with your current setup, keep it direct:
     const { id } = React.use(params);
@@ -75,6 +92,7 @@ export default function ReservePage({ params }) {
     const router = useRouter();
 
     const stripeCustomerId = useSelector(selectStripeCustomerId);
+    const currentUser = useSelector(selectCurrentUser);
     const { checkInDate, checkOutDate } = useSelector(selectBookingDates);
     const guests = useSelector(selectBookingGuests);
     const fees = useSelector(selectBookingFees);
@@ -134,7 +152,6 @@ export default function ReservePage({ params }) {
         return {
             propertyId: property.id,
             propertyTitle: property.title,
-            currency: currency,
 
             checkIn: checkInDate,
             checkOut: checkOutDate,
@@ -149,6 +166,7 @@ export default function ReservePage({ params }) {
             cleaningFee,
             serviceFee,
             total,
+            currency,
             line_items,
 
             coverImage:
@@ -202,6 +220,8 @@ export default function ReservePage({ params }) {
             //     const idFromApi =
             //         data?.bookingId || data?.booking_id || data?.id || null;
             //     setBookingId(idFromApi);
+            const random_booking_id = generateStripeLikeId();
+            setBookingId(random_booking_id);
             setCurrentStep(2);
         } catch (e) {
             alert(e?.message || "Failed to confirm booking.");
@@ -255,7 +275,11 @@ export default function ReservePage({ params }) {
         try {
             // Always send amount+currency so the server can create Checkout even if bookingId is not ready yet.
 
-            const successUrl = `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+            const successUrl = `${
+                window.location.origin
+            }/payment/success?session_id={CHECKOUT_SESSION_ID}&booking_id=${encodeURIComponent(
+                bookingId
+            )}`;
             const cancelUrl = `${window.location.origin}/payment/cancel${
                 bookingId ? `?booking_id=${encodeURIComponent(bookingId)}` : ""
             }`;
@@ -285,7 +309,8 @@ export default function ReservePage({ params }) {
 
                 description: bookingDetails.description,
                 metadata: {
-                    booking_id: bookingId || "",
+                    user_id: currentUser.id,
+                    booking_id: bookingId || "000000",
                     property_id: bookingDetails.propertyId,
                 },
 
@@ -502,10 +527,11 @@ export default function ReservePage({ params }) {
                                                     (() => {
                                                         // If your API already returns newest-first, keep as-is.
                                                         // If it returns oldest-first, reverse it:
-                                                        // const ordered = [...paymentMethods].reverse();
+                                                        const ordered = [
+                                                            ...paymentMethods,
+                                                        ].reverse();
 
-                                                        const ordered =
-                                                            paymentMethods; // assume newest-first
+                                                        // const ordered = paymentMethods; // assume newest-first
                                                         const topThree =
                                                             ordered.slice(0, 3);
                                                         const rest =

@@ -19,6 +19,8 @@ import {
     selectBookingGuests,
 } from "@/store/slices/bookingSlice";
 
+import { useCreateBookingMutation } from "@/store/features/bookingApi";
+
 import {
     useGetPaymentMethodsQuery,
     useAddPaymentMethodMutation,
@@ -90,6 +92,9 @@ export default function ReservePage({ params }) {
     const { id } = React.use(params);
 
     const router = useRouter();
+
+    const [createBooking, { isLoading: creatingBooking }] =
+        useCreateBookingMutation();
 
     const stripeCustomerId = useSelector(selectStripeCustomerId);
     const currentUser = useSelector(selectCurrentUser);
@@ -190,45 +195,41 @@ export default function ReservePage({ params }) {
 
     const handleConfirmBooking = useCallback(async () => {
         if (!bookingDetails || !property) return;
+        const booking_req_body = {
+            property_id: property.id,
+            property_snapshot: property,
+            check_in_date: bookingDetails.checkIn,
+            check_out_date: bookingDetails.checkOut,
+            guests_count: Object.values(bookingDetails.guests).reduce(
+                (sum, v) => sum + v,
+                0
+            ),
+            currency: bookingDetails.currency,
+            nights_stay: bookingDetails.nights,
+            price_per_night: bookingDetails.pricePerNight,
+            subtotal_amount: bookingDetails.subtotal,
+            cleaning_fee: bookingDetails.cleaningFee,
+            service_fee: bookingDetails.serviceFee,
+            total_amount: bookingDetails.total,
+        };
 
-        setConfirmingBooking(true);
+        console.log("booking_req_body: ", booking_req_body);
+
         try {
-            //     const res = await fetch("/api/bookings", {
-            //         method: "POST",
-            //         headers: { "Content-Type": "application/json" },
-            //         body: JSON.stringify({
-            //             property_id: property.id,
-            //             check_in: bookingDetails.checkIn.toISOString(),
-            //             check_out: bookingDetails.checkOut.toISOString(),
-            //             guests: bookingDetails.guests,
-            //             pricing: {
-            //                 currency: bookingDetails.currency,
-            //                 nights: bookingDetails.nights,
-            //                 price_per_night: bookingDetails.pricePerNight,
-            //                 subtotal: bookingDetails.subtotal,
-            //                 cleaning_fee: bookingDetails.cleaningFee,
-            //                 service_fee: bookingDetails.serviceFee,
-            //                 total: bookingDetails.total,
-            //             },
-            //         }),
-            //     });
+            const res = await createBooking(booking_req_body).unwrap(); // 👈 important
 
-            //     const data = await res.json();
-            //     if (!res.ok)
-            //         throw new Error(data?.error || "Failed to confirm booking.");
+            const bookingId =
+                res?.bookingId || res?.booking_id || res?._id || null;
 
-            //     const idFromApi =
-            //         data?.bookingId || data?.booking_id || data?.id || null;
-            //     setBookingId(idFromApi);
-            const random_booking_id = generateStripeLikeId();
-            setBookingId(random_booking_id);
+            setBookingId(bookingId);
             setCurrentStep(2);
-        } catch (e) {
-            alert(e?.message || "Failed to confirm booking.");
-        } finally {
-            setConfirmingBooking(false);
+        } catch (err) {
+            console.error("Booking confirmation failed:", err);
+            alert(
+                err?.data?.error || err?.error || "Failed to confirm booking."
+            );
         }
-    }, [bookingDetails, property]);
+    }, [bookingDetails, property, createBooking]);
 
     const handleAddNewPaymentMethod = useCallback(async () => {
         if (!stripeCustomerId) {
@@ -452,12 +453,12 @@ export default function ReservePage({ params }) {
 
                                     <Button
                                         className="w-full sm:w-[220px] bg-black text-white h-12 rounded-lg"
-                                        onClick={handleConfirmBooking}
                                         disabled={confirmingBooking}
+                                        onClick={handleConfirmBooking}
                                     >
                                         {confirmingBooking
                                             ? "Confirming..."
-                                            : "Confirm booking"}
+                                            : "Confirm Booking"}
                                     </Button>
                                 </div>
                             ) : (

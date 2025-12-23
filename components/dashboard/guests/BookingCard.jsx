@@ -1,6 +1,7 @@
 import { Calendar, MapPin, Star, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 export function BookingCard({ booking, onClick, isPast = false }) {
     const formatDate = (dateString) => {
@@ -16,10 +17,20 @@ export function BookingCard({ booking, onClick, isPast = false }) {
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    const isUpcoming = new Date(booking.checkIn) > new Date();
+    const formatLocation = (loc) => {
+        if (!loc) return "";
+        if (typeof loc === "string") return loc;
+
+        const parts = [loc.address, loc.city, loc.state, loc.country].filter(
+            Boolean
+        );
+        return parts.join(", ");
+    };
+
+    const isUpcoming = new Date(booking.check_in_date) > new Date();
     const isActive =
-        new Date() >= new Date(booking.checkIn) &&
-        new Date() <= new Date(booking.checkOut);
+        new Date() >= new Date(booking.check_in_date) &&
+        new Date() <= new Date(booking.check_out_date);
 
     return (
         <Card
@@ -27,9 +38,14 @@ export function BookingCard({ booking, onClick, isPast = false }) {
             onClick={onClick}
         >
             <div className="relative">
-                <img
-                    src={booking.property.image}
-                    alt={booking.property.name}
+                <Image
+                    src={
+                        booking?.property_snapshot?.image ||
+                        "/images/placeholders/property-placeholder.jpg"
+                    }
+                    alt={booking?.property_snapshot?.title || "Property image"}
+                    width={400}
+                    height={200}
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute top-3 right-3">
@@ -51,25 +67,27 @@ export function BookingCard({ booking, onClick, isPast = false }) {
                 <div className="space-y-3">
                     <div>
                         <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {booking.property.name}
+                            {booking.property_snapshot.title}
                         </h3>
                         <div className="flex items-center text-gray-500 text-sm mt-1">
                             <MapPin className="h-4 w-4 mr-1" />
-                            {booking.property.location}
+                            {formatLocation(
+                                booking?.property_snapshot?.location
+                            )}
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center text-gray-600">
                             <Calendar className="h-4 w-4 mr-1" />
-                            {formatDate(booking.checkIn)} -{" "}
-                            {formatDate(booking.checkOut)}
+                            {formatDate(booking.check_in_date)} -{" "}
+                            {formatDate(booking.check_out_date)}
                         </div>
                         <div className="flex items-center text-gray-600">
                             <Clock className="h-4 w-4 mr-1" />
                             {getDaysBetween(
-                                booking.checkIn,
-                                booking.checkOut
+                                booking.check_in_date,
+                                booking.check_out_date
                             )}{" "}
                             nights
                         </div>
@@ -79,15 +97,15 @@ export function BookingCard({ booking, onClick, isPast = false }) {
                         <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 mr-1" />
                             <span className="text-sm font-medium">
-                                {booking.property.rating}
+                                {booking.property_snapshot?.rating}
                             </span>
                             <span className="text-gray-500 text-sm ml-1">
-                                ({booking.property.reviews} reviews)
+                                ({booking.property_snapshot?.reviews} reviews)
                             </span>
                         </div>
                         <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">
-                                ${booking.totalPrice}
+                                ${booking.total_amount}
                             </p>
                             <p className="text-xs text-gray-500">total</p>
                         </div>

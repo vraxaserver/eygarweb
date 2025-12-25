@@ -1,103 +1,170 @@
-import { useMemo, useState } from "react";
+"use client";
+
+import React, { useCallback, useMemo, useState, memo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookingCard } from "@/components/dashboard/guests/BookingCard";
+import { BookingCard as BookingCardBase } from "@/components/dashboard/guests/BookingCard";
 import { BookingDetail } from "@/components/dashboard/guests/BookingDetails";
 import { Calendar, History, User } from "lucide-react";
 import { useListBookingsQuery } from "@/store/features/bookingApi";
+import { getBookingState } from "@/lib/bookingUtils";
 
-function asDate(value) {
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
+/**
+ * Defensive helpers
+ */
+function normalizeBookings(payload) {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload.items)) return payload.items;
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.results)) return payload.results;
+    return [];
 }
 
 function getBookingId(b) {
-    return b?.id ?? b?._id ?? b?.booking_id ?? null;
+    const id = b?.id ?? b?._id ?? b?.booking_id ?? null;
+    return typeof id === "string" || typeof id === "number" ? String(id) : null;
 }
 
 function getPropertyTitle(b) {
-    // Prefer what your backend actually stores (you showed property_snapshot)
     return (
         b?.property_snapshot?.title ??
         b?.property_snapshot?.name ??
+        b?.property?.title ??
         b?.property?.name ??
         "Property"
     );
 }
 
+function getErrorMessage(error) {
+    if (!error) return "Unknown error";
+    if (typeof error === "string") return error;
+    // RTK Query can return FetchBaseQueryError or SerializedError shapes
+    return (
+        error?.data?.message ||
+        error?.error ||
+        error?.message ||
+        "Unknown error"
+    );
+}
+
+/**
+ * Memoized wrapper to avoid re-rendering cards unnecessarily when parent state changes.
+ * (Assumes BookingCard is a pure-ish component.)
+ */
+const BookingCard = memo(function BookingCard(props) {
+    return <BookingCardBase {...props} />;
+});
+
 export default function GuestDashboard() {
-    const [selectedBooking, setSelectedBooking] = useState(null);
-    const [showDetail, setShowDetail] = useState(false);
+    const [selectedBookingId, setSelectedBookingId] = useState(null);
 
-    // RTK Query standard shape
-    const {
-        data: bookingsRaw,
-        isLoading,
-        isError,
-        error,
-        refetch,
-    } = useListBookingsQuery();
+    // Use RTK Query defaults; add refetch helpers for better UX without extra renders.
+    const { data, isLoading, isFetching, isError, error, refetch } =
+        useListBookingsQuery(undefined, {
+            // Avoid refetching on every focus if you prefer; adjust to your UX.
+            refetchOnFocus: false,
+            refetchOnReconnect: true,
+        });
 
-    // Always normalize to array
-    const bookings = useMemo(() => {
-        if (!bookingsRaw) return [];
-        // If API returns { items: [] } adjust here
-        if (Array.isArray(bookingsRaw)) return bookingsRaw;
-        if (Array.isArray(bookingsRaw.items)) return bookingsRaw.items;
-        return [];
-    }, [bookingsRaw]);
+    const bookings = useMemo(() => normalizeBookings(data), [data]);
 
-    const now = useMemo(() => new Date(), []);
-
-    const { upcomingBookings, pastBookings, activeBooking } = useMemo(() => {
-        const upcoming = [];
-        const past = [];
-        let active = null;
-
+    /**
+     * Build a fast lookup map so selecting by id doesn't store a large object in state.
+     * This prevents stale-object issues when data refreshes and reduces renders.
+     */
+    const bookingById = useMemo(() => {
+        const map = new Map();
         for (const b of bookings) {
-            const checkIn = asDate(b.check_in_date);
-            const checkOut = asDate(b.check_out_date);
+            const id = getBookingId(b);
+            if (id) map.set(id, b);
+        }
+        return map;
+    }, [bookings]);
 
-            // If any date is invalid, skip classification but still allow showing somewhere if you want
-            if (!checkIn || !checkOut) continue;
+    const selectedBooking = useMemo(() => {
+        if (!selectedBookingId) return null;
+        return bookingById.get(selectedBookingId) ?? null;
+    }, [selectedBookingId, bookingById]);
 
-            // Active: now >= checkIn AND now < checkOut (exclusive checkout is common)
-            if (now >= checkIn && now < checkOut && !active) {
-                active = b;
-                continue;
+    /**
+     * Classification: fix bug where activeBooking was an array but used as a single booking.
+     * Here we choose the first active booking as "current stay" and keep any others in list.
+     */
+    const { upcomingBookings, activeBookings, activeBooking, pastBookings } =
+        useMemo(() => {
+            const upcoming = [];
+            const active = [];
+            const past = [];
+
+            for (const b of bookings) {
+                const state = getBookingState(b);
+
+                if (state === "history") {
+                    past.push(b);
+                    continue;
+                }
+
+                if (
+                    state === "active_checked_in" ||
+                    state === "needs_checkin"
+                ) {
+                    active.push(b);
+                    continue;
+                }
+
+                if (state === "upcoming") {
+                    upcoming.push(b);
+                }
             }
 
-            if (checkIn > now) upcoming.push(b);
-            else if (checkOut <= now) past.push(b);
-        }
+            // Stable ordering helps UI feel consistent (optional; safe for perf).
+            // Upcoming: nearest check-in first
+            upcoming.sort((a, b) => {
+                const da = new Date(a?.check_in_date ?? 0).getTime();
+                const db = new Date(b?.check_in_date ?? 0).getTime();
+                return da - db;
+            });
 
-        // Optional: sort lists
-        upcoming.sort(
-            (a, b) => new Date(a.check_in_date) - new Date(b.check_in_date)
-        );
-        past.sort(
-            (a, b) => new Date(b.check_out_date) - new Date(a.check_out_date)
-        );
+            // Past: most recent checkout first
+            past.sort((a, b) => {
+                const da = new Date(a?.check_out_date ?? 0).getTime();
+                const db = new Date(b?.check_out_date ?? 0).getTime();
+                return db - da;
+            });
 
-        return {
-            upcomingBookings: upcoming,
-            pastBookings: past,
-            activeBooking: active,
-        };
-    }, [bookings, now]);
+            // Active: nearest checkout first
+            active.sort((a, b) => {
+                const da = new Date(a?.check_out_date ?? 0).getTime();
+                const db = new Date(b?.check_out_date ?? 0).getTime();
+                return da - db;
+            });
 
-    const handleBookingClick = (booking) => {
-        setSelectedBooking(booking);
-        setShowDetail(true);
-    };
+            return {
+                upcomingBookings: upcoming,
+                activeBookings: active,
+                activeBooking: active.length ? active[0] : null,
+                pastBookings: past,
+            };
+        }, [bookings]);
 
-    const handleBackToDashboard = () => {
-        setShowDetail(false);
-        setSelectedBooking(null);
-    };
+    const defaultTab = useMemo(
+        () => (activeBooking ? "active" : "upcoming"),
+        [activeBooking]
+    );
 
-    if (showDetail && selectedBooking) {
+    const handleBookingClick = useCallback((booking) => {
+        const id = getBookingId(booking);
+        if (id) setSelectedBookingId(id);
+    }, []);
+
+    const handleBackToDashboard = useCallback(() => {
+        setSelectedBookingId(null);
+    }, []);
+
+    // Detail view
+    if (selectedBooking) {
         return (
             <BookingDetail
                 booking={selectedBooking}
@@ -106,10 +173,21 @@ export default function GuestDashboard() {
         );
     }
 
+    // Loading state (show a consistent layout to reduce CLS)
     if (isLoading) {
-        return <h1>Loading....</h1>;
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="bg-white border rounded-lg p-6 max-w-lg w-full">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                        Loading bookings
+                    </h2>
+                    <p className="text-sm text-gray-600">Please wait…</p>
+                </div>
+            </div>
+        );
     }
 
+    // Error state
     if (isError) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -118,15 +196,11 @@ export default function GuestDashboard() {
                         Failed to load bookings
                     </h2>
                     <p className="text-sm text-gray-600 mb-4">
-                        {typeof error === "string"
-                            ? error
-                            : error?.data?.message ||
-                              error?.error ||
-                              "Unknown error"}
+                        {getErrorMessage(error)}
                     </p>
                     <button
                         className="px-4 py-2 rounded-md bg-gray-900 text-white"
-                        onClick={() => refetch()}
+                        onClick={refetch}
                     >
                         Retry
                     </button>
@@ -155,12 +229,13 @@ export default function GuestDashboard() {
                             </div>
                         </div>
 
-                        {/* Optional refresh */}
                         <button
-                            className="text-sm px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50"
-                            onClick={() => refetch()}
+                            className="text-sm px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
+                            onClick={refetch}
+                            disabled={isFetching}
+                            title={isFetching ? "Refreshing..." : "Refresh"}
                         >
-                            Refresh
+                            {isFetching ? "Refreshing…" : "Refresh"}
                         </button>
                     </div>
                 </div>
@@ -168,10 +243,7 @@ export default function GuestDashboard() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Tabs
-                    defaultValue={activeBooking ? "active" : "upcoming"}
-                    className="w-full"
-                >
+                <Tabs defaultValue={defaultTab} className="w-full">
                     <TabsList
                         className={`grid w-full ${
                             activeBooking ? "grid-cols-3" : "grid-cols-2"
@@ -186,6 +258,7 @@ export default function GuestDashboard() {
                                 <span>Active Booking</span>
                             </TabsTrigger>
                         )}
+
                         <TabsTrigger
                             value="upcoming"
                             className="flex items-center space-x-2"
@@ -193,6 +266,7 @@ export default function GuestDashboard() {
                             <Calendar className="h-4 w-4" />
                             <span>Upcoming Bookings</span>
                         </TabsTrigger>
+
                         <TabsTrigger
                             value="history"
                             className="flex items-center space-x-2"
@@ -208,6 +282,7 @@ export default function GuestDashboard() {
                                 <h2 className="text-2xl font-bold text-gray-900">
                                     Current Stay
                                 </h2>
+
                                 <Badge className="bg-green-500 hover:bg-green-600 text-white">
                                     <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
                                     Checked In
@@ -220,9 +295,37 @@ export default function GuestDashboard() {
                                     onClick={() =>
                                         handleBookingClick(activeBooking)
                                     }
-                                    isActive={true}
+                                    isActive
                                 />
                             </div>
+
+                            {/* If you have multiple active bookings, you can optionally show them here */}
+                            {activeBookings.length > 1 && (
+                                <div className="space-y-3">
+                                    <div className="text-sm font-medium text-gray-900">
+                                        Other active bookings
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {activeBookings.slice(1).map((b) => (
+                                            <BookingCard
+                                                key={
+                                                    getBookingId(b) ??
+                                                    `${
+                                                        b?.property_id ?? "prop"
+                                                    }-${
+                                                        b?.check_in_date ?? "na"
+                                                    }`
+                                                }
+                                                booking={b}
+                                                onClick={() =>
+                                                    handleBookingClick(b)
+                                                }
+                                                isActive
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <Card className="bg-green-50 border-green-200">
                                 <CardContent className="p-6">
@@ -232,10 +335,11 @@ export default function GuestDashboard() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-green-800">
-                                                Enjoy Your Stay!
+                                                Enjoy Your Stay
                                             </h3>
                                             <p className="text-green-700 text-sm">
-                                                You're currently checked in at{" "}
+                                                You&apos;re currently checked in
+                                                at{" "}
                                                 {getPropertyTitle(
                                                     activeBooking
                                                 )}
@@ -266,7 +370,7 @@ export default function GuestDashboard() {
                                     No upcoming bookings
                                 </h3>
                                 <p className="text-gray-500">
-                                    Your next adventure awaits!
+                                    Your next adventure awaits.
                                 </p>
                             </div>
                         ) : (
@@ -275,7 +379,9 @@ export default function GuestDashboard() {
                                     <BookingCard
                                         key={
                                             getBookingId(booking) ??
-                                            `${booking.property_id}-${booking.check_in_date}`
+                                            `${
+                                                booking?.property_id ?? "prop"
+                                            }-${booking?.check_in_date ?? "na"}`
                                         }
                                         booking={booking}
                                         onClick={() =>
@@ -304,7 +410,7 @@ export default function GuestDashboard() {
                                     No booking history
                                 </h3>
                                 <p className="text-gray-500">
-                                    Your travel memories will appear here
+                                    Your travel memories will appear here.
                                 </p>
                             </div>
                         ) : (
@@ -313,13 +419,20 @@ export default function GuestDashboard() {
                                     <BookingCard
                                         key={
                                             getBookingId(booking) ??
-                                            `${booking.property_id}-${booking.check_out_date}`
+                                            `${
+                                                booking?.property_id ?? "prop"
+                                            }-${
+                                                booking?.check_out_date ?? "na"
+                                            }`
                                         }
                                         booking={booking}
                                         onClick={() =>
                                             handleBookingClick(booking)
                                         }
-                                        isPast={true}
+                                        isPast
+                                        onView={() =>
+                                            handleBookingClick(booking)
+                                        }
                                     />
                                 ))}
                             </div>

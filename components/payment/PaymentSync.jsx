@@ -3,9 +3,11 @@
 
 import { useEffect, useRef } from "react";
 import { useCreatePaymentMutation } from "@/store/features/paymentApi";
+import { useUpdateBookingPaymentSuccessfulMutation } from "@/store/features/bookingApi";
 
 export default function PaymentSync({ paymentData }) {
     const [createPayment] = useCreatePaymentMutation();
+    const [updateBookingStatus] = useUpdateBookingPaymentSuccessfulMutation();
     // Use a ref to ensure we only try to record this once per mount
     const hasRecorded = useRef(false);
 
@@ -28,7 +30,15 @@ export default function PaymentSync({ paymentData }) {
         };
 
         recordPayment();
-    }, [createPayment, paymentData]);
+
+        (async () => {
+            // 2) update booking status
+            await updateBookingStatus({
+                bookingId: paymentData.booking_id,
+                payment_details: paymentData,
+            }).unwrap();
+        })();
+    }, [paymentData, createPayment, updateBookingStatus]);
 
     return null; // This component renders nothing
 }

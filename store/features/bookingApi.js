@@ -37,6 +37,15 @@ export const bookingApi = createApi({
             providesTags: (result, error, id) => [{ type: "Booking", id }],
         }),
 
+        /** Get booking by ID */
+        updateBookingPaymentSuccessful: builder.mutation({
+            query: ({ bookingId, payment_details }) => ({
+                url: `/bookings/${bookingId}/payment-success`,
+                method: "POST",
+                body: { payment_details },
+            }),
+        }),
+
         /** List bookings */
         listBookings: builder.query({
             query: () => "/bookings/mine",
@@ -61,4 +70,5 @@ export const {
     useGetBookingByIdQuery,
     useListBookingsQuery,
     useCancelBookingMutation,
+    useUpdateBookingPaymentSuccessfulMutation,
 } = bookingApi;

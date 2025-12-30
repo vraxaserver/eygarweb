@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
-import { useSelector } from "react-redux";
+import { useSelector, shallowEqual } from "react-redux";
 import {
     selectStripeCustomerId,
     selectCurrentUser,
@@ -30,21 +30,14 @@ import {
 // ---------------------------
 // Helpers
 // ---------------------------
-const parseDate = (dateString) => {
-    if (!dateString) return null;
-    const d = new Date(dateString);
-    return Number.isNaN(d.getTime()) ? null : d;
-};
-
 const formatDateRange = (checkInDate, checkOutDate) => {
-    if (
-        !(checkInDate instanceof Date) ||
-        !(checkOutDate instanceof Date) ||
-        isNaN(checkInDate.getTime()) ||
-        isNaN(checkOutDate.getTime())
-    ) {
+    if (!(checkInDate instanceof Date) || !(checkOutDate instanceof Date))
         return null;
-    }
+    if (
+        Number.isNaN(checkInDate.getTime()) ||
+        Number.isNaN(checkOutDate.getTime())
+    )
+        return null;
 
     const dateOptions = { month: "short", day: "numeric" };
     const yearOptions = { year: "numeric" };
@@ -66,119 +59,130 @@ const buildGuestString = (guests) => {
         infants > 0 ? `, ${infants} infant${infants !== 1 ? "s" : ""}` : ""
     }`;
 };
-
 const toMinorUnits = (amountMajor) => {
-    // Stripe Checkout expects smallest unit (e.g., QAR => *100)
-    const n = Number(amountMajor || 0);
+    const n = Number(amountMajor);
+    if (!Number.isFinite(n) || n <= 0) return 0;
     return Math.round(n * 100);
 };
 
-function generateStripeLikeId(prefix = "bi_", length = 24) {
-    const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    const randomValues = new Uint8Array(length);
-    crypto.getRandomValues(randomValues);
-
-    let id = "";
-    for (let i = 0; i < length; i++) {
-        id += chars[randomValues[i] % chars.length];
-    }
-
-    return prefix + id;
-}
-
 export default function ReservePage({ params }) {
-    // For compatibility with your current setup, keep it direct:
+    // ✅ FIX: Next.js params is already an object
     const { id } = React.use(params);
 
     const router = useRouter();
 
-    const [createBooking, { isLoading: creatingBooking }] =
-        useCreateBookingMutation();
-
-    const stripeCustomerId = useSelector(selectStripeCustomerId);
-    const currentUser = useSelector(selectCurrentUser);
-    const { checkInDate, checkOutDate } = useSelector(selectBookingDates);
-    const guests = useSelector(selectBookingGuests);
-    const fees = useSelector(selectBookingFees);
-
-    const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
-
-    // Flow state
-    const [currentStep, setCurrentStep] = useState(1); // 1 Review -> 2 Payment method -> 3 Pay
-    const [bookingId, setBookingId] = useState(null);
-
-    // Store a snapshot of the selected payment method so Step 2 summary works reliably
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
-
-    const [confirmingBooking, setConfirmingBooking] = useState(false);
-
-    // Stripe RTK
+    const [createBooking] = useCreateBookingMutation();
     const [addPaymentMethod, { isLoading: addingPaymentMethod }] =
         useAddPaymentMethodMutation();
     const [makePayment, { isLoading: creatingPayment }] =
         useMakePaymentMutation();
 
+    // ✅ Reduce re-renders from selectors with shallowEqual
+    const stripeCustomerId = useSelector(selectStripeCustomerId);
+    const currentUser = useSelector(selectCurrentUser);
+
+    const { checkInDate, checkOutDate } =
+        useSelector(selectBookingDates, shallowEqual) || {};
+    const guests = useSelector(selectBookingGuests, shallowEqual) || {};
+    const fees = useSelector(selectBookingFees, shallowEqual) || {};
+
+    const {
+        data: property,
+        isLoading: propertyLoading,
+        isError: propertyIsError,
+    } = useGetPropertyByIdQuery(id, { skip: !id });
+
+    // Flow state
+    const [currentStep, setCurrentStep] = useState(1);
+    const [bookingId, setBookingId] = useState(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+    // ✅ Prevent double-submit
+    const [confirmingBooking, setConfirmingBooking] = useState(false);
+
     const bookingDetails = useMemo(() => {
         if (!property) return null;
 
-        // const checkInDate = parseDate(checkIn) || new Date();
-        // const checkOutDate =
-        //     parseDate(checkOut) ||
-        //     new Date(new Date().setDate(new Date().getDate() + 1));
-
-        // const diffTime = Math.abs(checkOutDate - checkInDate);
-        const nights = fees.nights;
+        const nights = Number(fees?.nights || 0);
         const validNights = nights > 0 ? nights : 1;
 
-        const pricePerNight = fees.price_per_night;
-        const subtotal = fees.subtotal;
+        const pricePerNight = Number(fees?.price_per_night || 0);
+        const subtotal = Number(fees?.subtotal || 0);
 
-        const cleaningFee = fees.cleaning_fee || 0;
-        const serviceFee = fees.service_fee || 0;
+        const cleaningFee = Number(fees?.cleaning_fee || 0);
+        const serviceFee = Number(fees?.service_fee || 0);
 
-        const total = fees.total_amount;
-        const currency = fees.currency;
-        const description = `Booking payment - ${property.title}`;
-        const line_items = [
-            {
-                price_data: {
-                    currency: currency || "qar",
-                    product_data: {
-                        id: property.id,
-                        name: description || "Booking payment",
-                    },
-                    unit_amount: total,
-                },
-                quantity: 1,
-            },
-        ];
+        const total = Number(fees?.total_amount || 0);
+        const currency = (
+            fees?.currency ||
+            property?.currency ||
+            "qar"
+        ).toLowerCase();
+
+        const dateString = formatDateRange(checkInDate, checkOutDate);
+        const guestString = buildGuestString(guests);
+
+        const unitAmountCents = toMinorUnits(total);
+
+        const coverImage =
+            property.images?.find((img) => img.is_cover)?.image_url ||
+            property.images?.[0]?.image_url;
 
         return {
             propertyId: property.id,
             propertyTitle: property.title,
+            placeTypeLabel: property.place_type?.replaceAll("_", " ") || "",
 
             checkIn: checkInDate,
             checkOut: checkOutDate,
             nights: validNights,
-            dateString: formatDateRange(checkInDate, checkOutDate),
+            dateString,
 
             guests,
-            guestString: buildGuestString(guests),
+            guestString,
 
             pricePerNight,
             subtotal,
             cleaningFee,
             serviceFee,
             total,
+            totalCents: unitAmountCents,
             currency,
-            line_items,
 
-            coverImage:
-                property.images?.find((img) => img.is_cover)?.image_url ||
-                property.images?.[0]?.image_url,
+            coverImage,
         };
-    }, [property, checkInDate, checkOutDate, guests]);
+    }, [property, fees, guests, checkInDate, checkOutDate]);
+
+    // ✅ Prebuild formatters once (faster than repeating toLocaleString all over)
+    const moneyFormatter = useMemo(() => {
+        const cur = bookingDetails?.currency?.toUpperCase() || "QAR";
+        // If Intl currency code is invalid, fallback to plain number formatting
+        try {
+            return new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: cur,
+            });
+        } catch {
+            return new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        }
+    }, [bookingDetails?.currency]);
+
+    const formatMoney = useCallback(
+        (amount) => {
+            const n = Number(amount || 0);
+            const cur = bookingDetails?.currency?.toUpperCase();
+            // If formatter is in currency mode, it's already including symbol; you may prefer custom "QAR 123.45"
+            // Here we keep your style: "QAR 123.45"
+            return `${cur || "QAR"} ${new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(n)}`;
+        },
+        [bookingDetails?.currency]
+    );
 
     const {
         data: paymentMethodsData,
@@ -187,24 +191,43 @@ export default function ReservePage({ params }) {
         error: paymentMethodsError,
         refetch: refetchPaymentMethods,
     } = useGetPaymentMethodsQuery(
-        { customerId: stripeCustomerId, type: "card" },
+        { customerId: stripeCustomerId },
         { skip: !stripeCustomerId || currentStep < 2 }
     );
 
-    const paymentMethods = paymentMethodsData?.paymentMethods || [];
+    const paymentMethods = paymentMethodsData?.paymentMethods ?? [];
+
+    // ✅ Avoid reversing on every render
+    const orderedPaymentMethods = useMemo(() => {
+        // If API returns newest-first, use as-is.
+        // If API returns oldest-first, reverse once here.
+        return [...paymentMethods].reverse();
+    }, [paymentMethods]);
 
     const handleConfirmBooking = useCallback(async () => {
-        if (!bookingDetails || !property) return;
+        if (confirmingBooking) return;
+        if (!bookingDetails) return;
+        if (!property?.id) return;
+
+        if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+            alert("Please select valid check-in and check-out dates.");
+            return;
+        }
+
+        setConfirmingBooking(true);
+
+        const guestsCount = Object.values(bookingDetails.guests || {}).reduce(
+            (sum, v) => sum + Number(v || 0),
+            0
+        );
+
         const booking_req_body = {
             property_id: property.id,
             property_snapshot: property,
             check_in_date: bookingDetails.checkIn,
             check_out_date: bookingDetails.checkOut,
-            guests_count: Object.values(bookingDetails.guests).reduce(
-                (sum, v) => sum + v,
-                0
-            ),
-            currency: bookingDetails.currency,
+            guests_count: guestsCount,
+            currency: bookingDetails.currency?.toUpperCase(),
             nights_stay: bookingDetails.nights,
             price_per_night: bookingDetails.pricePerNight,
             subtotal_amount: bookingDetails.subtotal,
@@ -213,23 +236,28 @@ export default function ReservePage({ params }) {
             total_amount: bookingDetails.total,
         };
 
-        console.log("booking_req_body: ", booking_req_body);
-
         try {
-            const res = await createBooking(booking_req_body).unwrap(); // 👈 important
+            const res = await createBooking(booking_req_body).unwrap();
 
-            const bookingId =
+            const newBookingId =
                 res?.bookingId || res?.booking_id || res?._id || null;
+            if (!newBookingId)
+                throw new Error("Booking created but booking id not returned.");
 
-            setBookingId(bookingId);
+            setBookingId(newBookingId);
             setCurrentStep(2);
         } catch (err) {
             console.error("Booking confirmation failed:", err);
             alert(
-                err?.data?.error || err?.error || "Failed to confirm booking."
+                err?.data?.error ||
+                    err?.error ||
+                    err?.message ||
+                    "Failed to confirm booking."
             );
+        } finally {
+            setConfirmingBooking(false);
         }
-    }, [bookingDetails, property, createBooking]);
+    }, [confirmingBooking, bookingDetails, property, createBooking]);
 
     const handleAddNewPaymentMethod = useCallback(async () => {
         if (!stripeCustomerId) {
@@ -245,18 +273,18 @@ export default function ReservePage({ params }) {
             }).unwrap();
 
             if (result?.url) {
-                window.location.href = result.url;
+                window.location.assign(result.url);
                 return;
             }
 
             throw new Error(result?.error || "No redirect url returned.");
         } catch (e) {
-            const msg =
+            alert(
                 e?.data?.error ||
-                e?.error ||
-                e?.message ||
-                "Failed to open payment settings.";
-            alert(msg);
+                    e?.error ||
+                    e?.message ||
+                    "Failed to open payment settings."
+            );
         }
     }, [stripeCustomerId, addPaymentMethod]);
 
@@ -267,58 +295,85 @@ export default function ReservePage({ params }) {
     const handleContinueFromPaymentMethods = useCallback(() => {
         if (!selectedPaymentMethod?.id) return;
         setCurrentStep(3);
-    }, [selectedPaymentMethod]);
+    }, [selectedPaymentMethod?.id]);
 
     const handlePay = useCallback(async () => {
         if (!bookingDetails || !stripeCustomerId || !selectedPaymentMethod?.id)
             return;
 
-        try {
-            // Always send amount+currency so the server can create Checkout even if bookingId is not ready yet.
+        if (!bookingId) {
+            alert(
+                "Booking reference is missing. Please confirm booking again."
+            );
+            setCurrentStep(1);
+            return;
+        }
 
+        // Validate amount
+        const amountCents = Number(bookingDetails.totalCents);
+        if (!Number.isInteger(amountCents) || amountCents <= 0) {
+            alert("Invalid payment amount. Please re-check pricing.");
+            return;
+        }
+
+        const currencyLower = (bookingDetails.currency || "qar").toLowerCase();
+        const currencyUpper = currencyLower.toUpperCase();
+
+        try {
             const successUrl = `${
                 window.location.origin
             }/payment/success?session_id={CHECKOUT_SESSION_ID}&booking_id=${encodeURIComponent(
                 bookingId
             )}`;
-            const cancelUrl = `${window.location.origin}/payment/cancel${
-                bookingId ? `?booking_id=${encodeURIComponent(bookingId)}` : ""
-            }`;
+            const cancelUrl = `${
+                window.location.origin
+            }/payment/cancel?booking_id=${encodeURIComponent(bookingId)}`;
 
-            const result = await makePayment({
+            const payload = {
                 customerId: stripeCustomerId,
-                booking_id: bookingId || undefined,
-                // payment_method_id: selectedPaymentMethod.id,
+                booking_id: bookingId,
 
+                // IMPORTANT: send the selected payment method id
+                payment_method_id: selectedPaymentMethod.id,
+
+                // Send amount in both formats (backend may read either)
+                amount_cents: amountCents, // 24710
+                amount: amountCents / 100, // 247.10
+                currency: currencyLower, // "qar"
+                currency_code: currencyUpper, // "QAR" (optional if backend uses it)
+
+                // If backend creates a Checkout Session from line_items, keep this too:
                 line_items: [
                     {
                         price_data: {
-                            currency: bookingDetails.currency || "qar",
+                            currency: currencyLower,
                             product_data: {
-                                name: property.title,
+                                name:
+                                    bookingDetails.propertyTitle ||
+                                    "Booking payment",
                                 description:
-                                    property.title || "Booking payment",
+                                    bookingDetails.propertyTitle ||
+                                    "Booking payment",
                             },
-                            unit_amount: bookingDetails.total,
+                            unit_amount: amountCents, // MUST be integer
                         },
                         quantity: 1,
                     },
                 ],
 
-                amount: bookingDetails.total,
-                currency: bookingDetails.currency,
-
-                description: bookingDetails.description,
                 metadata: {
-                    user_id: currentUser.id,
-                    booking_id: bookingId || "000000",
+                    user_id: currentUser?.id || "unknown",
+                    booking_id: bookingId,
                     property_id: bookingDetails.propertyId,
                 },
 
                 success_url: successUrl,
                 cancel_url: cancelUrl,
-            }).unwrap();
-            console.log("results: ", result);
+            };
+
+            console.log("[makePayment] payload:", payload);
+
+            const result = await makePayment(payload).unwrap();
 
             if (result?.url) {
                 window.location.assign(result.url);
@@ -329,34 +384,38 @@ export default function ReservePage({ params }) {
                 result?.error || "No payment redirect url returned."
             );
         } catch (e) {
-            const msg =
+            alert(
                 e?.data?.error ||
-                e?.error ||
-                e?.message ||
-                "Failed to start payment.";
-            alert(msg);
+                    e?.error ||
+                    e?.message ||
+                    "Failed to start payment."
+            );
         }
     }, [
         bookingDetails,
         bookingId,
         stripeCustomerId,
-        selectedPaymentMethod,
+        selectedPaymentMethod?.id,
         makePayment,
+        currentUser,
+        setCurrentStep,
     ]);
 
-    if (isLoading)
+    if (propertyLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 Loading...
             </div>
         );
+    }
 
-    if (isError || !property)
+    if (propertyIsError || !property || !bookingDetails) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 Error loading property
             </div>
         );
+    }
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -427,11 +486,11 @@ export default function ReservePage({ params }) {
                                                 Check-in / Check-out
                                             </div>
                                             <div>
-                                                {bookingDetails?.dateString}
+                                                {bookingDetails.dateString}
                                             </div>
                                             <div className="mt-1">
                                                 Guests:{" "}
-                                                {bookingDetails?.guestString}
+                                                {bookingDetails.guestString}
                                             </div>
                                         </div>
 
@@ -442,10 +501,11 @@ export default function ReservePage({ params }) {
                                             <div className="text-xs leading-relaxed">
                                                 Total:{" "}
                                                 <span className="font-bold text-black">
-                                                    {bookingDetails?.currency}{" "}
-                                                    {bookingDetails?.total.toLocaleString()}
+                                                    {formatMoney(
+                                                        bookingDetails.total
+                                                    )}
                                                 </span>{" "}
-                                                for {bookingDetails?.nights}{" "}
+                                                for {bookingDetails.nights}{" "}
                                                 nights.
                                             </div>
                                         </div>
@@ -524,93 +584,67 @@ export default function ReservePage({ params }) {
                                         !paymentMethodsLoading &&
                                         !paymentMethodsIsError && (
                                             <div className="space-y-3">
-                                                {paymentMethods.length > 0 ? (
-                                                    (() => {
-                                                        // If your API already returns newest-first, keep as-is.
-                                                        // If it returns oldest-first, reverse it:
-                                                        const ordered = [
-                                                            ...paymentMethods,
-                                                        ].reverse();
+                                                {orderedPaymentMethods.length >
+                                                0 ? (
+                                                    <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                                                        {orderedPaymentMethods.map(
+                                                            (pm, index) => {
+                                                                const isSelected =
+                                                                    selectedPaymentMethod?.id ===
+                                                                    pm.id;
+                                                                const isRecent =
+                                                                    index < 3;
 
-                                                        // const ordered = paymentMethods; // assume newest-first
-                                                        const topThree =
-                                                            ordered.slice(0, 3);
-                                                        const rest =
-                                                            ordered.slice(3);
-                                                        const finalList = [
-                                                            ...topThree,
-                                                            ...rest,
-                                                        ];
-
-                                                        return (
-                                                            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
-                                                                {finalList.map(
-                                                                    (
-                                                                        pm,
-                                                                        index
-                                                                    ) => {
-                                                                        const isSelected =
-                                                                            selectedPaymentMethod?.id ===
-                                                                            pm.id;
-
-                                                                        // Optional: visually indicate the top 3 (most recent)
-                                                                        const isRecent =
-                                                                            index <
-                                                                            3;
-
-                                                                        return (
-                                                                            <button
-                                                                                key={
-                                                                                    pm.id
+                                                                return (
+                                                                    <button
+                                                                        key={
+                                                                            pm.id
+                                                                        }
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleSelectPaymentMethod(
+                                                                                pm
+                                                                            )
+                                                                        }
+                                                                        className={`w-full border rounded-xl p-4 text-left ${
+                                                                            isSelected
+                                                                                ? "border-black"
+                                                                                : "border-gray-200"
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="flex items-center gap-3">
+                                                                                <CreditCard className="w-6 h-6" />
+                                                                                <span>
+                                                                                    {pm.brand?.toUpperCase?.() ||
+                                                                                        "Card"}{" "}
+                                                                                    ••••{" "}
+                                                                                    {
+                                                                                        pm.last4
+                                                                                    }
+                                                                                </span>
+                                                                                {isRecent && (
+                                                                                    <span className="text-xs text-gray-500 border rounded-full px-2 py-0.5">
+                                                                                        Recent
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="text-sm text-gray-500">
+                                                                                {
+                                                                                    pm.exp_month
                                                                                 }
-                                                                                type="button"
-                                                                                onClick={() =>
-                                                                                    handleSelectPaymentMethod(
-                                                                                        pm
-                                                                                    )
+
+                                                                                /
+                                                                                {
+                                                                                    pm.exp_year
                                                                                 }
-                                                                                className={`w-full border rounded-xl p-4 text-left ${
-                                                                                    isSelected
-                                                                                        ? "border-black"
-                                                                                        : ""
-                                                                                }`}
-                                                                            >
-                                                                                <div className="flex items-center justify-between">
-                                                                                    <div className="flex items-center gap-3">
-                                                                                        <CreditCard className="w-6 h-6" />
-                                                                                        <span>
-                                                                                            {pm.brand?.toUpperCase?.() ||
-                                                                                                "Card"}{" "}
-                                                                                            ••••{" "}
-                                                                                            {
-                                                                                                pm.last4
-                                                                                            }
-                                                                                        </span>
-
-                                                                                        {isRecent && (
-                                                                                            <span className="text-xs text-gray-500 border rounded-full px-2 py-0.5">
-                                                                                                Recent
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <div className="text-sm text-gray-500">
-                                                                                        {
-                                                                                            pm.exp_month
-                                                                                        }
-
-                                                                                        /
-                                                                                        {
-                                                                                            pm.exp_year
-                                                                                        }
-                                                                                    </div>
-                                                                                </div>
-                                                                            </button>
-                                                                        );
-                                                                    }
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })()
+                                                                            </div>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                        )}
+                                                    </div>
                                                 ) : (
                                                     <div className="text-sm text-gray-600">
                                                         No saved payment methods
@@ -658,7 +692,6 @@ export default function ReservePage({ params }) {
                                     </Button>
                                 </div>
                             ) : (
-                                // ✅ FIX #1: Show selected payment method summary after continuing
                                 <div className="flex items-center gap-2 text-gray-600">
                                     <CreditCard className="w-5 h-5" />
                                     {selectedPaymentMethod?.id ? (
@@ -693,13 +726,11 @@ export default function ReservePage({ params }) {
                                     <div className="text-xs text-gray-600 leading-relaxed">
                                         Total:{" "}
                                         <span className="font-bold text-black">
-                                            {bookingDetails?.currency}{" "}
-                                            {bookingDetails?.total.toLocaleString()}
+                                            {formatMoney(bookingDetails.total)}
                                         </span>{" "}
-                                        for {bookingDetails?.nights} nights.
+                                        for {bookingDetails.nights} nights.
                                     </div>
 
-                                    {/* ✅ FIX #2: Redirect to Stripe Checkout URL returned by API */}
                                     <Button
                                         className="w-full sm:w-[160px] bg-black text-white h-12 rounded-lg"
                                         onClick={handlePay}
@@ -714,24 +745,22 @@ export default function ReservePage({ params }) {
                         </section>
                     </div>
 
-                    {/* RIGHT COLUMN: Order Summary (unchanged) */}
+                    {/* RIGHT COLUMN */}
                     <div className="lg:pl-10">
                         <div className="sticky top-28 border rounded-xl p-6 shadow-sm bg-white">
                             <div className="flex gap-4 mb-6">
                                 <div className="relative w-28 h-24 flex-shrink-0">
                                     <img
-                                        src={bookingDetails?.coverImage}
+                                        src={bookingDetails.coverImage}
                                         alt={property.title}
                                         className="object-cover w-full h-full rounded-lg"
+                                        loading="lazy"
                                     />
                                 </div>
                                 <div className="flex flex-col justify-between">
                                     <div>
                                         <div className="text-xs text-gray-500 mb-1 capitalize">
-                                            {property.place_type.replace(
-                                                "_",
-                                                " "
-                                            )}
+                                            {bookingDetails.placeTypeLabel}
                                         </div>
                                         <h3 className="text-sm font-medium leading-tight text-gray-900 line-clamp-2">
                                             {property.title}
@@ -772,7 +801,7 @@ export default function ReservePage({ params }) {
                                         Dates
                                     </div>
                                     <div className="text-gray-600">
-                                        {bookingDetails?.dateString}
+                                        {bookingDetails.dateString}
                                     </div>
                                 </div>
 
@@ -781,7 +810,7 @@ export default function ReservePage({ params }) {
                                         Guests
                                     </div>
                                     <div className="text-gray-600">
-                                        {bookingDetails?.guestString}
+                                        {bookingDetails.guestString}
                                     </div>
                                 </div>
                             </div>
@@ -797,39 +826,43 @@ export default function ReservePage({ params }) {
 
                                 <div className="flex justify-between text-gray-600">
                                     <div>
-                                        {bookingDetails?.currency}{" "}
-                                        {property.price_per_night.toLocaleString()}{" "}
-                                        x {bookingDetails?.nights} night
-                                        {bookingDetails?.nights !== 1
-                                            ? "s"
-                                            : ""}
+                                        {bookingDetails.currency.toUpperCase()}{" "}
+                                        {new Intl.NumberFormat("en-US", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        }).format(
+                                            property.price_per_night
+                                        )}{" "}
+                                        x {bookingDetails.nights} night
+                                        {bookingDetails.nights !== 1 ? "s" : ""}
                                     </div>
                                     <div>
-                                        {bookingDetails?.currency}{" "}
-                                        {bookingDetails?.subtotal.toLocaleString()}
+                                        {formatMoney(bookingDetails.subtotal)}
                                     </div>
                                 </div>
 
-                                {bookingDetails?.cleaningFee > 0 && (
+                                {bookingDetails.cleaningFee > 0 && (
                                     <div className="flex justify-between text-gray-600">
                                         <div className="underline">
                                             Cleaning fee
                                         </div>
                                         <div>
-                                            {bookingDetails?.currency}{" "}
-                                            {bookingDetails.cleaningFee.toLocaleString()}
+                                            {formatMoney(
+                                                bookingDetails.cleaningFee
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                {bookingDetails?.serviceFee > 0 && (
+                                {bookingDetails.serviceFee > 0 && (
                                     <div className="flex justify-between text-gray-600">
                                         <div className="underline">
                                             Service fee
                                         </div>
                                         <div>
-                                            {bookingDetails?.currency}{" "}
-                                            {bookingDetails.serviceFee.toLocaleString()}
+                                            {formatMoney(
+                                                bookingDetails.serviceFee
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -837,15 +870,9 @@ export default function ReservePage({ params }) {
                                 <Separator className="my-2" />
 
                                 <div className="flex justify-between font-semibold text-base text-gray-900">
-                                    <div className="underline">
-                                        Total{" "}
-                                        <span className="underline">
-                                            {bookingDetails?.currency}
-                                        </span>
-                                    </div>
+                                    <div className="underline">Total</div>
                                     <div>
-                                        {bookingDetails?.currency}{" "}
-                                        {bookingDetails?.total.toLocaleString()}
+                                        {formatMoney(bookingDetails.total)}
                                     </div>
                                 </div>
                             </div>

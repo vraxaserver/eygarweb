@@ -475,7 +475,9 @@ export default function PropertyDetails({ params }) {
                                     selected={checkInDate}
                                     onSelect={setCheckInDate}
                                     className="rounded-md border w-full"
-                                    disabled={(date) => date < new Date()}
+                                    disabled={(date) =>
+                                        date < new Date().setHours(0, 0, 0, 0)
+                                    }
                                 />
                                 <Calendar
                                     mode="single"
@@ -483,7 +485,8 @@ export default function PropertyDetails({ params }) {
                                     onSelect={setCheckOutDate}
                                     className="rounded-md border w-full"
                                     disabled={(date) =>
-                                        date < new Date() ||
+                                        date <
+                                            new Date().setHours(0, 0, 0, 0) ||
                                         (checkInDate && date <= checkInDate)
                                     }
                                 />
@@ -625,7 +628,13 @@ export default function PropertyDetails({ params }) {
                                                             );
                                                     }}
                                                     disabled={(date) =>
-                                                        date < new Date()
+                                                        date <
+                                                        new Date().setHours(
+                                                            0,
+                                                            0,
+                                                            0,
+                                                            0
+                                                        )
                                                     }
                                                     initialFocus
                                                 />
@@ -668,7 +677,13 @@ export default function PropertyDetails({ params }) {
                                                         ); // Auto open guests
                                                     }}
                                                     disabled={(date) =>
-                                                        date < new Date() ||
+                                                        date <
+                                                            new Date().setHours(
+                                                                0,
+                                                                0,
+                                                                0,
+                                                                0
+                                                            ) ||
                                                         (checkInDate &&
                                                             date <= checkInDate)
                                                     }

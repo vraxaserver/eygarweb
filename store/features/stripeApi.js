@@ -100,10 +100,18 @@ export const stripeApi = createApi({
          * GET /stripe/customers/:customerId/payment-methods?type=card
          */
         getPaymentMethods: builder.query({
-            query: ({ customerId, type = "card" }) =>
-                `/stripe/customers/${encodeURIComponent(
+            query: ({ customerId, type }) => {
+                const baseUrl = `/stripe/customers/${encodeURIComponent(
                     customerId
-                )}/payment-methods?type=${encodeURIComponent(type)}`,
+                )}/payment-methods`;
+
+                // Append ?type= only when type is explicitly provided
+                if (type) {
+                    return `${baseUrl}?type=${encodeURIComponent(type)}`;
+                }
+
+                return baseUrl;
+            },
             providesTags: (result, error, arg) => [
                 { type: "StripePaymentMethods", id: arg.customerId },
             ],

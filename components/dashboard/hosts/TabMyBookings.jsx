@@ -16,10 +16,16 @@ import {
     useListHostUpcomingBookingsQuery,
 } from "@/store/features/bookingApi";
 
-const TabMyBookings = ({ ongoingBookings = [] }) => {
+const TabMyBookings = () => {
     const { data: upcoming = [], isLoading } = useListHostUpcomingBookingsQuery(
         { limit: 50, offset: 0 }
     );
+
+    const ongoingBookings = upcoming.filter(
+        (booking) => booking.checkout_status === "checked_in"
+    );
+
+    console.log("ongoingBookings: ", ongoingBookings);
 
     const [hostApprove, { isLoading: approving }] =
         useHostApproveBookingMutation();
@@ -49,7 +55,7 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
         ).toUpperCase()}`;
     };
 
-    const onApprove = async (bookingId) => {
+    const onApprove = async ({ bookingId }) => {
         try {
             await hostApprove({ bookingId }).unwrap();
         } catch (e) {
@@ -78,28 +84,38 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-10 h-10">
-                                            <AvatarImage src={booking.avatar} />
+                                            <AvatarImage
+                                                src={booking.avatar_url}
+                                            />
                                             <AvatarFallback>
-                                                {booking.guest?.[0] || "G"}
+                                                {booking.guests_count?.[0] ||
+                                                    "G"}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <div className="font-medium">
-                                                {booking.guest}
+                                                {booking?.user_snapshot
+                                                    ?.first_name ||
+                                                    booking?.user_snapshot
+                                                        ?.email ||
+                                                    "Guest"}
                                             </div>
                                             <div className="text-sm text-gray-600">
-                                                {booking.property}
+                                                {
+                                                    booking.property_snapshot
+                                                        ?.title
+                                                }
                                             </div>
                                         </div>
                                     </div>
                                     <Badge
                                         className={getStatusColor(
-                                            booking.status
+                                            booking.checkout_status
                                         )}
                                     >
-                                        {getStatusIcon(booking.status)}
+                                        {getStatusIcon(booking.checkout_status)}
                                         <span className="ml-1">
-                                            {booking.status}
+                                            {booking.checkout_status}
                                         </span>
                                     </Badge>
                                 </div>
@@ -111,7 +127,7 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
                                         </div>
                                         <div className="font-medium">
                                             {new Date(
-                                                booking.checkIn
+                                                booking.check_in_date
                                             ).toLocaleDateString()}
                                         </div>
                                     </div>
@@ -121,7 +137,7 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
                                         </div>
                                         <div className="font-medium">
                                             {new Date(
-                                                booking.checkOut
+                                                booking.check_out_date
                                             ).toLocaleDateString()}
                                         </div>
                                     </div>
@@ -130,7 +146,7 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
                                             Guests
                                         </div>
                                         <div className="font-medium">
-                                            {booking.guests} guests
+                                            {booking.guests_count} guests
                                         </div>
                                     </div>
                                     <div>
@@ -138,7 +154,7 @@ const TabMyBookings = ({ ongoingBookings = [] }) => {
                                             Total
                                         </div>
                                         <div className="font-medium">
-                                            {booking.total}
+                                            {booking.total_amount}
                                         </div>
                                     </div>
                                 </div>

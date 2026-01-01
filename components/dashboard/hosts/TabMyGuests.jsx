@@ -6,13 +6,51 @@ import { Badge } from "@/components/ui/badge";
 import { getStatusColor } from "@/lib/utils";
 import { Eye, MessageSquare } from "lucide-react";
 
+import {
+    useHostApproveBookingMutation,
+    useListHostUpcomingBookingsQuery,
+} from "@/store/features/bookingApi";
+
 const TabMyGuests = ({ upcomingBookings, ongoingBookings }) => {
+    const { data: upcoming = [], isLoading } = useListHostUpcomingBookingsQuery(
+        { limit: 50, offset: 0 }
+    );
+
+    console.log("upcoming: ", upcoming);
+    const upcomingGuests = upcoming.map((booking) => {
+        const bookingGuest = {
+            avatar: booking?.user_snapshot?.avatar_url
+                ? booking?.user_snapshot?.avatar_url
+                : "/images/avatar.webp",
+            guest_name: booking?.user_snapshot?.first_name
+                ? booking?.user_snapshot?.first_name
+                : booking?.user_snapshot?.email,
+            guests_count: booking.guests_count,
+            checkIn: booking.check_in_date,
+            checkOut: booking.check_out_date,
+            status: booking?.payment_details?.payment_status
+                ? booking?.payment_details?.payment_status
+                : "pending",
+            property: booking.property_snapshot?.title,
+        };
+
+        return bookingGuest;
+    });
+
+    // const ongoingBookings2 = upcoming.filter(
+    //     (booking) => booking.checkout_status === "checked_in"
+    // );
+
+    // const ongoingBookings3 = upcoming.filter(
+    //     (booking) => booking.checkout_status === "checked_in"
+    // );
+
     return (
         <>
             <h2 className="text-xl font-semibold">Guest Management</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...upcomingBookings, ...ongoingBookings].map((booking, index) => (
+                {upcomingGuests.map((booking, index) => (
                     <Card
                         key={index}
                         className="hover:shadow-lg transition-shadow"
@@ -22,15 +60,15 @@ const TabMyGuests = ({ upcomingBookings, ongoingBookings }) => {
                                 <Avatar className="w-12 h-12">
                                     <AvatarImage src={booking.avatar} />
                                     <AvatarFallback>
-                                        {booking.guest[0]}
+                                        {booking.guest}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <div className="font-semibold">
-                                        {booking.guest}
+                                        {booking.guest_name}
                                     </div>
                                     <div className="text-sm text-gray-600">
-                                        {booking.guests} guests
+                                        {booking.guests_count} guests
                                     </div>
                                 </div>
                             </div>
@@ -40,7 +78,7 @@ const TabMyGuests = ({ upcomingBookings, ongoingBookings }) => {
                                     <span className="text-gray-600">
                                         Property:
                                     </span>
-                                    <span className="font-medium">
+                                    <span className="font-medium pl-1">
                                         {booking.property}
                                     </span>
                                 </div>

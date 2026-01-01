@@ -48,6 +48,10 @@ const nextConfig = {
                 protocol: "https",
                 hostname: "eygar-dev.s3.me-central-1.amazonaws.com",
             },
+            {
+                protocol: "https",
+                hostname: "media-cdn.tripadvisor.com",
+            },
         ],
     },
 };

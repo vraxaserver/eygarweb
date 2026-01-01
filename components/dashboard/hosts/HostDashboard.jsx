@@ -5,6 +5,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+
 import { stats, upcomingBookings, ongoingBookings } from "./hostMockData";
 import {
     Home,
@@ -15,17 +22,17 @@ import {
     Bell,
     MessageSquare,
     Clock,
-    CheckCircle,
-    AlertCircle,
     X,
     ChevronRight,
     ChevronLeft,
     Check,
     Upload,
 } from "lucide-react";
+
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
 import { useCreatePropertyMutation } from "@/store/features/propertiesApi";
+import { BookingDetail } from "../guests/BookingDetails";
 
 // --- Lazy Load Components ---
 const TabOverview = React.lazy(() => import("./TabOverview"));
@@ -35,14 +42,15 @@ const TabMyGuests = React.lazy(() => import("./TabMyGuests"));
 const TabMyExperiences = React.lazy(() => import("./TabMyExperiences"));
 const TabAnalytics = React.lazy(() => import("./TabAnalytics"));
 
-// A simple loading component for Suspense fallback
 const LoadingFallback = () => (
     <div className="p-10 text-center">Loading...</div>
 );
 
 export default function HostDashboard() {
-    const [createProperty] = useCreatePropertyMutation();
     const user = useSelector(selectCurrentUser);
+    const [createProperty] = useCreatePropertyMutation();
+
+    const [selectedBooking, setSelectedBooking] = useState(null);
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -50,8 +58,9 @@ export default function HostDashboard() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    const handleBackToDashboard = () => setSelectedBooking(null);
+
     const [formData, setFormData] = useState({
-        // Step 1: Basic Info
         title: "",
         description: "",
         property_type: "house",
@@ -72,7 +81,6 @@ export default function HostDashboard() {
         monthly_discount: 0,
         instant_book: false,
 
-        // Step 2: Location
         location: {
             address: "",
             city: "",
@@ -83,15 +91,9 @@ export default function HostDashboard() {
             longitude: "",
         },
 
-        // Step 3: Images
-        // Array of objects: { file: File, image_url: string, display_order: number, ... }
         images: [],
-
-        // Step 4: Amenities & Rules
         amenity_ids: [],
         house_rules: [""],
-
-        // Step 5: Policies
         cancellation_policy: "",
         check_in_policy: "",
     });
@@ -139,25 +141,21 @@ export default function HostDashboard() {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
-            location: {
-                ...prev.location,
-                [name]: value,
-            },
+            location: { ...prev.location, [name]: value },
         }));
     };
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        // We now store the actual File object ('file') for upload
-        // and the URL ('image_url') for preview
+
         const newImages = files.map((file, index) => ({
-            file: file,
+            file,
             image_url: URL.createObjectURL(file),
             display_order: formData.images.length + index,
             is_cover: formData.images.length === 0 && index === 0,
             alt_text: file.name,
         }));
-        console.log("newImages: ", newImages);
+
         setFormData((prev) => ({
             ...prev,
             images: [...prev.images, ...newImages],
@@ -188,11 +186,11 @@ export default function HostDashboard() {
     };
 
     const nextStep = () => {
-        if (currentStep < 5) setCurrentStep(currentStep + 1);
+        if (currentStep < 5) setCurrentStep((s) => s + 1);
     };
 
     const prevStep = () => {
-        if (currentStep > 1) setCurrentStep(currentStep - 1);
+        if (currentStep > 1) setCurrentStep((s) => s - 1);
     };
 
     const handleSubmit = async () => {
@@ -200,8 +198,6 @@ export default function HostDashboard() {
             setIsUploading(true);
             setUploadProgress(0);
 
-            // 1. Construct the JSON Metadata (PropertyCreate Schema)
-            // We exclude the actual file objects here, but keep the metadata (order, alt, etc.)
             const propertyMeta = {
                 ...formData,
                 bedrooms: parseInt(formData.bedrooms, 10),
@@ -211,17 +207,20 @@ export default function HostDashboard() {
                 max_adults: parseInt(formData.max_adults, 10),
                 max_children: parseInt(formData.max_children, 10),
                 max_infants: parseInt(formData.max_infants, 10),
+
                 price_per_night: Math.round(
-                    parseFloat(formData.price_per_night) * 100
-                ), // Convert to cents for Backend? Check model: price_per_night is Integer
+                    parseFloat(formData.price_per_night || 0) * 100
+                ),
                 cleaning_fee: formData.cleaning_fee
                     ? Math.round(parseFloat(formData.cleaning_fee) * 100)
                     : 0,
                 service_fee: formData.service_fee
                     ? Math.round(parseFloat(formData.service_fee) * 100)
                     : 0,
+
                 weekly_discount: parseFloat(formData.weekly_discount) || 0,
                 monthly_discount: parseFloat(formData.monthly_discount) || 0,
+
                 location: {
                     ...formData.location,
                     latitude: formData.location.latitude
@@ -231,54 +230,75 @@ export default function HostDashboard() {
                         ? parseFloat(formData.location.longitude)
                         : 0,
                 },
+
                 house_rules: formData.house_rules.filter(
-                    (rule) => rule.trim() !== ""
+                    (r) => r.trim() !== ""
                 ),
 
-                // IMPORTANT: Map images for Pydantic validation (No binary files here)
                 images: formData.images.map((img) => ({
                     display_order: img.display_order,
                     is_cover: img.is_cover,
                     alt_text: img.alt_text,
-                    image_url: "", // Empty string, backend generates the real one
+                    image_url: "",
                 })),
             };
 
-            // 2. Create FormData
             const propertyData = new FormData();
-
-            // Append the JSON data as a string
-            // Backend Router should expect `property_data` as a form field containing JSON
             propertyData.append("property_data", JSON.stringify(propertyMeta));
 
-            // 3. Append Files
-            // Important: The order of appending matches the order in propertyMeta.images
             formData.images.forEach((img) => {
-                // img.file is the JS File object from <input type="file">
-                if (img.file) {
-                    propertyData.append("image_files", img.file);
-                } else {
-                    // Handle edge case: if editing and image is already a URL,
-                    // you might need logic to handle 'existing' vs 'new' images.
-                    // For creation, we assume all are new files.
-                    console.warn("Image missing file object:", img);
-                }
+                if (img.file) propertyData.append("image_files", img.file);
             });
 
-            for (let pair of propertyData.entries()) {
-                console.log(pair[0], pair[1]);
-            }
             await createProperty(propertyData).unwrap();
 
             alert("Property created successfully!");
             setShowAddModal(false);
             setCurrentStep(1);
             setFormData({
-                /* reset logic */
+                title: "",
+                description: "",
+                property_type: "house",
+                place_type: "entire_place",
+                bedrooms: 1,
+                beds: 1,
+                bathrooms: 1,
+                max_guests: 2,
+                max_adults: 2,
+                max_children: 0,
+                max_infants: 0,
+                pets_allowed: false,
+                price_per_night: "",
+                currency: "USD",
+                cleaning_fee: "",
+                service_fee: 0,
+                weekly_discount: 0,
+                monthly_discount: 0,
+                instant_book: false,
+                location: {
+                    address: "",
+                    city: "",
+                    state: "",
+                    country: "",
+                    postal_code: "",
+                    latitude: "",
+                    longitude: "",
+                },
+                images: [],
+                amenity_ids: [],
+                house_rules: [""],
+                cancellation_policy: "",
+                check_in_policy: "",
             });
         } catch (err) {
             console.error("Failed to create property:", err);
-            alert(`Error: ${err.message || "Failed to create property"}`);
+            alert(
+                `Error: ${
+                    err?.data?.message ||
+                    err?.message ||
+                    "Failed to create property"
+                }`
+            );
         } finally {
             setIsUploading(false);
             setUploadProgress(0);
@@ -587,6 +607,7 @@ export default function HostDashboard() {
                         </div>
                     </div>
                 );
+
             case 2:
                 return (
                     <div className="space-y-4">
@@ -689,6 +710,7 @@ export default function HostDashboard() {
                         </div>
                     </div>
                 );
+
             case 3:
                 return (
                     <div className="space-y-4">
@@ -710,6 +732,7 @@ export default function HostDashboard() {
                                 Minimum 5 images required
                             </p>
                         </div>
+
                         {formData.images.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto">
                                 {formData.images.map((img, index) => (
@@ -749,6 +772,7 @@ export default function HostDashboard() {
                         )}
                     </div>
                 );
+
             case 4:
                 return (
                     <div className="space-y-6">
@@ -793,7 +817,6 @@ export default function HostDashboard() {
                             </button>
                         </div>
 
-                        {/* Placeholder for Amenities (since only IDs are requested in JSON but no list provided) */}
                         <div className="opacity-50">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Amenities (IDs)
@@ -807,6 +830,7 @@ export default function HostDashboard() {
                         </div>
                     </div>
                 );
+
             case 5:
                 return (
                     <div className="space-y-4">
@@ -838,6 +862,7 @@ export default function HostDashboard() {
                         </div>
                     </div>
                 );
+
             default:
                 return null;
         }
@@ -922,24 +947,32 @@ export default function HostDashboard() {
                                 upcomingBookings={upcomingBookings}
                             />
                         </TabsContent>
+
                         <TabsContent value="properties">
                             <TabMyProperty setShowAddModal={setShowAddModal} />
                         </TabsContent>
+
                         <TabsContent value="bookings">
                             <TabMyBookings
                                 ongoingBookings={ongoingBookings}
                                 upcomingBookings={upcomingBookings}
+                                onViewDetails={(booking) =>
+                                    setSelectedBooking(booking)
+                                }
                             />
                         </TabsContent>
+
                         <TabsContent value="guests">
                             <TabMyGuests
                                 ongoingBookings={ongoingBookings}
                                 upcomingBookings={upcomingBookings}
                             />
                         </TabsContent>
+
                         <TabsContent value="experiences">
                             <TabMyExperiences />
                         </TabsContent>
+
                         <TabsContent value="analytics">
                             <TabAnalytics />
                         </TabsContent>
@@ -947,17 +980,15 @@ export default function HostDashboard() {
                 </Tabs>
             </main>
 
-            {/* Modal Overlay - Transparency Fixed */}
+            {/* Add Property Modal (your original) */}
             <Suspense fallback={<div />}>
                 {showAddModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        {/* Background Backdrop with Blur and Lower Opacity */}
                         <div
                             className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
                             onClick={() => setShowAddModal(false)}
-                        ></div>
+                        />
 
-                        {/* Modal Content */}
                         <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                             <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50/50">
                                 <div>
@@ -1034,7 +1065,7 @@ export default function HostDashboard() {
                                         ) : (
                                             <>
                                                 <Check className="w-5 h-5 mr-2" />
-                                                Create Listing 2
+                                                Create Listing
                                             </>
                                         )}
                                     </Button>
@@ -1044,6 +1075,54 @@ export default function HostDashboard() {
                     </div>
                 )}
             </Suspense>
+
+            {/* ✅ Booking Details Dialog - WIDE + SCROLL FIX */}
+            <Dialog
+                open={!!selectedBooking}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedBooking(null);
+                }}
+            >
+                <DialogContent
+                    className="
+                        p-0
+                        !w-[98vw]
+                        sm:!w-[90vw]
+                        md:!w-[90vw]
+                        lg:!w-[80vw]
+                        xl:!w-[80vw]
+                        2xl:!w-[70vw]
+                        !max-w-none
+                        h-[90vh]
+                        overflow-hidden
+                    "
+                >
+                    {/* Optional top header (keeps your modal title visible) */}
+                    <div className="border-b bg-white px-6 py-4 flex items-center justify-between">
+                        <DialogHeader className="p-0">
+                            <DialogTitle>Booking Details</DialogTitle>
+                        </DialogHeader>
+
+                        <button
+                            onClick={() => setSelectedBooking(null)}
+                            className="p-2 rounded-full hover:bg-gray-100"
+                            aria-label="Close"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* ✅ Dedicated scroll area */}
+                    <div className="flex-1 overflow-y-auto">
+                        {selectedBooking && (
+                            <BookingDetail
+                                booking={selectedBooking}
+                                onBack={handleBackToDashboard}
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

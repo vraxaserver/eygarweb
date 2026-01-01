@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+
 import { getStatusColor } from "@/lib/utils";
 import {
     Eye,
@@ -11,21 +12,23 @@ import {
     CheckCircle,
     AlertCircle,
 } from "lucide-react";
+
 import {
     useHostApproveBookingMutation,
     useListHostUpcomingBookingsQuery,
 } from "@/store/features/bookingApi";
 
-const TabMyBookings = () => {
+const TabMyBookings = ({ onViewDetails }) => {
     const { data: upcoming = [], isLoading } = useListHostUpcomingBookingsQuery(
-        { limit: 50, offset: 0 }
+        {
+            limit: 50,
+            offset: 0,
+        }
     );
 
     const ongoingBookings = upcoming.filter(
         (booking) => booking.checkout_status === "checked_in"
     );
-
-    console.log("ongoingBookings: ", ongoingBookings);
 
     const [hostApprove, { isLoading: approving }] =
         useHostApproveBookingMutation();
@@ -48,18 +51,15 @@ const TabMyBookings = () => {
 
     const formatMoney = (amount, currency) => {
         if (amount == null) return "-";
-        // If your DB stores major units as numbers (e.g., 494.2), render directly.
-        // If you later switch to minor units (e.g., 49420), update this accordingly.
         return `${Number(amount).toFixed(2)} ${String(
             currency || ""
         ).toUpperCase()}`;
     };
 
-    const onApprove = async ({ bookingId }) => {
+    const onApprove = async (bookingId) => {
         try {
             await hostApprove({ bookingId }).unwrap();
         } catch (e) {
-            // optional: toast here
             console.error(e);
         }
     };
@@ -74,24 +74,29 @@ const TabMyBookings = () => {
                         Ongoing Bookings
                     </CardTitle>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                     {ongoingBookings?.length ? (
                         ongoingBookings.map((booking) => (
                             <div
-                                key={booking.id}
+                                key={booking.id || booking._id}
                                 className="border border-gray-200 rounded-lg p-4"
                             >
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-10 h-10">
                                             <AvatarImage
-                                                src={booking.avatar_url}
+                                                src={booking.avatar_url || ""}
                                             />
                                             <AvatarFallback>
-                                                {booking.guests_count?.[0] ||
+                                                {booking?.user_snapshot
+                                                    ?.first_name?.[0] ||
+                                                    booking?.user_snapshot
+                                                        ?.email?.[0] ||
                                                     "G"}
                                             </AvatarFallback>
                                         </Avatar>
+
                                         <div>
                                             <div className="font-medium">
                                                 {booking?.user_snapshot
@@ -101,13 +106,12 @@ const TabMyBookings = () => {
                                                     "Guest"}
                                             </div>
                                             <div className="text-sm text-gray-600">
-                                                {
-                                                    booking.property_snapshot
-                                                        ?.title
-                                                }
+                                                {booking?.property_snapshot
+                                                    ?.title || "Property"}
                                             </div>
                                         </div>
                                     </div>
+
                                     <Badge
                                         className={getStatusColor(
                                             booking.checkout_status
@@ -154,7 +158,10 @@ const TabMyBookings = () => {
                                             Total
                                         </div>
                                         <div className="font-medium">
-                                            {booking.total_amount}
+                                            {formatMoney(
+                                                booking.total_amount,
+                                                booking.currency
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -168,10 +175,12 @@ const TabMyBookings = () => {
                                         <MessageSquare className="w-4 h-4 mr-1" />
                                         Message
                                     </Button>
+
                                     <Button
                                         size="sm"
                                         variant="outline"
                                         className="flex-1"
+                                        onClick={() => onViewDetails?.(booking)}
                                     >
                                         <Eye className="w-4 h-4 mr-1" />
                                         View Details
@@ -187,7 +196,7 @@ const TabMyBookings = () => {
                 </CardContent>
             </Card>
 
-            {/* Upcoming Bookings (HOST) */}
+            {/* Upcoming Bookings */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center">
@@ -195,6 +204,7 @@ const TabMyBookings = () => {
                         Upcoming Bookings
                     </CardTitle>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                     {isLoading ? (
                         <div className="text-sm text-gray-600">Loading...</div>
@@ -215,7 +225,7 @@ const TabMyBookings = () => {
 
                             return (
                                 <div
-                                    key={booking._id}
+                                    key={booking._id || booking.id}
                                     className="border border-gray-200 rounded-lg p-4"
                                 >
                                     <div className="flex items-center justify-between mb-3">
@@ -229,6 +239,7 @@ const TabMyBookings = () => {
                                                         "G"}
                                                 </AvatarFallback>
                                             </Avatar>
+
                                             <div>
                                                 <div className="font-medium">
                                                     {guestName}
@@ -309,7 +320,9 @@ const TabMyBookings = () => {
                                                 status === "host_approved"
                                             }
                                             onClick={() =>
-                                                onApprove(booking._id)
+                                                onApprove(
+                                                    booking._id || booking.id
+                                                )
                                             }
                                         >
                                             {status === "host_approved"
@@ -317,6 +330,19 @@ const TabMyBookings = () => {
                                                 : approving
                                                 ? "Approving..."
                                                 : "Approve"}
+                                        </Button>
+
+                                        {/* Optional: Add view details button also for upcoming */}
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex-1"
+                                            onClick={() =>
+                                                onViewDetails?.(booking)
+                                            }
+                                        >
+                                            <Eye className="w-4 h-4 mr-1" />
+                                            View
                                         </Button>
                                     </div>
                                 </div>

@@ -3,14 +3,37 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {getStatusColor} from "@/lib/utils"
-import {
-    Calendar,
-    Plus,
-    MessageSquare,
-    BarChart3
-} from "lucide-react";
-const TabOverview = ({upcomingBookings, setShowAddModal}) => {
+import { getStatusColor } from "@/lib/utils";
+import { Calendar, Plus, MessageSquare, BarChart3 } from "lucide-react";
+
+import { useListHostUpcomingBookingsQuery } from "@/store/features/bookingApi";
+
+const TabOverview = ({ setShowAddModal }) => {
+    const { data: upcoming = [], isLoading } = useListHostUpcomingBookingsQuery(
+        { limit: 50, offset: 0 }
+    );
+
+    console.log("upcoming: ", upcoming);
+    const upcomingBookings = upcoming.map((booking) => {
+        const bookingGuest = {
+            avatar: booking?.user_snapshot?.avatar_url
+                ? booking?.user_snapshot?.avatar_url
+                : "/images/avatar.webp",
+            guest_name: booking?.user_snapshot?.first_name
+                ? booking?.user_snapshot?.first_name
+                : booking?.user_snapshot?.email,
+            guests_count: booking.guests_count,
+            checkIn: booking.check_in_date,
+            checkOut: booking.check_out_date,
+            status: booking?.payment_details?.payment_status
+                ? booking?.payment_details?.payment_status
+                : "pending",
+            property: booking.property_snapshot?.title,
+        };
+
+        return bookingGuest;
+    });
+
     return (
         <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -33,12 +56,12 @@ const TabOverview = ({upcomingBookings, setShowAddModal}) => {
                                 <Avatar className="w-10 h-10">
                                     <AvatarImage src={booking.avatar} />
                                     <AvatarFallback>
-                                        {booking.guest[0]}
+                                        {booking.guest_name}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-sm truncate">
-                                        {booking.guest}
+                                        {booking.guest_name}
                                     </div>
                                     <div className="text-xs text-gray-600">
                                         {booking.property}
@@ -69,14 +92,17 @@ const TabOverview = ({upcomingBookings, setShowAddModal}) => {
                         ))}
                     </CardContent>
                 </Card>
-                
+
                 {/* Quick Actions */}
-                <Card >
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-lg">Quick Actions</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4">
-                        <Button onClick={setShowAddModal} className="h-20 flex-col space-y-2 bg-[#7a3d8a] hover:bg-purple-800">
+                        <Button
+                            onClick={setShowAddModal}
+                            className="h-20 flex-col space-y-2 bg-[#7a3d8a] hover:bg-purple-800"
+                        >
                             <Plus className="w-6 h-6" />
                             <span className="text-sm">Add Property</span>
                         </Button>

@@ -16,6 +16,7 @@ const TabOverview = ({ setShowAddModal }) => {
     console.log("upcoming: ", upcoming);
     const upcomingBookings = upcoming.map((booking) => {
         const bookingGuest = {
+            id: booking._id,
             avatar: booking?.user_snapshot?.avatar_url
                 ? booking?.user_snapshot?.avatar_url
                 : "/images/avatar.webp",

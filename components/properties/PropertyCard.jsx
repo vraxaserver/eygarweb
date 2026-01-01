@@ -6,41 +6,81 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 // New Imports for Icons
-import { Heart, Star, ChevronLeft, ChevronRight, Eye, Pencil, Trash } from "lucide-react"; 
+import {
+    Heart,
+    Star,
+    ChevronLeft,
+    ChevronRight,
+    Eye,
+    Pencil,
+    Trash,
+} from "lucide-react";
 // New Imports for Modals (Assuming shadcn/ui)
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import Image from "next/image";
-import {formatCurrency} from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils";
 
 import { useDeletePropertyMutation } from "@/store/features/propertiesApi";
 
-export default function PropertyCard({ property, currentUserId }) { 
+export default function PropertyCard({ property, currentUserId }) {
     const router = useRouter();
-    
+
     // UI State
     const [isFavorited, setIsFavorited] = useState(property.isLiked || false);
-    
+
     // Index for the small card carousel
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    
+
     // Index for the large modal carousel
     const [modalImageIndex, setModalImageIndex] = useState(0);
 
-    const [showDetailsModal, setShowDetailsModal] = useState(false); 
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); 
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const [deleteProperty, { isLoading: isDeleting }] = useDeletePropertyMutation();
+    const [deleteProperty, { isLoading: isDeleting }] =
+        useDeletePropertyMutation();
 
-    const isOwner = property.host_id === currentUserId; 
-    
+    const isOwner = property.host_id === currentUserId;
+
     const handleCardClick = () => {
         router.push(`/properties/${property.id}`);
     };
-    
+
+    const normalizeImageUrl = (url) => {
+        if (!url) return "/images/placeholder.webp";
+
+        // Convert Windows paths → web paths
+        let normalized = url.replace(/\\/g, "/");
+
+        // If already absolute, return as-is
+        if (normalized.startsWith("http")) return normalized;
+
+        // Ensure leading slash for relative URLs
+        if (!normalized.startsWith("/")) {
+            normalized = `/${normalized}`;
+        }
+
+        return normalized;
+    };
+
     const handleFavorite = (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         setIsFavorited(!isFavorited);
     };
 
@@ -64,14 +104,14 @@ export default function PropertyCard({ property, currentUserId }) {
     const confirmDelete = async () => {
         setShowDeleteConfirm(false);
         try {
-            await deleteProperty(property.id).unwrap(); 
+            await deleteProperty(property.id).unwrap();
             toast.success("Property deleted successfully!");
         } catch (error) {
             console.error("Failed to delete property:", error);
             toast.error("Failed to delete property. Please try again.");
         }
     };
-    
+
     // --- Card Carousel Navigation ---
     const nextImage = (e) => {
         e.stopPropagation();
@@ -81,7 +121,8 @@ export default function PropertyCard({ property, currentUserId }) {
     const prevImage = (e) => {
         e.stopPropagation();
         setCurrentImageIndex(
-            (prev) => (prev - 1 + property.images.length) % property.images.length
+            (prev) =>
+                (prev - 1 + property.images.length) % property.images.length
         );
     };
 
@@ -92,14 +133,15 @@ export default function PropertyCard({ property, currentUserId }) {
 
     const prevModalImage = () => {
         setModalImageIndex(
-            (prev) => (prev - 1 + property.images.length) % property.images.length
+            (prev) =>
+                (prev - 1 + property.images.length) % property.images.length
         );
     };
 
     const locationString = property.location
         ? `${property.location.city}, ${property.location.country}`
         : "Location not available";
-        
+
     return (
         <>
             <Card
@@ -111,11 +153,15 @@ export default function PropertyCard({ property, currentUserId }) {
                         {/* Property Image Carousel (Card) */}
                         <div className="relative h-72 w-full">
                             <Image
-                                src={property.images[currentImageIndex]?.image_url || property.images[currentImageIndex]}
+                                src={normalizeImageUrl(
+                                    property.images[currentImageIndex]
+                                        ?.image_url ??
+                                        property.images[currentImageIndex]
+                                )}
                                 alt={property.title}
                                 fill
                                 loading="lazy"
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                         </div>
@@ -128,7 +174,9 @@ export default function PropertyCard({ property, currentUserId }) {
                                         key={index}
                                         aria-label={`Go to image ${index + 1}`}
                                         className={`block w-2 h-2 rounded-full transition-colors ${
-                                            index === currentImageIndex ? "bg-white" : "bg-white/60"
+                                            index === currentImageIndex
+                                                ? "bg-white"
+                                                : "bg-white/60"
                                         }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -160,17 +208,23 @@ export default function PropertyCard({ property, currentUserId }) {
                                 </Button>
                             </>
                         )}
-                        
+
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleFavorite}
                             className="absolute top-3 right-3 h-8 w-8 rounded-full p-0 bg-black/30 hover:bg-black/50 text-white hover:scale-110 transition-transform z-10"
                         >
-                            <Heart className={`h-5 w-5 transition-colors ${isFavorited ? "fill-red-500 text-red-500" : "fill-transparent"}`} />
+                            <Heart
+                                className={`h-5 w-5 transition-colors ${
+                                    isFavorited
+                                        ? "fill-red-500 text-red-500"
+                                        : "fill-transparent"
+                                }`}
+                            />
                         </Button>
 
-                        <div className="absolute top-3 right-[48px] flex space-x-2 z-10"> 
+                        <div className="absolute top-3 right-[48px] flex space-x-2 z-10">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -203,28 +257,43 @@ export default function PropertyCard({ property, currentUserId }) {
                         </div>
 
                         <div className="absolute bottom-3 left-3">
-                            <Badge variant="secondary" className="bg-white/90 text-black shadow">
-                                {property.type} • {property.beds} bed{property.beds !== 1 ? "s" : ""}
+                            <Badge
+                                variant="secondary"
+                                className="bg-white/90 text-black shadow"
+                            >
+                                {property.type} • {property.beds} bed
+                                {property.beds !== 1 ? "s" : ""}
                             </Badge>
                         </div>
                     </div>
 
                     <div className="p-4">
                         <div className="flex items-start justify-between mb-1">
-                            <h3 className="font-semibold text-gray-800 truncate pr-2">{property.title}</h3>
+                            <h3 className="font-semibold text-gray-800 truncate pr-2">
+                                {property.title}
+                            </h3>
                             <div className="flex items-center space-x-1 flex-shrink-0">
                                 <Star className="w-4 h-4 text-gray-800" />
-                                <span className="text-sm font-medium text-gray-800">{property.rating}</span>
+                                <span className="text-sm font-medium text-gray-800">
+                                    {property.rating}
+                                </span>
                             </div>
                         </div>
 
-                        <p className="text-gray-500 text-sm mb-2">{locationString}</p>
-                        
+                        <p className="text-gray-500 text-sm mb-2">
+                            {locationString}
+                        </p>
+
                         <div className="flex items-baseline space-x-1">
                             <span className="text-lg font-bold text-gray-900">
-                                {formatCurrency(property.price_per_night, property.currency)}
+                                {formatCurrency(
+                                    property.price_per_night,
+                                    property.currency
+                                )}
                             </span>
-                            <span className="text-gray-600 text-sm">/ night</span>
+                            <span className="text-gray-600 text-sm">
+                                / night
+                            </span>
                         </div>
                     </div>
                 </CardContent>
@@ -240,8 +309,13 @@ export default function PropertyCard({ property, currentUserId }) {
                     {/* --- Modal Image Carousel --- */}
                     <div className="relative w-full h-64 md:h-96 bg-gray-100">
                         <Image
-                            src={property.images[modalImageIndex]?.image_url || property.images[modalImageIndex]}
-                            alt={`${property.title} - Image ${modalImageIndex + 1}`}
+                            src={
+                                property.images[modalImageIndex]?.image_url ||
+                                property.images[modalImageIndex]
+                            }
+                            alt={`${property.title} - Image ${
+                                modalImageIndex + 1
+                            }`}
                             fill
                             loading="lazy" // Explicit lazy loading
                             className="object-cover"
@@ -277,9 +351,13 @@ export default function PropertyCard({ property, currentUserId }) {
                                     <button
                                         key={index}
                                         className={`block w-2.5 h-2.5 rounded-full transition-colors shadow-sm ${
-                                            index === modalImageIndex ? "bg-white" : "bg-white/50"
+                                            index === modalImageIndex
+                                                ? "bg-white"
+                                                : "bg-white/50"
                                         }`}
-                                        onClick={() => setModalImageIndex(index)}
+                                        onClick={() =>
+                                            setModalImageIndex(index)
+                                        }
                                     />
                                 ))}
                             </div>
@@ -288,25 +366,37 @@ export default function PropertyCard({ property, currentUserId }) {
 
                     <div className="p-6 pt-4 space-y-4">
                         <div className="flex justify-between items-center text-sm text-gray-500">
-                             <p>{locationString}</p>
-                             <div className="flex items-center">
+                            <p>{locationString}</p>
+                            <div className="flex items-center">
                                 <Star className="w-4 h-4 text-yellow-500 mr-1 fill-yellow-500" />
-                                <span className="font-semibold text-gray-700">{property.rating}</span>
-                             </div>
+                                <span className="font-semibold text-gray-700">
+                                    {property.rating}
+                                </span>
+                            </div>
                         </div>
-                        
+
                         <p className="text-gray-700 leading-relaxed">
-                            {property.description || "No description available."}
+                            {property.description ||
+                                "No description available."}
                         </p>
-                        
+
                         <div className="border-t pt-4 flex justify-between items-center">
                             <div>
-                                <p className="text-sm text-gray-500">Price per night</p>
+                                <p className="text-sm text-gray-500">
+                                    Price per night
+                                </p>
                                 <p className="text-xl font-bold text-gray-900">
-                                    {formatCurrency(property.price_per_night, property.currency)}
+                                    {formatCurrency(
+                                        property.price_per_night,
+                                        property.currency
+                                    )}
                                 </p>
                             </div>
-                            <Button onClick={() => router.push(`/properties/${property.id}`)}>
+                            <Button
+                                onClick={() =>
+                                    router.push(`/properties/${property.id}`)
+                                }
+                            >
                                 View Full Page
                             </Button>
                         </div>
@@ -315,19 +405,25 @@ export default function PropertyCard({ property, currentUserId }) {
             </Dialog>
 
             {/* Delete Confirmation Alert Dialog */}
-            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <AlertDialog
+                open={showDeleteConfirm}
+                onOpenChange={setShowDeleteConfirm}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            Are you absolutely sure?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the property &quot;{property.title}&quot; 
-                            and remove its data from our servers.
+                            This action cannot be undone. This will permanently
+                            delete the property &quot;{property.title}&quot; and
+                            remove its data from our servers.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={confirmDelete} 
+                        <AlertDialogAction
+                            onClick={confirmDelete}
                             disabled={isDeleting}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >

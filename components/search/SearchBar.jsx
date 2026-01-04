@@ -131,14 +131,24 @@ const SearchBar = () => {
         // Property Type
         // ----------------------------------
         if (filters.propertyType?.length > 0) {
-            params.append("property_type", filters.propertyType.join(","));
+            params.append(
+                "property_type",
+                filters.propertyType
+                    .map((item) => item.toLowerCase().replace(" ", "_"))
+                    .join(",")
+            );
         }
 
         // ----------------------------------
         // Place Type
         // ----------------------------------
         if (filters.placeType?.length > 0) {
-            params.append("place_type", filters.placeType.join(","));
+            params.append(
+                "place_type",
+                filters.placeType
+                    .map((item) => item.toLowerCase().replace(" ", "_"))
+                    .join(",")
+            );
         }
 
         // ----------------------------------
@@ -165,16 +175,7 @@ const SearchBar = () => {
             params.append("max_price", filters.priceRange.max);
         }
 
-        // ----------------------------------
-        // Sorting
-        // ----------------------------------
-        // if (sortBy) {
-        //     params.append("sort_by", sortBy);
-        // }
-
-        console.log("params: ", params);
-        console.log("params.toString()", params.toString());
-        // router.push(`/properties/search?${params.toString()}`);
+        router.push(`/properties/search?${params.toString()}`);
     };
 
     const formatDate = (date) => {
@@ -184,12 +185,6 @@ const SearchBar = () => {
             day: "numeric",
         });
     };
-
-    // Derived value for displaying selected category names
-    const selectedCategoryNames = (categories || [])
-        .filter((c) => selectedCategories.includes(c.slug))
-        .map((c) => c.name)
-        .join(", ");
 
     const selectedCategoryCount = selectedCategories.length;
 

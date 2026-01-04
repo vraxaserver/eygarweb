@@ -19,7 +19,7 @@ const initialState = {
             children: 0,
             pets: 0,
         },
-        priceRange: [0, 1000],
+        priceRange: [0, 10000],
         propertyType: "",
         placeType: "",
         badges: [],

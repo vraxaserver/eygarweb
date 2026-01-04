@@ -98,9 +98,6 @@ const FilterBar = () => {
         isLoading: amenitiesLoading,
         error,
     } = useGetAmenitiesQuery();
-    if (!amenitiesLoading) {
-        console.log("amenity_list: ", amenitiesList);
-    }
 
     // Safe fallbacks for arrays
     const amenitiesSelected = filters.amenities ?? [];
@@ -114,12 +111,12 @@ const FilterBar = () => {
 
     const maxPrice = Number.isFinite(Number(filters?.priceRange?.max))
         ? Number(filters.priceRange.max)
-        : 1000;
+        : 10000;
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
 
-        if (minPrice !== 0 || maxPrice !== 1000) count++;
+        if (minPrice !== 0 || maxPrice !== 10000) count++;
         if (filters?.hasExperiences) count++;
         if (amenitiesSelected.length) count++;
         if (placeTypeSelected.length) count++;
@@ -138,7 +135,7 @@ const FilterBar = () => {
     const clearAllFilters = () => {
         dispatch(
             setFilters({
-                priceRange: { min: 0, max: 1000 },
+                priceRange: { min: 0, max: 10000 },
                 propertyType: [],
                 amenities: [],
                 placeType: [],

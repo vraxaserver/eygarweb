@@ -106,11 +106,11 @@ const LocationSearch = () => {
             });
 
             // Cleanup listener if the component unmounts
-            return () => {
-                // Since Google Maps doesn't provide a clean `removeListener` for Autocomplete directly,
-                // we mainly rely on the component being unmounted. In a complex app, you might use
-                // a more sophisticated wrapper library like `@react-google-maps/api`.
-            };
+            // return () => {
+            //     // Since Google Maps doesn't provide a clean `removeListener` for Autocomplete directly,
+            //     // we mainly rely on the component being unmounted. In a complex app, you might use
+            //     // a more sophisticated wrapper library like `@react-google-maps/api`.
+            // };
         }
     }, [isLoaded]); // Re-run effect when the script status changes
 

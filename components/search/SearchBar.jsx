@@ -16,7 +16,8 @@ import {
     setCheckOut,
     setGuests,
 } from "@/store/slices/searchSlice";
-import LocationSearch from "@/components/LocationSearch";
+import { selectLocation } from "@/store/slices/locationSlice";
+import LocationSearch from "@/components/search/LocationSearch";
 import { useRouter } from "next/navigation";
 import { useGetCategoriesQuery } from "@/store/features/categoryApi";
 import FilterBar from "@/components/search/FilterBar";
@@ -36,7 +37,8 @@ const SearchBar = () => {
 
     // Get the entire search state from Redux
     const reduxSearch = useSelector((state) => state.search);
-    const { filters, location } = reduxSearch;
+    const location = useSelector(selectLocation);
+    const { filters } = reduxSearch;
 
     // --- DERIVE STATE DIRECTLY FROM REDUX ---
     // This ensures the component always reflects the true application state.
@@ -84,21 +86,95 @@ const SearchBar = () => {
     };
 
     const handleSearch = () => {
-        // Guest and Category state is already in Redux.
-        // This function will now be used to build the query string and navigate.
-        console.log("Searching with Redux State: ", reduxSearch);
-
-        // Example of building a query string for navigation
         const params = new URLSearchParams();
-        if (location?.city) params.append("location", location.city);
-        if (filters.checkIn) params.append("check_in", filters.checkIn);
-        if (filters.checkOut) params.append("check_out", filters.checkOut);
-        if (totalGuests > 0) params.append("guests", totalGuests);
-        if (selectedCategories.length > 0)
-            params.append("categories", selectedCategories.join(","));
 
-        console.log("URL params: ", params.toString());
-        router.push(`/properties/search?${params.toString()}`);
+        // ----------------------------------
+        // Location handling (priority rule)
+        // ----------------------------------
+        const locationValue = filters?.location?.city?.trim()
+            ? filters.location.city
+            : location?.cityNameEn || location?.cityName;
+
+        if (locationValue) {
+            params.append("location", locationValue);
+        }
+
+        // ----------------------------------
+        // Dates
+        // ----------------------------------
+        if (filters.checkIn) {
+            params.append("check_in", filters.checkIn);
+        }
+
+        if (filters.checkOut) {
+            params.append("check_out", filters.checkOut);
+        }
+
+        // ----------------------------------
+        // Guests
+        // ----------------------------------
+        const totalGuests =
+            (filters.guests?.adults || 0) + (filters.guests?.children || 0);
+
+        if (totalGuests > 0) {
+            params.append("guests", totalGuests);
+        }
+
+        // ----------------------------------
+        // Categories
+        // ----------------------------------
+        if (filters.categories?.length > 0) {
+            params.append("categories", filters.categories.join(","));
+        }
+
+        // ----------------------------------
+        // Property Type
+        // ----------------------------------
+        if (filters.propertyType?.length > 0) {
+            params.append("property_type", filters.propertyType.join(","));
+        }
+
+        // ----------------------------------
+        // Place Type
+        // ----------------------------------
+        if (filters.placeType?.length > 0) {
+            params.append("place_type", filters.placeType.join(","));
+        }
+
+        // ----------------------------------
+        // Amenities
+        // ----------------------------------
+        if (filters.amenities?.length > 0) {
+            params.append("amenities", filters.amenities.join(","));
+        }
+
+        // ----------------------------------
+        // Price Range
+        // ----------------------------------
+        if (
+            filters.priceRange?.min !== null &&
+            filters.priceRange?.min !== undefined
+        ) {
+            params.append("min_price", filters.priceRange.min);
+        }
+
+        if (
+            filters.priceRange?.max !== null &&
+            filters.priceRange?.max !== undefined
+        ) {
+            params.append("max_price", filters.priceRange.max);
+        }
+
+        // ----------------------------------
+        // Sorting
+        // ----------------------------------
+        // if (sortBy) {
+        //     params.append("sort_by", sortBy);
+        // }
+
+        console.log("params: ", params);
+        console.log("params.toString()", params.toString());
+        // router.push(`/properties/search?${params.toString()}`);
     };
 
     const formatDate = (date) => {
@@ -114,6 +190,8 @@ const SearchBar = () => {
         .filter((c) => selectedCategories.includes(c.slug))
         .map((c) => c.name)
         .join(", ");
+
+    const selectedCategoryCount = selectedCategories.length;
 
     return (
         <div className="border-b border-gray-200 bg-gray-100 sticky z-40">
@@ -348,7 +426,9 @@ const SearchBar = () => {
                                                 Categories
                                             </div>
                                             <div className="text-sm text-gray-600 truncate">
-                                                {selectedCategoryNames ||
+                                                {(selectedCategoryCount &&
+                                                    selectedCategoryCount +
+                                                        " selected") ||
                                                     "Any type"}
                                             </div>
                                         </div>
@@ -418,6 +498,8 @@ const SearchBar = () => {
                             <Search className="h-5 w-5" />
                         </Button>
                     </div>
+
+                    <FilterBar />
                 </div>
 
                 {/* ======= Mobile View ======= */}

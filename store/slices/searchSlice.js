@@ -43,7 +43,7 @@ const searchSlice = createSlice({
     initialState,
     reducers: {
         setLocation: (state, action) => {
-            state.filters.checkIn = action.payload;
+            state.filters.location = action.payload;
         },
         setCheckIn: (state, action) => {
             state.filters.checkIn = action.payload;

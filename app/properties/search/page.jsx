@@ -1,92 +1,105 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useSelector } from "react-redux";
-import PropertyCard from "@/components/properties/PropertyCard";
-import {
-    useGetPropertiesQuery,
-    useSearchPropertiesQuery,
-} from "@/store/features/propertiesApi";
-import SearchBar from "@/components/search/SearchBar";
-import { Skeleton } from "@/components/ui/skeleton"; // For loading state
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+
+import SearchBar from "@/components/search/SearchBar";
+import PropertyCard from "@/components/properties/PropertyCard";
+import PropertyMap from "@/components/properties/PropertyMap";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { useGetPropertiesQuery } from "@/store/features/propertiesApi";
 
 export default function PropertyListings() {
     const searchParams = useSearchParams();
-    const paramsObject = Object.fromEntries(searchParams.entries());
-    console.log("paramsObject: ", paramsObject);
 
-    // 2. COMPONENT STATE for pagination and data aggregation
+    // Build stable params object from URL
+    const paramsObject = useMemo(() => {
+        return Object.fromEntries(searchParams.entries());
+    }, [searchParams]);
+
+    // Pagination + aggregated items for infinite scroll
     const [page, setPage] = useState(1);
     const [allProperties, setAllProperties] = useState([]);
     const [hasMore, setHasMore] = useState(true);
 
-    // Ref to prevent multiple simultaneous fetches during infinite scroll
+    // Prevent multiple triggers
     const isFetchingRef = useRef(false);
 
+    // IMPORTANT: include page in query args
+    const queryArgs = useMemo(() => {
+        return {
+            ...paramsObject,
+            page, // your backend must support this
+        };
+    }, [paramsObject, page]);
+
     const { data, isLoading, isFetching, error } =
-        useGetPropertiesQuery(paramsObject);
+        useGetPropertiesQuery(queryArgs);
 
-    console.log("data: ", data);
-    const properties = data?.items;
-    const totalPages = data?.total_pages;
+    const properties = data?.items || [];
+    const totalPages = data?.total_pages || 1;
+    const totalItems = data?.total_items || data?.count || allProperties.length;
 
-    // 6. EFFECT TO AGGREGATE PROPERTIES FOR INFINITE SCROLL
+    // Reset when filters/location (URL params) change
+    useEffect(() => {
+        setPage(1);
+        setAllProperties([]);
+        setHasMore(true);
+        isFetchingRef.current = false;
+    }, [paramsObject]);
+
+    // Aggregate properties (avoid duplicates)
     useEffect(() => {
         if (properties && properties.length > 0) {
-            // Append new properties, avoiding duplicates that might occur on refetches
             setAllProperties((prev) => {
+                // If this is page 1 after params changed, replace instead of append
+                if (page === 1) return properties;
+
                 const existingIds = new Set(prev.map((p) => p.id));
-                const newProperties = properties.filter(
+                const newOnes = properties.filter(
                     (p) => !existingIds.has(p.id)
                 );
-                return [...prev, ...newProperties];
+                return [...prev, ...newOnes];
             });
+
             setHasMore(page < totalPages);
         } else if (!isLoading && !isFetching) {
-            // If no properties are returned and we're not currently loading, assume there are no more pages.
-            // This also covers the case where a search yields zero results.
+            // No results returned
+            if (page === 1) setAllProperties([]);
             setHasMore(false);
-            setAllProperties([]); // Ensure properties are cleared if no results
         }
-        isFetchingRef.current = false; // Allow fetching again after data processing
+
+        isFetchingRef.current = false;
     }, [properties, page, totalPages, isLoading, isFetching]);
 
-    // 7. EFFECT FOR INFINITE SCROLL LOGIC
+    // Infinite scroll (window scroll)
+    const handleScroll = useCallback(() => {
+        if (isFetchingRef.current || !hasMore || isLoading || isFetching)
+            return;
+
+        const scrollTop = document.documentElement.scrollTop;
+        const viewportHeight = window.innerHeight;
+        const fullHeight = document.documentElement.offsetHeight;
+
+        if (viewportHeight + scrollTop >= fullHeight - 250) {
+            isFetchingRef.current = true;
+            setPage((prev) => prev + 1);
+        }
+    }, [hasMore, isLoading, isFetching]);
+
     useEffect(() => {
-        const handleScroll = () => {
-            // Prevent fetching if already fetching, no more data, or initial load is happening.
-            if (isFetchingRef.current || !hasMore || isLoading || isFetching)
-                return;
-
-            // Check if the user has scrolled near the bottom of the page.
-            // The condition `window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200`
-            // means we trigger loading when the user is within 200px of the bottom.
-            if (
-                window.innerHeight + document.documentElement.scrollTop >=
-                document.documentElement.offsetHeight - 200
-            ) {
-                isFetchingRef.current = true; // Set flag to prevent multiple calls
-                setPage((prev) => prev + 1); // Increment page number to trigger fetch
-            }
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        // Cleanup the event listener on component unmount
+        window.addEventListener("scroll", handleScroll, { passive: true });
         return () => window.removeEventListener("scroll", handleScroll);
-    }, [hasMore, isLoading, isFetching]); // Dependencies ensure the effect re-runs if these states change
-
-    // --- UI RENDERING ---
+    }, [handleScroll]);
 
     const renderSkeletons = () =>
         Array.from({ length: 8 }).map((_, index) => (
             <div key={index} className="flex flex-col space-y-3">
                 <Skeleton className="h-[200px] w-full rounded-xl" />
                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />{" "}
-                    {/* Adjusted width for full space */}
-                    <Skeleton className="h-4 w-3/4" />{" "}
-                    {/* Adjusted width for better visual */}
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
                 </div>
             </div>
         ));
@@ -95,60 +108,78 @@ export default function PropertyListings() {
         <div>
             <SearchBar />
 
-            {/* Main content area */}
-            {/* Adjusted max-width and added padding for a cleaner look */}
-            <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {error ? (
-                    <div className="text-center text-red-500">
-                        Failed to load properties. Please try again.
+            {/* Full-width layout similar to Airbnb: left list + right sticky map */}
+            <div className="w-full">
+                <div className="flex w-full">
+                    {/* LEFT: Results */}
+                    <div className="w-full lg:w-[58%] xl:w-[55%]">
+                        <div className="px-4 sm:px-6 lg:px-8 py-6">
+                            {error ? (
+                                <div className="text-center text-red-500">
+                                    Failed to load properties. Please try again.
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Top meta row (like "643 homes") */}
+                                    <div className="mb-4">
+                                        <p className="text-sm text-gray-600">
+                                            {isLoading && page === 1
+                                                ? "Loading results..."
+                                                : `${totalItems} homes`}
+                                        </p>
+                                    </div>
+
+                                    {/* Initial loading */}
+                                    {page === 1 && isLoading && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                                            {renderSkeletons()}
+                                        </div>
+                                    )}
+
+                                    {/* No results */}
+                                    {!isLoading &&
+                                        allProperties.length === 0 && (
+                                            <div className="text-center py-20">
+                                                <h2 className="text-2xl font-semibold mb-2">
+                                                    No properties found
+                                                </h2>
+                                                <p className="text-gray-500">
+                                                    Try adjusting your search
+                                                    filters or location.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                    {/* Results grid */}
+                                    {allProperties.length > 0 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                                            {allProperties.map((property) => (
+                                                <PropertyCard
+                                                    key={property.id}
+                                                    property={property}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Fetching next pages */}
+                                    {isFetching && page > 1 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 mt-6">
+                                            {renderSkeletons()}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
-                ) : (
-                    <>
-                        {/* Initial Loading State (Page 1) */}
-                        {page === 1 && isLoading && (
-                            // Using xl:grid-cols-4 for 4 columns on large screens.
-                            // If you want 7 properties, you'd need custom CSS or a different layout.
-                            // This setup provides 1, 2, 3, 4 columns responsively.
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
-                                {renderSkeletons()}
-                            </div>
-                        )}
 
-                        {/* No Results Found State */}
-                        {!isLoading && allProperties.length === 0 && (
-                            <div className="text-center py-20">
-                                <h2 className="text-2xl font-semibold mb-2">
-                                    No properties found
-                                </h2>
-                                <p className="text-gray-500">
-                                    Try adjusting your search filters or
-                                    location.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Display Properties */}
-                        {allProperties.length > 0 && (
-                            // Grid layout: 1 col (xs), 2 (sm), 3 (md), 4 (lg & xl)
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
-                                {allProperties.map((property) => (
-                                    <PropertyCard
-                                        key={property.id}
-                                        property={property}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Subsequent Loading (Infinite Scroll Indicator) */}
-                        {/* Show skeletons only if actively fetching more pages */}
-                        {isFetching && page > 1 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 mt-6">
-                                {renderSkeletons()}
-                            </div>
-                        )}
-                    </>
-                )}
+                    {/* RIGHT: Sticky Map (hidden on small screens, like Airbnb) */}
+                    <div className="hidden lg:block lg:w-[42%] xl:w-[45%]">
+                        <div className="sticky top-0 h-screen">
+                            <PropertyMap properties={allProperties} />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

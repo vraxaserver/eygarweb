@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { GoogleMap, OverlayView, InfoWindow } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
+import Link from "next/link";
 
 const mapContainerStyle = {
     width: "100%",
@@ -26,6 +27,16 @@ export default function PropertyMap({ properties = [] }) {
     const [selectedProperty, setSelectedProperty] = useState(null);
 
     const mapRef = useRef(null);
+
+    // Format price nicely (compact + readable)
+    const formatPrice = useCallback((p) => {
+        const val = Number(p?.price_per_night);
+        if (!Number.isFinite(val))
+            return `${p?.currency || ""} ${p?.price_per_night ?? ""}`.trim();
+
+        // e.g. 1200 -> 1,200
+        return `${p?.currency || ""} ${val.toLocaleString()}`.trim();
+    }, []);
 
     // 1) Default center = first property location (if valid), otherwise Doha fallback
     const defaultCenter = useMemo(() => {
@@ -141,47 +152,63 @@ export default function PropertyMap({ properties = [] }) {
             }}
             onClick={handleCloseInfoWindow}
         >
-            {propertiesWithCoords.map((property) => (
-                <OverlayView
-                    key={property.id}
-                    position={{ lat: property.__lat, lng: property.__lng }}
-                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                >
-                    <div
-                        className={`
-              px-3 py-1.5 rounded-full font-semibold text-sm
-              bg-white border-2 shadow-md
-              cursor-pointer transition-all
-              hover:scale-110 hover:z-10 hover:shadow-xl
-              ${
-                  hoveredId === property.id ||
-                  selectedProperty?.id === property.id
-                      ? "bg-gray-900 text-white border-gray-900 scale-110"
-                      : "text-gray-900 border-gray-300"
-              }
-            `}
-                        onMouseEnter={() => setHoveredId(property.id)}
-                        onMouseLeave={() => setHoveredId(null)}
-                        onClick={(e) => {
-                            // Prevent map click from immediately closing the InfoWindow
-                            e.stopPropagation();
-                            handlePropertyClick(property);
-                        }}
+            {propertiesWithCoords.map((property) => {
+                const isActive =
+                    hoveredId === property.id ||
+                    selectedProperty?.id === property.id;
+
+                return (
+                    <OverlayView
+                        key={property.id}
+                        position={{ lat: property.__lat, lng: property.__lng }}
+                        mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                        // zIndex helps active marker stay on top of others
+                        zIndex={isActive ? 999 : 1}
                     >
-                        {property.currency}{" "}
-                        {Number.isFinite(property.price_per_night)
-                            ? property.price_per_night.toLocaleString()
-                            : property.price_per_night}
-                    </div>
-                </OverlayView>
-            ))}
+                        <button
+                            type="button"
+                            className={[
+                                // Capsule / hyperbola horizontal pill
+                                "inline-flex items-center justify-center",
+                                "whitespace-nowrap select-none",
+                                "rounded-full",
+                                // Small readable typography
+                                "text-[12px] leading-none font-semibold",
+                                // Comfortable horizontal fit
+                                "px-3 py-1.5",
+                                // Border + shadow for map readability
+                                "border shadow-sm",
+                                // Smooth interactions
+                                "transition-transform duration-150 ease-out",
+                                "hover:shadow-md hover:-translate-y-[1px]",
+                                "active:translate-y-0",
+                                isActive
+                                    ? "bg-gray-900 text-white border-gray-900"
+                                    : "bg-white text-gray-900 border-gray-300",
+                            ].join(" ")}
+                            onMouseEnter={() => setHoveredId(property.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handlePropertyClick(property);
+                            }}
+                            aria-label={`View ${
+                                property.title || "property"
+                            } on map`}
+                        >
+                            {/* Price text */}
+                            {formatPrice(property)}
+                        </button>
+                    </OverlayView>
+                );
+            })}
 
             {selectedProperty && selectedLatLng && (
                 <InfoWindow
                     position={selectedLatLng}
                     onCloseClick={handleCloseInfoWindow}
                     options={{
-                        pixelOffset: new window.google.maps.Size(0, -40),
+                        pixelOffset: new window.google.maps.Size(0, -44),
                     }}
                 >
                     <div className="w-72 p-0">
@@ -220,15 +247,16 @@ export default function PropertyMap({ properties = [] }) {
                             </div>
 
                             <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                                {selectedProperty.title}
+                                <Link
+                                    href={`/properties/${selectedProperty.id}`}
+                                >
+                                    {selectedProperty.title}
+                                </Link>
                             </h3>
 
                             <div className="flex items-baseline gap-1">
                                 <span className="text-lg font-bold text-gray-900">
-                                    {selectedProperty.currency}{" "}
-                                    {Number(
-                                        selectedProperty.price_per_night
-                                    ).toLocaleString()}
+                                    {formatPrice(selectedProperty)}
                                 </span>
                                 <span className="text-sm text-gray-600">
                                     night

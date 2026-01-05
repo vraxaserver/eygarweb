@@ -58,6 +58,24 @@ export default function HostDashboard() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    const handleOwnerAgentChange = (e) => {
+        const role = e.target.value; // "owner" | "agent"
+
+        setFormData((prev) => {
+            const isAgent = role === "agent";
+
+            return {
+                ...prev,
+                is_owner: !isAgent,
+                is_agent: isAgent,
+                revenue_share_type: isAgent
+                    ? prev.revenue_share_type || "percentage"
+                    : "percentage",
+                revenue_share: isAgent ? prev.revenue_share ?? 0 : 0,
+            };
+        });
+    };
+
     const handleBackToDashboard = () => setSelectedBooking(null);
 
     const [formData, setFormData] = useState({
@@ -65,6 +83,12 @@ export default function HostDashboard() {
         description: "",
         property_type: "house",
         place_type: "entire_place",
+
+        is_owner: true,
+        is_agent: false,
+        revenue_share_type: "percentage", // "percentage" | "fixed"
+        revenue_share: 0,
+
         bedrooms: 1,
         beds: 1,
         bathrooms: 1,
@@ -260,6 +284,10 @@ export default function HostDashboard() {
                 description: "",
                 property_type: "house",
                 place_type: "entire_place",
+                is_owner: true,
+                is_agent: false,
+                revenue_share_type: "percentage", // "percentage" | "fixed"
+                revenue_share: 0,
                 bedrooms: 1,
                 beds: 1,
                 bathrooms: 1,
@@ -378,6 +406,103 @@ export default function HostDashboard() {
                                         Shared Room
                                     </option>
                                 </select>
+                            </div>
+                            {/* ✅ Ownership / Agent (Grouped Radio) */}
+                            <div className="p-4 bg-gray-50 rounded-lg border">
+                                <h3 className="text-sm font-semibold mb-3 text-gray-700">
+                                    Listing Role
+                                </h3>
+
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="listing_role"
+                                            value="owner"
+                                            checked={
+                                                !!formData.is_owner &&
+                                                !formData.is_agent
+                                            }
+                                            onChange={handleOwnerAgentChange}
+                                            className="w-4 h-4 text-rose-600 focus:ring-rose-500"
+                                        />
+                                        <span className="text-sm text-gray-700">
+                                            Owner
+                                        </span>
+                                    </label>
+
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="listing_role"
+                                            value="agent"
+                                            checked={!!formData.is_agent}
+                                            onChange={handleOwnerAgentChange}
+                                            className="w-4 h-4 text-rose-600 focus:ring-rose-500"
+                                        />
+                                        <span className="text-sm text-gray-700">
+                                            Agent
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {/* ✅ Revenue Share Fields: show only for Agent */}
+                                {formData.is_agent && (
+                                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Revenue Share Type
+                                            </label>
+                                            <select
+                                                name="revenue_share_type"
+                                                value={
+                                                    formData.revenue_share_type
+                                                }
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-2 border rounded-lg"
+                                            >
+                                                <option value="percentage">
+                                                    Percentage
+                                                </option>
+                                                <option value="fixed">
+                                                    Fixed
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Revenue Share{" "}
+                                                {formData.revenue_share_type ===
+                                                "percentage"
+                                                    ? "(%)"
+                                                    : ""}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="revenue_share"
+                                                step="any"
+                                                min="0"
+                                                value={formData.revenue_share}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-2 border rounded-lg"
+                                                placeholder={
+                                                    formData.revenue_share_type ===
+                                                    "percentage"
+                                                        ? "0 - 100"
+                                                        : "0.00"
+                                                }
+                                            />
+                                            {formData.revenue_share_type ===
+                                                "percentage" && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Use a value between 0 and
+                                                    100.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

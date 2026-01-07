@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BookingCard } from "@/components/dashboard/guests/BookingCard"; // Imported directly
+import { BookingCard } from "@/components/dashboard/guests/BookingCard";
 import { BookingDetail } from "@/components/dashboard/guests/BookingDetails";
 import { Calendar, History, User } from "lucide-react";
 import {
@@ -61,6 +61,29 @@ function EmptyState({ title, description }) {
     );
 }
 
+function LoadingState({ title = "Loading...", description = "Please wait." }) {
+    return (
+        <div className="bg-white border rounded-lg p-8 text-center">
+            <div className="text-lg font-semibold text-gray-900">{title}</div>
+            <div className="mt-2 text-sm text-gray-600">{description}</div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                        key={i}
+                        className="border rounded-lg bg-gray-50 p-4 animate-pulse"
+                    >
+                        <div className="h-5 w-2/3 bg-gray-200 rounded" />
+                        <div className="mt-3 h-4 w-1/2 bg-gray-200 rounded" />
+                        <div className="mt-6 h-24 w-full bg-gray-200 rounded" />
+                        <div className="mt-4 h-9 w-full bg-gray-200 rounded" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function GuestDashboard() {
     const [selectedBookingId, setSelectedBookingId] = useState(null);
 
@@ -73,59 +96,77 @@ export default function GuestDashboard() {
     const [updateCheckIn, { isLoading: isCheckinLoading }] =
         useUpdateBookingCheckInMutation();
 
-    // 1. Logic previously in useMemo
-    const bookings = normalizeBookings(data).filter(isValidBooking);
+    // Normalize and validate once
+    const bookings = useMemo(() => {
+        return normalizeBookings(data).filter(isValidBooking);
+    }, [data]);
 
-    const bookingById = new Map();
-    for (const b of bookings) {
-        const id = getBookingId(b);
-        if (id) bookingById.set(id, b);
-    }
+    const bookingById = useMemo(() => {
+        const m = new Map();
+        for (const b of bookings) {
+            const id = getBookingId(b);
+            if (id) m.set(id, b);
+        }
+        return m;
+    }, [bookings]);
 
     const selectedBooking = selectedBookingId
         ? bookingById.get(selectedBookingId) ?? null
         : null;
 
-    const upcomingBookings = [];
-    const activeBookings = [];
-    const pastBookings = [];
+    const { upcomingBookings, activeBookings, pastBookings } = useMemo(() => {
+        const upcoming = [];
+        const active = [];
+        const past = [];
 
-    for (const b of bookings) {
-        let state;
-        try {
-            state = getBookingState(b);
-        } catch {
-            continue;
+        for (const b of bookings) {
+            let state;
+            try {
+                state = getBookingState(b);
+            } catch {
+                continue;
+            }
+
+            if (state === "history") {
+                past.push(b);
+            } else if (
+                state === "active_checked_in" ||
+                state === "needs_checkin"
+            ) {
+                active.push(b);
+            } else if (state === "upcoming") {
+                upcoming.push(b);
+            }
         }
 
-        if (state === "history") {
-            pastBookings.push(b);
-        } else if (state === "active_checked_in" || state === "needs_checkin") {
-            activeBookings.push(b);
-        } else if (state === "upcoming") {
-            upcomingBookings.push(b);
-        }
-    }
+        const safeTime = (v) => {
+            const t = new Date(v ?? 0).getTime();
+            return Number.isFinite(t) ? t : 0;
+        };
 
-    const safeTime = (v) => {
-        const t = new Date(v ?? 0).getTime();
-        return Number.isFinite(t) ? t : 0;
-    };
+        upcoming.sort(
+            (a, b) => safeTime(a?.check_in_date) - safeTime(b?.check_in_date)
+        );
+        past.sort(
+            (a, b) => safeTime(b?.check_out_date) - safeTime(a?.check_out_date)
+        );
+        active.sort(
+            (a, b) => safeTime(a?.check_out_date) - safeTime(b?.check_out_date)
+        );
 
-    upcomingBookings.sort(
-        (a, b) => safeTime(a?.check_in_date) - safeTime(b?.check_in_date)
-    );
-    pastBookings.sort(
-        (a, b) => safeTime(b?.check_out_date) - safeTime(a?.check_out_date)
-    );
-    activeBookings.sort(
-        (a, b) => safeTime(a?.check_out_date) - safeTime(b?.check_out_date)
-    );
+        return {
+            upcomingBookings: upcoming,
+            activeBookings: active,
+            pastBookings: past,
+        };
+    }, [bookings]);
 
     const activeBooking = activeBookings.length ? activeBookings[0] : null;
     const defaultTab = activeBooking ? "active" : "upcoming";
 
-    // 2. Logic previously in useCallback
+    const isBusy = isLoading || isFetching;
+    const hasAnyBookings = bookings.length > 0;
+
     const handleBookingClick = (booking) => {
         const id = getBookingId(booking);
         if (id) setSelectedBookingId(id);
@@ -202,155 +243,176 @@ export default function GuestDashboard() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Tabs defaultValue={defaultTab} className="w-full">
-                    <TabsList
-                        className={`grid w-full ${
-                            activeBooking ? "grid-cols-3" : "grid-cols-2"
-                        } mb-8`}
-                    >
-                        {activeBooking && (
+                {/* Global states for the dashboard */}
+                {isBusy && !hasAnyBookings ? (
+                    <LoadingState
+                        title="Loading your bookings"
+                        description="Fetching the latest booking information…"
+                    />
+                ) : !isBusy && !hasAnyBookings ? (
+                    <EmptyState
+                        title="No bookings yet"
+                        description="When you make your first reservation, it will appear here in your dashboard."
+                    />
+                ) : (
+                    <Tabs defaultValue={defaultTab} className="w-full">
+                        <TabsList
+                            className={`grid w-full ${
+                                activeBooking ? "grid-cols-3" : "grid-cols-2"
+                            } mb-8`}
+                        >
+                            {activeBooking && (
+                                <TabsTrigger
+                                    value="active"
+                                    className="flex items-center space-x-2"
+                                >
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                    <span>Active Booking</span>
+                                </TabsTrigger>
+                            )}
+
                             <TabsTrigger
-                                value="active"
+                                value="upcoming"
                                 className="flex items-center space-x-2"
                             >
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                <span>Active Booking</span>
+                                <Calendar className="h-4 w-4" />
+                                <span>Upcoming Bookings</span>
                             </TabsTrigger>
+
+                            <TabsTrigger
+                                value="history"
+                                className="flex items-center space-x-2"
+                            >
+                                <History className="h-4 w-4" />
+                                <span>Booking History</span>
+                            </TabsTrigger>
+                        </TabsList>
+
+                        {activeBooking && (
+                            <TabsContent value="active" className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-2xl font-bold text-gray-900">
+                                        Current Stay
+                                    </h2>
+                                    <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                                        <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
+                                        Checked In
+                                    </Badge>
+                                </div>
+
+                                <div className="grid grid-cols-1 max-w-md">
+                                    <BookingCard
+                                        booking={activeBooking}
+                                        onView={() =>
+                                            handleBookingClick(activeBooking)
+                                        }
+                                        onCheckin={() =>
+                                            handleCheckin(activeBooking)
+                                        }
+                                        isActive
+                                        disabled={isCheckinLoading}
+                                    />
+                                </div>
+
+                                {activeBookings.length > 1 && (
+                                    <div className="space-y-3">
+                                        <div className="text-sm font-medium text-gray-900">
+                                            Other active bookings
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {activeBookings
+                                                .slice(1)
+                                                .map((b, idx) => (
+                                                    <BookingCard
+                                                        key={
+                                                            getBookingId(b) ??
+                                                            `active-${idx}`
+                                                        }
+                                                        booking={b}
+                                                        onView={() =>
+                                                            handleBookingClick(
+                                                                b
+                                                            )
+                                                        }
+                                                        onCheckin={() =>
+                                                            handleCheckin(b)
+                                                        }
+                                                        isActive
+                                                        disabled={
+                                                            isCheckinLoading
+                                                        }
+                                                    />
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </TabsContent>
                         )}
 
-                        <TabsTrigger
-                            value="upcoming"
-                            className="flex items-center space-x-2"
-                        >
-                            <Calendar className="h-4 w-4" />
-                            <span>Upcoming Bookings</span>
-                        </TabsTrigger>
-
-                        <TabsTrigger
-                            value="history"
-                            className="flex items-center space-x-2"
-                        >
-                            <History className="h-4 w-4" />
-                            <span>Booking History</span>
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {activeBooking && (
-                        <TabsContent value="active" className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold text-gray-900">
-                                    Current Stay
-                                </h2>
-                                <Badge className="bg-green-500 hover:bg-green-600 text-white">
-                                    <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                                    Checked In
-                                </Badge>
-                            </div>
-
-                            <div className="grid grid-cols-1 max-w-md">
-                                <BookingCard
-                                    booking={activeBooking}
-                                    onView={() =>
-                                        handleBookingClick(activeBooking)
-                                    }
-                                    onCheckin={() =>
-                                        handleCheckin(activeBooking)
-                                    }
-                                    isActive
-                                    disabled={isCheckinLoading}
+                        <TabsContent value="upcoming" className="space-y-6">
+                            {isBusy && upcomingBookings.length === 0 ? (
+                                <LoadingState
+                                    title="Loading upcoming bookings"
+                                    description="Fetching upcoming reservations…"
                                 />
-                            </div>
-
-                            {activeBookings.length > 1 && (
-                                <div className="space-y-3">
-                                    <div className="text-sm font-medium text-gray-900">
-                                        Other active bookings
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {activeBookings
-                                            .slice(1)
-                                            .map((b, idx) => (
-                                                <BookingCard
-                                                    key={
-                                                        getBookingId(b) ??
-                                                        `active-${idx}`
-                                                    }
-                                                    booking={b}
-                                                    onView={() =>
-                                                        handleBookingClick(b)
-                                                    }
-                                                    onCheckin={() =>
-                                                        handleCheckin(b)
-                                                    }
-                                                    isActive
-                                                    disabled={isCheckinLoading}
-                                                />
-                                            ))}
-                                    </div>
+                            ) : upcomingBookings.length === 0 ? (
+                                <EmptyState
+                                    title="No upcoming bookings"
+                                    description="When you make a new reservation, it will appear here."
+                                />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {upcomingBookings.map((booking, idx) => (
+                                        <BookingCard
+                                            key={
+                                                getBookingId(booking) ??
+                                                `upcoming-${idx}`
+                                            }
+                                            booking={booking}
+                                            onView={() =>
+                                                handleBookingClick(booking)
+                                            }
+                                            onCheckin={() =>
+                                                handleCheckin(booking)
+                                            }
+                                            disabled={isCheckinLoading}
+                                        />
+                                    ))}
                                 </div>
                             )}
                         </TabsContent>
-                    )}
 
-                    <TabsContent value="upcoming" className="space-y-6">
-                        {upcomingBookings.length === 0 ? (
-                            <EmptyState
-                                title="No upcoming bookings"
-                                description={
-                                    isLoading || isFetching
-                                        ? "Loading your bookings…"
-                                        : "When you make a new reservation, it will appear here."
-                                }
-                            />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {upcomingBookings.map((booking, idx) => (
-                                    <BookingCard
-                                        key={
-                                            getBookingId(booking) ??
-                                            `upcoming-${idx}`
-                                        }
-                                        booking={booking}
-                                        onView={() =>
-                                            handleBookingClick(booking)
-                                        }
-                                        onCheckin={() => handleCheckin(booking)}
-                                        disabled={isCheckinLoading}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </TabsContent>
-
-                    <TabsContent value="history" className="space-y-6">
-                        {pastBookings.length === 0 ? (
-                            <EmptyState
-                                title="No booking history"
-                                description={
-                                    isLoading || isFetching
-                                        ? "Loading your bookings…"
-                                        : "Once you complete a stay, it will show up here."
-                                }
-                            />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {pastBookings.map((booking, idx) => (
-                                    <BookingCard
-                                        key={
-                                            getBookingId(booking) ??
-                                            `history-${idx}`
-                                        }
-                                        booking={booking}
-                                        onView={() =>
-                                            handleBookingClick(booking)
-                                        }
-                                        isPast
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="history" className="space-y-6">
+                            {isBusy && pastBookings.length === 0 ? (
+                                <LoadingState
+                                    title="Loading booking history"
+                                    description="Fetching past stays…"
+                                />
+                            ) : pastBookings.length === 0 ? (
+                                <EmptyState
+                                    title="No booking history"
+                                    description="Once you complete a stay, it will show up here."
+                                />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {pastBookings.map((booking, idx) => (
+                                        <BookingCard
+                                            key={
+                                                getBookingId(booking) ??
+                                                `history-${idx}`
+                                            }
+                                            booking={booking}
+                                            onView={() =>
+                                                handleBookingClick(booking)
+                                            }
+                                            isPast
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </TabsContent>
+                    </Tabs>
+                )}
             </div>
 
             <Dialog

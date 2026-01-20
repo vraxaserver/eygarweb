@@ -25,9 +25,19 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
     let result = await baseQuery(args, api, extraOptions);
 
     if (result?.error?.status === 401) {
+        // Normalize URL from args (args can be string or object)
+        const requestUrl =
+            typeof args === "string"
+                ? args
+                : typeof args === "object" && args !== null
+                ? args.url
+                : "";
+
         // Prevent infinite loop if we are already trying to logout or refresh
-        const { url } = args;
-        if (url.includes("logout") || url.includes("refresh")) {
+        if (
+            typeof requestUrl === "string" &&
+            (requestUrl.includes("logout") || requestUrl.includes("refresh"))
+        ) {
             api.dispatch(logout());
             return result;
         }
@@ -49,16 +59,16 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
                 extraOptions
             );
 
-            if (refreshResult?.data) {
-                // Store the new token
+            if (refreshResult?.data?.access) {
                 api.dispatch(
                     setCredentials({
                         user: api.getState().auth.user,
                         access: refreshResult.data.access,
-                        refresh: refreshToken, // Keep existing refresh or update if returned
+                        refresh: refreshToken, // keep existing refresh unless backend returns a new one
                     })
                 );
-                // Retry the original query
+
+                // Retry the original query with the updated token
                 result = await baseQuery(args, api, extraOptions);
             } else {
                 api.dispatch(logout());
@@ -67,6 +77,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
             api.dispatch(logout());
         }
     }
+
     return result;
 };
 

@@ -57,6 +57,7 @@ import {
     setPropertyId,
 } from "@/store/slices/bookingSlice";
 import { useGetPropertyByIdQuery } from "@/store/features/propertiesApi";
+import { useGetAmenitiesQuery } from "@/store/features/amenitiesApi";
 
 export default function PropertyDetails({ params }) {
     // 1. Params (Client components receive params already resolved)
@@ -69,6 +70,15 @@ export default function PropertyDetails({ params }) {
 
     // 3. Data Fetching
     const { data: property, isLoading, isError } = useGetPropertyByIdQuery(id);
+    const {
+        data: amenitiesList = [],
+        isLoading: amenitiesLoading,
+        error,
+    } = useGetAmenitiesQuery();
+
+    if (!amenitiesLoading) {
+        console.log("amenitiesList: ", amenitiesList);
+    }
 
     // 4. Local State
     const [checkInDate, setCheckInDate] = useState(undefined);
@@ -222,37 +232,37 @@ export default function PropertyDetails({ params }) {
     }, [checkInDate, checkOutDate, handleReserve]);
 
     // Amenities Mock (memoized)
-    const amenitiesList = useMemo(
-        () => [
-            {
-                icon: <Wifi className="w-6 h-6" />,
-                name: "Wifi",
-                available: true,
-            },
-            {
-                icon: <Car className="w-6 h-6" />,
-                name: "Free parking",
-                available: true,
-            },
-            { icon: <Tv className="w-6 h-6" />, name: "TV", available: true },
-            {
-                icon: <AirVent className="w-6 h-6" />,
-                name: "AC",
-                available: false,
-            },
-            {
-                icon: <Coffee className="w-6 h-6" />,
-                name: "Kitchen",
-                available: true,
-            },
-            {
-                icon: <Waves className="w-6 h-6" />,
-                name: "Pool",
-                available: true,
-            },
-        ],
-        []
-    );
+    // const amenitiesList = useMemo(
+    //     () => [
+    //         {
+    //             icon: <Wifi className="w-6 h-6" />,
+    //             name: "Wifi",
+    //             available: true,
+    //         },
+    //         {
+    //             icon: <Car className="w-6 h-6" />,
+    //             name: "Free parking",
+    //             available: true,
+    //         },
+    //         { icon: <Tv className="w-6 h-6" />, name: "TV", available: true },
+    //         {
+    //             icon: <AirVent className="w-6 h-6" />,
+    //             name: "AC",
+    //             available: false,
+    //         },
+    //         {
+    //             icon: <Coffee className="w-6 h-6" />,
+    //             name: "Kitchen",
+    //             available: true,
+    //         },
+    //         {
+    //             icon: <Waves className="w-6 h-6" />,
+    //             name: "Pool",
+    //             available: true,
+    //         },
+    //     ],
+    //     []
+    // );
 
     if (isLoading)
         return (

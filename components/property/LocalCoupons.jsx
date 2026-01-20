@@ -1,17 +1,35 @@
-import { Gift } from 'lucide-react';
-import { CouponCard } from '@/components/property/CouponCard'; // Adjust path if needed
-import { useGetCouponsQuery } from '@/store/features/vendorCouponApi';
-
+import { Gift } from "lucide-react";
+import { CouponCard } from "@/components/property/CouponCard";
+import { useGetCouponsQuery } from "@/store/features/vendorCouponApi";
 
 export const LocalCoupons = () => {
-    const {data: coupons, isLoading, error} = useGetCouponsQuery()
+    const { data, isLoading, error } = useGetCouponsQuery();
 
-    if(isLoading) return <div>Loading....!</div>
-    console.log("coupons: ", coupons)
+    // Normalize response shape safely
+    const coupons = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+        ? data.results
+        : [];
+
+    if (isLoading) return <div>Loading…</div>;
+
+    if (error) {
+        return (
+            <div className="text-sm text-red-500">Failed to load coupons</div>
+        );
+    }
+
+    if (coupons.length === 0) {
+        return (
+            <div className="text-sm text-gray-500">
+                No coupons available for this property.
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
-            
             <h3 className="flex items-center space-x-2 text-lg font-semibold">
                 <Gift className="h-7 w-7 text-indigo-600" />
                 <span>Exclusive Coupons</span>
@@ -24,8 +42,9 @@ export const LocalCoupons = () => {
             </div>
 
             <p className="text-sm text-gray-500 mt-4">
-                These exclusive coupons are available to our guests. Use the provided codes
-                or present your booking confirmation to redeem these offers.
+                These exclusive coupons are available to our guests. Use the
+                provided codes or present your booking confirmation to redeem
+                these offers.
             </p>
         </div>
     );

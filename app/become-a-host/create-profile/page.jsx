@@ -143,7 +143,7 @@ export default function CreateBusinessProfilePage() {
 
         const requiredFields = [
             'business_name',
-            'business_type', 
+            'business_type',
             'license_number',
             'business_address_line1',
             'business_city',
@@ -213,9 +213,34 @@ export default function CreateBusinessProfilePage() {
 
         } catch (error) {
             console.log('Error submitting form:', error);
-            // RTK Query errors may be objects; normalize a message
-            const message = (error?.data?.detail) || error?.error || 'Failed to save profile. Please try again.';
-            setErrors({ submit: message });
+            const newErrors = {};
+
+            if (error?.data && typeof error.data === 'object') {
+                // Handle field-specific validation errors like {"business_logo": ["..."]}
+                const errorData = error.data;
+
+                if (errorData.detail) {
+                    // Single detail message
+                    newErrors.submit = errorData.detail;
+                } else {
+                    // Field-level errors: map each field's messages
+                    const fieldMessages = [];
+                    Object.entries(errorData).forEach(([field, messages]) => {
+                        const msgText = Array.isArray(messages) ? messages.join(' ') : messages;
+                        newErrors[field] = msgText;
+                        fieldMessages.push(msgText);
+                    });
+                    if (fieldMessages.length > 0) {
+                        newErrors.submit = fieldMessages.join(' | ');
+                    }
+                }
+            }
+
+            if (!newErrors.submit) {
+                newErrors.submit = error?.error || 'Failed to save profile. Please try again.';
+            }
+
+            setErrors(newErrors);
         } finally {
             setIsLoading(false);
         }

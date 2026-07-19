@@ -21,7 +21,7 @@ import StepProgressIndicator from "@/components/become-a-host/StepProgressIndica
 
 const LoadingState = ({ message = "Checking your status..." }) => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-gray-600">{message}</p>
     </div>
 );

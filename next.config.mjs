@@ -15,6 +15,12 @@ const nextConfig = {
                 pathname: "/media/**",
             },
             {
+                protocol: "http",
+                hostname: "localhost",
+                port: "8001",
+                pathname: "/media/**",
+            },
+            {
                 protocol: "https",
                 hostname: "images.pexels.com",
                 port: "",
@@ -46,7 +52,7 @@ const nextConfig = {
             },
             {
                 protocol: "https",
-                hostname: "eygar-dev.s3.me-central-1.amazonaws.com",
+                hostname: "eygar-dev.s3.ap-south-1.amazonaws.com",
             },
             {
                 protocol: "https",

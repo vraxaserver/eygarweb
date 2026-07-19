@@ -206,7 +206,7 @@ export const propertiesApi = createApi({
 
         createProperty: builder.mutation({
             query: (propertyData) => ({
-                url: "/properties",
+                url: "/properties/create",
                 method: "POST",
                 body: propertyData,
             }),

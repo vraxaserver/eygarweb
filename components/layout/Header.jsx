@@ -36,6 +36,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLanguage, useTranslation } from "@/lib/i18n";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Header() {
     const dispatch = useDispatch();
@@ -189,7 +190,23 @@ export default function Header() {
                                     className="flex items-center space-x-2"
                                 >
                                     <Menu className="h-4 w-4" />
-                                    <User className="h-4 w-4" />
+                                    {isAuthenticated ? (
+                                        <Avatar className="h-5 w-5">
+                                            {currentUser?.avatar_url || currentUser?.avatar ? (
+                                                <AvatarImage
+                                                    src={currentUser.avatar_url || currentUser.avatar}
+                                                    alt="User avatar"
+                                                />
+                                            ) : null}
+                                            <AvatarFallback className="text-[10px]">
+                                                {currentUser?.email
+                                                    ? currentUser.email.substring(0, 2).toUpperCase()
+                                                    : "U"}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ) : (
+                                        <User className="h-4 w-4" />
+                                    )}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
@@ -206,9 +223,29 @@ export default function Header() {
                                     </>
                                 ) : (
                                     <>
-                                        <p className="p-2 text-sm text-gray-600 bg-purple-500 text-white py-2">
-                                            {currentUser?.email}
-                                        </p>
+                                        <div className="flex items-center gap-2 p-2 border-b border-border">
+                                            <Avatar className="h-8 w-8">
+                                                {currentUser?.avatar_url || currentUser?.avatar ? (
+                                                    <AvatarImage
+                                                        src={currentUser.avatar_url || currentUser.avatar}
+                                                        alt="User avatar"
+                                                    />
+                                                ) : null}
+                                                <AvatarFallback className="text-xs">
+                                                    {currentUser?.email
+                                                        ? currentUser.email.substring(0, 2).toUpperCase()
+                                                        : "U"}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-xs font-semibold truncate text-foreground">
+                                                    {currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ""}` : currentUser?.email?.split('@')[0]}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground truncate">
+                                                    {currentUser?.email}
+                                                </span>
+                                            </div>
+                                        </div>
                                         <DropdownMenuItem
                                             onClick={goToDashboard}
                                         >
@@ -330,9 +367,29 @@ export default function Header() {
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-sm text-gray-600 mb-2 break-words">
-                                        {currentUser?.email}
-                                    </span>
+                                    <div className="flex items-center gap-2 p-2 border-b border-border mb-2">
+                                        <Avatar className="h-8 w-8">
+                                            {currentUser?.avatar_url || currentUser?.avatar ? (
+                                                <AvatarImage
+                                                    src={currentUser.avatar_url || currentUser.avatar}
+                                                    alt="User avatar"
+                                                />
+                                            ) : null}
+                                            <AvatarFallback className="text-xs">
+                                                {currentUser?.email
+                                                    ? currentUser.email.substring(0, 2).toUpperCase()
+                                                    : "U"}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-xs font-semibold truncate text-foreground">
+                                                {currentUser?.first_name ? `${currentUser.first_name} ${currentUser.last_name || ""}` : currentUser?.email?.split('@')[0]}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground truncate">
+                                                {currentUser?.email}
+                                            </span>
+                                        </div>
+                                    </div>
 
                                     <button
                                         onClick={goToDashboard}

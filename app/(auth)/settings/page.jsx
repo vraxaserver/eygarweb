@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateProfileMutation } from "@/store/features/hostProfileApi"; // 1. IMPORT THE HOOK
+import { useUpdateProfileMutation } from "@/store/features/authApi"; // 1. IMPORT THE HOOK
 import {
     User,
     Shield,
@@ -24,6 +24,8 @@ import {
     Camera,
     Loader2,
     AlertCircle,
+    CheckCircle2,
+    AlertTriangle,
 } from "lucide-react";
 
 export default function UserSettingsPage() {
@@ -165,9 +167,11 @@ export default function UserSettingsPage() {
                                     <CardContent className="space-y-6">
                                         <div className="flex items-center space-x-6">
                                             <Avatar className="w-20 h-20">
-                                                <AvatarImage
-                                                    src={avatarPreview}
-                                                />
+                                                {avatarPreview ? (
+                                                    <AvatarImage
+                                                        src={avatarPreview}
+                                                    />
+                                                ) : null}
                                                 <AvatarFallback>
                                                     {(user?.first_name?.[0] ||
                                                         "") +
@@ -243,17 +247,56 @@ export default function UserSettingsPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Email</Label>
-                                            <Input
-                                                id="email"
-                                                value={user?.email || ""}
-                                                disabled
-                                            />
-                                            <p className="text-xs text-gray-500">
-                                                Your email address cannot be
-                                                changed.
-                                            </p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="email">Email Address</Label>
+                                                    {user?.is_email_verified ? (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            Verified
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            Not Verified
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    id="email"
+                                                    value={user?.email || ""}
+                                                    disabled
+                                                />
+                                                <p className="text-[11px] text-gray-500">
+                                                    Your email address cannot be changed.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="phone">Phone Number</Label>
+                                                    {user?.is_phone_verified ? (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            Verified
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            Not Verified
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <Input
+                                                    id="phone"
+                                                    value={user?.phone_number || "Not provided"}
+                                                    disabled
+                                                />
+                                                <p className="text-[11px] text-gray-500">
+                                                    Your phone number cannot be changed.
+                                                </p>
+                                            </div>
                                         </div>
                                     </CardContent>
                                     <CardFooter className="border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">

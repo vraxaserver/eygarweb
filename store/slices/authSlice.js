@@ -15,6 +15,8 @@ const initialState = {
     isAuthenticated: false,
     isLoading: true,
     error: null,
+    // Holds temporary data between registration and OTP verification
+    pendingVerification: null, // { user_id, identifier_type }
 };
 
 const authSlice = createSlice({
@@ -28,6 +30,7 @@ const authSlice = createSlice({
             state.isAuthenticated = true;
             state.error = null;
             state.isLoading = false;
+            state.pendingVerification = null; // Clear pending state on successful login
 
             // FIX: Prioritize the locally stored role (View Mode) over the backend default
             // unless the backend explicitly forces a specific role structure you want.
@@ -47,6 +50,11 @@ const authSlice = createSlice({
             }
         },
 
+        // Called after a successful registration to store the pending verification data
+        setPendingVerification: (state, action) => {
+            state.pendingVerification = action.payload; // { user_id, identifier_type }
+        },
+
         logout: (state) => {
             state.user = null;
             state.token = null;
@@ -54,6 +62,7 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.error = null;
             state.isLoading = false;
+            state.pendingVerification = null;
 
             if (typeof window !== "undefined") {
                 localStorage.removeItem("access_token");
@@ -107,6 +116,7 @@ const authSlice = createSlice({
 
 export const {
     setCredentials,
+    setPendingVerification,
     logout,
     setLoading,
     setError,
@@ -126,3 +136,4 @@ export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.isLoading;
 export const selectAuthError = (state) => state.auth.error;
 export const selectCurrentRole = (state) => state.auth.role; // Exported correctly now
+export const selectPendingVerification = (state) => state.auth.pendingVerification;

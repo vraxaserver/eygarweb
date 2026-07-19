@@ -9,27 +9,22 @@ import { useCreateBusinessProfileMutation } from "@/store/features/hostProfileAp
 
 
 const BUSINESS_TYPES = [
-    "Restaurant",
+    "Holiday Home",
+    "Serviced Apartment",
+    "Vacation Rental",
+    "Short-Term Rental",
+    "Homestay",
     "Hotel",
-    "Retail Store",
-    "Service Provider",
-    "Entertainment Venue",
-    "Healthcare",
-    "Professional Services",
-    "Technology",
-    "Manufacturing",
-    "Other"
+    "Guest House"
 ];
 
 const COUNTRIES = [
-    "United States",
-    "Canada",
-    "United Kingdom",
-    "Australia",
-    "Germany",
-    "France",
-    "Japan",
-    "Other"
+    "Saudi Arabia",
+    "United Arab Emirates",
+    "Qatar",
+    "Kuwait",
+    "Oman",
+    "Bahrain"
 ];
 
 
@@ -255,7 +250,7 @@ export default function CreateBusinessProfilePage() {
                         <div className="bg-white rounded-2xl shadow-lg p-8">
                             <div className="mb-8">
                                 <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                    <Building2 className="h-8 w-8 text-indigo-600" />
+                                    <Building2 className="h-8 w-8 text-primary" />
                                     Create Your Business Profile
                                 </h1>
                                 <p className="text-gray-500 mt-2">
@@ -282,7 +277,7 @@ export default function CreateBusinessProfilePage() {
                                             id="business_name"
                                             value={formDataState.business_name}
                                             onChange={handleInputChange}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_name ? 'border-red-300' : 'border-gray-300'}`}
+                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_name ? 'border-red-300' : 'border-gray-300'}`}
                                             placeholder="Enter your business name"
                                         />
                                         {errors.business_name && <p className="mt-1 text-sm text-red-600">{errors.business_name}</p>}
@@ -297,7 +292,7 @@ export default function CreateBusinessProfilePage() {
                                             id="business_type"
                                             value={formDataState.business_type}
                                             onChange={handleInputChange}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_type ? 'border-red-300' : 'border-gray-300'}`}
+                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_type ? 'border-red-300' : 'border-gray-300'}`}
                                         >
                                             <option value="">Select business type</option>
                                             {BUSINESS_TYPES.map(type => (
@@ -320,7 +315,7 @@ export default function CreateBusinessProfilePage() {
                                             id="license_number"
                                             value={formDataState.license_number}
                                             onChange={handleInputChange}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.license_number ? 'border-red-300' : 'border-gray-300'}`}
+                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.license_number ? 'border-red-300' : 'border-gray-300'}`}
                                             placeholder="Enter your business license number"
                                         />
                                         {errors.license_number && <p className="mt-1 text-sm text-red-600">{errors.license_number}</p>}
@@ -407,7 +402,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_address_line1"
                                                 value={formDataState.business_address_line1}
                                                 onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_address_line1 ? 'border-red-300' : 'border-gray-300'}`}
+                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_address_line1 ? 'border-red-300' : 'border-gray-300'}`}
                                                 placeholder="Street address"
                                             />
                                             {errors.business_address_line1 && <p className="mt-1 text-sm text-red-600">{errors.business_address_line1}</p>}
@@ -423,7 +418,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_address_line2"
                                                 value={formDataState.business_address_line2}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
                                                 placeholder="Apartment, suite, etc. (optional)"
                                             />
                                         </div>
@@ -438,7 +433,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_city"
                                                 value={formDataState.business_city}
                                                 onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_city ? 'border-red-300' : 'border-gray-300'}`}
+                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_city ? 'border-red-300' : 'border-gray-300'}`}
                                                 placeholder="City"
                                             />
                                             {errors.business_city && <p className="mt-1 text-sm text-red-600">{errors.business_city}</p>}
@@ -454,7 +449,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_state"
                                                 value={formDataState.business_state}
                                                 onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_state ? 'border-red-300' : 'border-gray-300'}`}
+                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_state ? 'border-red-300' : 'border-gray-300'}`}
                                                 placeholder="State or Province"
                                             />
                                             {errors.business_state && <p className="mt-1 text-sm text-red-600">{errors.business_state}</p>}
@@ -470,7 +465,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_postal_code"
                                                 value={formDataState.business_postal_code}
                                                 onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_postal_code ? 'border-red-300' : 'border-gray-300'}`}
+                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_postal_code ? 'border-red-300' : 'border-gray-300'}`}
                                                 placeholder="Postal code"
                                             />
                                             {errors.business_postal_code && <p className="mt-1 text-sm text-red-600">{errors.business_postal_code}</p>}
@@ -485,7 +480,7 @@ export default function CreateBusinessProfilePage() {
                                                 id="business_country"
                                                 value={formDataState.business_country}
                                                 onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_country ? 'border-red-300' : 'border-gray-300'}`}
+                                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_country ? 'border-red-300' : 'border-gray-300'}`}
                                             >
                                                 <option value="">Select country</option>
                                                 {COUNTRIES.map(country => (
@@ -508,7 +503,7 @@ export default function CreateBusinessProfilePage() {
                                         rows={4}
                                         value={formDataState.business_description}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${errors.business_description ? 'border-red-300' : 'border-gray-300'}`}
+                                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${errors.business_description ? 'border-red-300' : 'border-gray-300'}`}
                                         placeholder="Describe your business, services, and what makes you unique..."
                                         maxLength={1000}
                                     />
@@ -525,7 +520,7 @@ export default function CreateBusinessProfilePage() {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         {isLoading ? (
                                             <>

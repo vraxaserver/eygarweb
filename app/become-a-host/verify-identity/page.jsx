@@ -24,7 +24,7 @@ const FileUploader = ({ title, onFileChange, fileName, error }) => {
 
     return (
         <div>
-            <label className={`relative block w-full cursor-pointer rounded-lg border-2 border-dashed p-8 text-center ${borderColor} ${hoverBorderColor} focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors`}>
+            <label className={`relative block w-full cursor-pointer rounded-lg border-2 border-dashed p-8 text-center ${borderColor} ${hoverBorderColor} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors`}>
                 <input
                     type="file"
                     className="sr-only"
@@ -135,7 +135,7 @@ export default function VerifyIdentityPage() {
                 <div className="w-full max-w-2xl">
                     <div className="bg-white rounded-2xl shadow-lg p-8">
                         <div className="flex items-center gap-3">
-                            <ShieldCheck className="h-8 w-8 text-indigo-600" />
+                            <ShieldCheck className="h-8 w-8 text-primary" />
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-800">Verify Your Identity</h1>
                                 <p className="text-gray-500 mt-1">We need to verify your identity to ensure trust and safety.</p>
@@ -167,7 +167,7 @@ export default function VerifyIdentityPage() {
                                             onClick={() => handleDocTypeChange(type)}
                                             className={`rounded-lg border p-4 text-left transition-all ${
                                                 docType === type
-                                                    ? "border-indigo-600 ring-2 ring-indigo-200 bg-indigo-50"
+                                                    ? "border-primary ring-2 ring-primary/20 bg-primary/10"
                                                     : "border-gray-300 bg-white hover:bg-gray-50"
                                             }`}
                                         >
@@ -190,7 +190,7 @@ export default function VerifyIdentityPage() {
                                     id="documentNumber"
                                     value={documentNumber}
                                     onChange={(e) => setDocumentNumber(e.target.value)}
-                                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${
+                                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${
                                         errors.documentNumber ? 'border-red-300' : 'border-gray-300'
                                     }`}
                                     placeholder="Enter your document number"
@@ -221,7 +221,7 @@ export default function VerifyIdentityPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <>

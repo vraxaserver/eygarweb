@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { setCredentials, logout, setError } from "@/store/slices/authSlice";
+import { setCredentials, logout, setError, setPendingVerification } from "@/store/slices/authSlice";
 
 const baseQuery = fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_USER_SERVICE_URL,
@@ -16,7 +16,6 @@ const baseQuery = fetchBaseQuery({
         if (token) {
             headers.set("authorization", `Bearer ${token}`);
         }
-        headers.set("content-type", "application/json");
         return headers;
     },
 });
@@ -90,17 +89,29 @@ export const authApi = createApi({
             query: (credentials) => ({
                 url: "/auth/login/",
                 method: "POST",
+                // Accepts { email_or_phone, password }
                 body: credentials,
             }),
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
                     console.log("Login returns: ", data);
-                    dispatch(setCredentials(data));
-                } catch (error) {
+                    // Backend shape: { tokens: { access, refresh }, user: { ... } }
                     dispatch(
-                        setError(error.error?.data?.detail || "Login failed")
+                        setCredentials({
+                            user: data.user,
+                            access: data.tokens.access,
+                            refresh: data.tokens.refresh,
+                        })
                     );
+                } catch (error) {
+                    const errData = error?.error?.data;
+                    const message =
+                        errData?.detail ||
+                        errData?.non_field_errors?.[0] ||
+                        errData?.message ||
+                        "Login failed";
+                    dispatch(setError(message));
                 }
             },
         }),
@@ -108,7 +119,32 @@ export const authApi = createApi({
             query: (userData) => ({
                 url: "/auth/register/",
                 method: "POST",
+                // Expected payload: { email_or_phone, password, confirm_password }
                 body: userData,
+            }),
+            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    // Response: { user_id, identifier_type, message }
+                    dispatch(
+                        setPendingVerification({
+                            user_id: data.user_id,
+                            identifier_type: data.identifier_type,
+                        })
+                    );
+                } catch (error) {
+                    // Let the component handle the error
+                    console.error("Signup error:", error);
+                }
+            },
+        }),
+
+        // Verify the OTP code received via SMS/Email after registration
+        verifyRegistration: builder.mutation({
+            query: ({ user_id, code }) => ({
+                url: "/auth/verify-code/",
+                method: "POST",
+                body: { user_id, code },
             }),
         }),
         getProfile: builder.query({
@@ -135,7 +171,7 @@ export const authApi = createApi({
         }),
         updateProfile: builder.mutation({
             query: (userData) => ({
-                url: "/auth/profile/",
+                url: "/auth/me/",
                 method: "PATCH",
                 body: userData,
             }),
@@ -187,6 +223,7 @@ export const authApi = createApi({
 export const {
     useLoginMutation,
     useSignupMutation,
+    useVerifyRegistrationMutation,
     useGetProfileQuery,
     useUpdateProfileMutation,
     useLogoutUserMutation,

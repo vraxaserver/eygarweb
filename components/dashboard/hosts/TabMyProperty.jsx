@@ -27,17 +27,28 @@ const TabMyProperty = ({setShowAddModal}) => {
         <>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 mb-5">
                 <h2 className="text-xl font-semibold">Your Properties</h2>
-                <Button onClick={setShowAddModal} className="bg-[#7a3d8a] hover:bg-purple-800">
+                <Button onClick={setShowAddModal} className="bg-primary hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Property
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {properties && properties.items.map((property) => (
-                    <PropertyCard key={property.id} property={property} currentUserId={user.eygar_host.id} />
-                ))}
-            </div>
+            {isLoading ? (
+                <div className="text-center py-10">Loading your properties...</div>
+            ) : properties?.items?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {properties.items.map((property) => (
+                        <PropertyCard key={property.id} property={property} currentUserId={user?.eygar_host?.id} />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-12 text-gray-500 border-2 border-dashed rounded-lg bg-white p-6">
+                    <p className="mb-4 text-base">You have not listed any properties yet.</p>
+                    <Button onClick={setShowAddModal} className="bg-primary hover:bg-primary/90">
+                        List Your First Property
+                    </Button>
+                </div>
+            )}
         </>
     );
 };

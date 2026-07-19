@@ -120,7 +120,7 @@ export default function SubmitForReviewPage() {
                         <div className="w-full max-w-2xl">
                             <div className="bg-white rounded-2xl shadow-lg p-8">
                                 <div className="text-center">
-                                    <FileCheck className="mx-auto h-12 w-12 text-indigo-600" />
+                                    <FileCheck className="mx-auto h-12 w-12 text-primary" />
                                     <h1 className="mt-4 text-3xl font-bold text-gray-800">
                                         You're All Set!
                                     </h1>
@@ -169,7 +169,7 @@ export default function SubmitForReviewPage() {
                                             value={formData.additional_notes}
                                             onChange={handleInputChange}
                                             placeholder="Please review my application. I'm excited to start hosting!"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                                         />
                                     </div>
 
@@ -182,7 +182,7 @@ export default function SubmitForReviewPage() {
                                                     name="terms_accepted"
                                                     checked={formData.terms_accepted}
                                                     onChange={handleInputChange}
-                                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                    className="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
                                                 />
                                                 <span className="text-sm text-gray-700">
                                                     I accept the{" "}
@@ -190,7 +190,7 @@ export default function SubmitForReviewPage() {
                                                         href="/terms" 
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
-                                                        className="text-indigo-600 hover:text-indigo-500 underline"
+                                                        className="text-primary hover:text-indigo-500 underline"
                                                     >
                                                         Terms and Conditions
                                                     </a>
@@ -210,7 +210,7 @@ export default function SubmitForReviewPage() {
                                                     name="privacy_policy_accepted"
                                                     checked={formData.privacy_policy_accepted}
                                                     onChange={handleInputChange}
-                                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                    className="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
                                                 />
                                                 <span className="text-sm text-gray-700">
                                                     I accept the{" "}
@@ -218,7 +218,7 @@ export default function SubmitForReviewPage() {
                                                         href="/privacy" 
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
-                                                        className="text-indigo-600 hover:text-indigo-500 underline"
+                                                        className="text-primary hover:text-indigo-500 underline"
                                                     >
                                                         Privacy Policy
                                                     </a>
@@ -237,7 +237,7 @@ export default function SubmitForReviewPage() {
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isLoading ? (
                                                 <>

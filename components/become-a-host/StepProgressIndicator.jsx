@@ -42,7 +42,7 @@ const StepProgressIndicator = () => {
                         {steps.map((_, index) => (
                             <div
                                 key={index}
-                                className={`flex-1 rounded-full ${index <= currentIndex ? "bg-indigo-600" : "bg-gray-200"}`}
+                                className={`flex-1 rounded-full ${index <= currentIndex ? "bg-primary" : "bg-gray-200"}`}
                             />
                         ))}
                     </div>
@@ -57,10 +57,10 @@ const StepProgressIndicator = () => {
                         const StepIcon = () => {
                             const commonClasses = "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300";
                             if (status === 'completed') {
-                                return <div className={`${commonClasses} bg-indigo-600 text-white`}><Check size={20} /></div>;
+                                return <div className={`${commonClasses} bg-primary text-white`}><Check size={20} /></div>;
                             }
                             if (status === 'current') {
-                                return <div className={`${commonClasses} border-2 border-indigo-600 text-indigo-600 bg-white`}><step.icon size={20} /></div>;
+                                return <div className={`${commonClasses} border-2 border-primary text-primary bg-white`}><step.icon size={20} /></div>;
                             }
                             return <div className={`${commonClasses} bg-gray-200 text-gray-500`}><step.icon size={20} /></div>;
                         };
@@ -79,7 +79,7 @@ const StepProgressIndicator = () => {
                         return (
                             <React.Fragment key={step.id}>
                                 {isAccessible ? (
-                                    <Link href={step.path} aria-current={status === 'current' ? 'step' : undefined} className="focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg p-1">
+                                    <Link href={step.path} aria-current={status === 'current' ? 'step' : undefined} className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-lg p-1">
                                         {StepContent}
                                     </Link>
                                 ) : (
@@ -89,7 +89,7 @@ const StepProgressIndicator = () => {
                                 )}
                                 
                                 {index < steps.length - 1 && (
-                                    <div className={`flex-grow h-0.5 mx-4 transition-colors duration-300 ${status === 'completed' ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+                                    <div className={`flex-grow h-0.5 mx-4 transition-colors duration-300 ${status === 'completed' ? 'bg-primary' : 'bg-gray-200'}`} />
                                 )}
                             </React.Fragment>
                         );

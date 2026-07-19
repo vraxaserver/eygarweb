@@ -244,6 +244,7 @@ export default function HostDashboard() {
 
                 weekly_discount: parseFloat(formData.weekly_discount) || 0,
                 monthly_discount: parseFloat(formData.monthly_discount) || 0,
+                revenue_share: parseFloat(formData.revenue_share) || 0,
 
                 location: {
                     ...formData.location,
@@ -320,13 +321,11 @@ export default function HostDashboard() {
             });
         } catch (err) {
             console.error("Failed to create property:", err);
-            alert(
-                `Error: ${
-                    err?.data?.message ||
-                    err?.message ||
-                    "Failed to create property"
-                }`
-            );
+            console.error("Detailed server error:", JSON.stringify(err?.data || err));
+            const errMsg = err?.data?.detail 
+                ? (typeof err.data.detail === 'string' ? err.data.detail : JSON.stringify(err.data.detail))
+                : (err?.data?.message || err?.message || "Failed to create property");
+            alert(`Error: ${errMsg}`);
         } finally {
             setIsUploading(false);
             setUploadProgress(0);

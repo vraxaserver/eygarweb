@@ -16,6 +16,7 @@ export default function ActivatePage() {
 
     const user_id = searchParams?.get("user_id");
     const identifier_type = searchParams?.get("identifier_type") || "phone";
+    const email_or_phone = searchParams?.get("email_or_phone") || "";
 
     const [verifyRegistration, { isLoading }] = useVerifyRegistrationMutation();
 
@@ -89,7 +90,7 @@ export default function ActivatePage() {
         setApiError("");
 
         try {
-            await verifyRegistration({ user_id, code }).unwrap();
+            await verifyRegistration({ email_or_phone, code }).unwrap();
             setIsSuccess(true);
             // Clear pending verification state and redirect to login
             dispatch(setPendingVerification(null));

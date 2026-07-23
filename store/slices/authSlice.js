@@ -16,7 +16,7 @@ const initialState = {
     isLoading: true,
     error: null,
     // Holds temporary data between registration and OTP verification
-    pendingVerification: null, // { user_id, identifier_type }
+    pendingVerification: null, // { user_id, identifier_type, email_or_phone }
 };
 
 const authSlice = createSlice({
@@ -52,7 +52,7 @@ const authSlice = createSlice({
 
         // Called after a successful registration to store the pending verification data
         setPendingVerification: (state, action) => {
-            state.pendingVerification = action.payload; // { user_id, identifier_type }
+            state.pendingVerification = action.payload; // { user_id, identifier_type, email_or_phone }
         },
 
         logout: (state) => {

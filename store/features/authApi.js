@@ -126,10 +126,13 @@ export const authApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     // Response: { user_id, identifier_type, message }
+                    // Also persist email_or_phone from the original arg so the
+                    // activate page can send it to /auth/verify/
                     dispatch(
                         setPendingVerification({
                             user_id: data.user_id,
                             identifier_type: data.identifier_type,
+                            email_or_phone: arg.email_or_phone,
                         })
                     );
                 } catch (error) {
@@ -141,10 +144,10 @@ export const authApi = createApi({
 
         // Verify the OTP code received via SMS/Email after registration
         verifyRegistration: builder.mutation({
-            query: ({ user_id, code }) => ({
-                url: "/auth/verify-code/",
+            query: ({ email_or_phone, code }) => ({
+                url: "/auth/verify/",
                 method: "POST",
-                body: { user_id, code },
+                body: { email_or_phone, code },
             }),
         }),
         getProfile: builder.query({

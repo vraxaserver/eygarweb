@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Phone, Mail, Lock, User, AlertCircle, CheckCircle } from "lucide-react";
@@ -23,13 +23,15 @@ const SignupPage = () => {
     const [apiError, setApiError] = useState("");
 
     // If verification is pending (user registered but not yet verified),
-    // redirect immediately to the activation page.
-    if (pendingVerification?.user_id) {
-        router.replace(
-            `/activate?user_id=${pendingVerification.user_id}&identifier_type=${pendingVerification.identifier_type}`
-        );
-        return null;
-    }
+    // redirect to the activation page inside an effect to avoid calling
+    // router.replace() during render (which triggers React's setState-in-render warning).
+    useEffect(() => {
+        if (pendingVerification?.user_id) {
+            router.replace(
+                `/activate?user_id=${pendingVerification.user_id}&identifier_type=${pendingVerification.identifier_type}&email_or_phone=${encodeURIComponent(pendingVerification.email_or_phone || "")}`
+            );
+        }
+    }, [pendingVerification, router]);
 
     // Password validation rules
     const validatePassword = (password) => ({
@@ -83,7 +85,7 @@ const SignupPage = () => {
             // On success the signup mutation dispatches setPendingVerification.
             // Redirect to OTP activation page with the returned user_id.
             router.push(
-                `/activate?user_id=${result.user_id}&identifier_type=${result.identifier_type}`
+                `/activate?user_id=${result.user_id}&identifier_type=${result.identifier_type}&email_or_phone=${encodeURIComponent(formData.email_or_phone)}`
             );
         } catch (error) {
             console.log("Signup error:", error);

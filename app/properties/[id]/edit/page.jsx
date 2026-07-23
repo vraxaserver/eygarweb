@@ -13,6 +13,7 @@ import ConfirmStep from "./_components/ConfirmStep";
 import {
     useGetPropertyByIdQuery,
     useUpdatePropertyMutation,
+    useUploadImageMutation,
 } from "@/store/features/propertiesApi";
 
 export default function PropertyEditPage({ params }) {
@@ -50,6 +51,8 @@ export default function PropertyEditPage({ params }) {
             isSuccess: isUpdateSuccess,
         },
     ] = useUpdatePropertyMutation();
+    const [uploadImage] = useUploadImageMutation();
+    const [isUploading, setIsUploading] = useState(false);
 
     // 1. Initialize Data
     useEffect(() => {
@@ -99,22 +102,49 @@ export default function PropertyEditPage({ params }) {
 
     // --- Handlers ---
 
-    const handleAddImages = (e) => {
+    const handleAddImages = async (e) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            setNewImages((prev) => [...prev, ...files]);
+            if (!files.length) return;
+
+            setIsUploading(true);
+            setSubmitMessage("Uploading images...");
+
+            try {
+                const uploadedUrls = [];
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const uploadData = new FormData();
+                    uploadData.append("image", file);
+                    uploadData.append("display_order", existingImages.length + i);
+                    uploadData.append("is_cover", existingImages.length === 0 && i === 0);
+                    uploadData.append("alt_text", file.name || "");
+
+                    const response = await uploadImage(uploadData).unwrap();
+                    uploadedUrls.push({
+                        image_url: response.image_url,
+                        display_order: existingImages.length + i,
+                        is_cover: existingImages.length === 0 && i === 0,
+                        alt_text: file.name || "",
+                    });
+                }
+                setExistingImages((prev) => [...prev, ...uploadedUrls]);
+                setSubmitMessage("Images uploaded successfully!");
+            } catch (err) {
+                console.error("Failed to upload images:", err);
+                setSubmitMessage("Error uploading images. Please try again.");
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
     const handleRemoveNewImage = (indexToRemove) => {
-        setNewImages((prev) =>
-            prev.filter((_, index) => index !== indexToRemove)
-        );
+        // Since all new images are uploaded immediately and added to existingImages, this is a no-op
     };
 
     const handleRemoveExistingImage = (imageId) => {
-        setDeletedImageIds((prev) => [...prev, imageId]);
-        setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+        setExistingImages((prev) => prev.filter((img) => img.id !== imageId && img.image_url !== imageId));
     };
 
     // FIXED: Added preventDefault to stop auto-submission
@@ -154,51 +184,24 @@ export default function PropertyEditPage({ params }) {
         e.preventDefault(); // Final prevention of default submission
         setIsSubmitting(true);
         setSubmitMessage("");
-        console.log("=== formData ========");
-        console.log(formData);
 
         if (!hasPermission) return;
 
         try {
-            const payload = new FormData();
-
-            // Append Basic Fields (Safe Number Conversion)
-            payload.append("id", propertyId);
-            payload.append("property_type", formData.property_type || "");
-            payload.append("place_type", formData.place_type || "");
-            payload.append("currency", formData.currency || "");
-            payload.append("is_featured", formData.is_featured);
-
-            // FIXED: Handle empty numbers becoming NaN
-            payload.append(
-                "price_per_night",
-                formData.price_per_night
-                    ? parseFloat(formData.price_per_night)
-                    : 0
-            );
-            payload.append(
-                "bedrooms",
-                formData.bedrooms ? parseInt(formData.bedrooms, 10) : 0
-            );
-            payload.append(
-                "beds",
-                formData.beds ? parseInt(formData.beds, 10) : 0
-            );
-            payload.append(
-                "bathrooms",
-                formData.bathrooms ? parseFloat(formData.bathrooms) : 0
-            );
-            payload.append(
-                "max_guests",
-                formData.max_guests ? parseInt(formData.max_guests, 10) : 1
-            );
-
-            // Handle Location
-            // We stringify it because FormData can't handle nested objects natively easily
-            // Ensure your backend parses this, OR append individual fields if your backend prefers that.
-            payload.append(
-                "location",
-                JSON.stringify({
+            const payload = {
+                id: propertyId,
+                property_type: formData.property_type || "",
+                place_type: formData.place_type || "",
+                currency: formData.currency || "",
+                is_featured: formData.is_featured,
+                price_per_night: formData.price_per_night
+                    ? Math.round(parseFloat(formData.price_per_night) * 100)
+                    : 0,
+                bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : 0,
+                beds: formData.beds ? parseInt(formData.beds, 10) : 0,
+                bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms) : 0,
+                max_guests: formData.max_guests ? parseInt(formData.max_guests, 10) : 1,
+                location: {
                     address: formData.location.address || "",
                     city: formData.location.city || "",
                     state: formData.location.state || "",
@@ -211,22 +214,15 @@ export default function PropertyEditPage({ params }) {
                         ? parseFloat(formData.location.longitude)
                         : 0,
                     id: formData.location.id,
-                })
-            );
+                },
+                images: existingImages.map((img, idx) => ({
+                    image_url: img.image_url,
+                    display_order: img.display_order ?? idx,
+                    is_cover: img.is_cover ?? (idx === 0),
+                    alt_text: img.alt_text ?? ""
+                }))
+            };
 
-            // Handle Images
-            newImages.forEach((file) => {
-                payload.append("uploaded_images", file);
-            });
-
-            deletedImageIds.forEach((id) => {
-                payload.append("deleted_image_ids", id);
-            });
-
-            // FIXED: Manually attach ID to the FormData object instance
-            // so the Redux Query can find it for the URL construction.
-            payload.id = propertyId;
-            console.log("payload: ", payload);
             await updateProperty(payload).unwrap();
         } catch (err) {
             console.error("Failed to update property:", err);

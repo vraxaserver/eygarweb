@@ -60,6 +60,7 @@ const baseQueryWithAuth = fetchBaseQuery({
             "updateProperty",
             "deleteProperty",
             "getMyProperties",
+            "uploadImage",
         ]);
 
         if (protectedEndpoints.has(endpoint)) {
@@ -216,6 +217,14 @@ export const propertiesApi = createApi({
             ],
         }),
 
+        uploadImage: builder.mutation({
+            query: (formData) => ({
+                url: "/images/upload",
+                method: "POST",
+                body: formData,
+            }),
+        }),
+
         updateProperty: builder.mutation({
             query: ({ id, ...patch }) => ({
                 url: `/properties/${id}`,
@@ -254,6 +263,7 @@ export const {
     useGetPropertyByIdQuery,
     useGetMyPropertiesQuery,
     useCreatePropertyMutation,
+    useUploadImageMutation,
     useUpdatePropertyMutation,
     useDeletePropertyMutation,
 } = propertiesApi;

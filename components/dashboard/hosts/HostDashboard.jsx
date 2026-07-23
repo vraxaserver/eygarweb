@@ -31,7 +31,7 @@ import {
 
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
-import { useCreatePropertyMutation } from "@/store/features/propertiesApi";
+import { useCreatePropertyMutation, useUploadImageMutation, useUpdatePropertyMutation } from "@/store/features/propertiesApi";
 import { BookingDetail } from "../guests/BookingDetails";
 
 // --- Lazy Load Components ---
@@ -49,14 +49,20 @@ const LoadingFallback = () => (
 export default function HostDashboard() {
     const user = useSelector(selectCurrentUser);
     const [createProperty] = useCreatePropertyMutation();
+    const [uploadImage] = useUploadImageMutation();
+    const [updateProperty] = useUpdatePropertyMutation();
 
     const [selectedBooking, setSelectedBooking] = useState(null);
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState(""); // e.g. "Creating property...", "Uploading images (2/5)..."
+
+    // pendingImageFiles holds { file: File, previewUrl: string, is_cover: bool, alt_text: string, display_order: number }
+    // These are NOT uploaded yet — upload happens at submit time once we have a property_id
+    const [pendingImageFiles, setPendingImageFiles] = useState([]);
 
     const handleOwnerAgentChange = (e) => {
         const role = e.target.value; // "owner" | "agent"
@@ -171,19 +177,35 @@ export default function HostDashboard() {
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
+        if (!files.length) return;
 
-        const newImages = files.map((file, index) => ({
+        // Store files locally for preview — actual upload deferred to handleSubmit
+        const newPending = files.map((file, i) => ({
             file,
-            image_url: URL.createObjectURL(file),
-            display_order: formData.images.length + index,
-            is_cover: formData.images.length === 0 && index === 0,
-            alt_text: file.name,
+            previewUrl: URL.createObjectURL(file),
+            display_order: pendingImageFiles.length + i,
+            is_cover: pendingImageFiles.length === 0 && i === 0,
+            alt_text: file.name || "",
         }));
 
-        setFormData((prev) => ({
-            ...prev,
-            images: [...prev.images, ...newImages],
-        }));
+        setPendingImageFiles((prev) => [...prev, ...newPending]);
+
+        // Reset the input so the same files can be re-selected if removed
+        e.target.value = "";
+    };
+
+    const removePendingImage = (index) => {
+        setPendingImageFiles((prev) => {
+            // Revoke preview URL to avoid memory leaks
+            URL.revokeObjectURL(prev[index].previewUrl);
+            const updated = prev.filter((_, i) => i !== index);
+            // Re-assign display_order and is_cover
+            return updated.map((img, i) => ({
+                ...img,
+                display_order: i,
+                is_cover: i === 0,
+            }));
+        });
     };
 
     const addHouseRule = () => {
@@ -217,11 +239,60 @@ export default function HostDashboard() {
         if (currentStep > 1) setCurrentStep((s) => s - 1);
     };
 
+    const INITIAL_FORM_DATA = {
+        title: "",
+        description: "",
+        property_type: "house",
+        place_type: "entire_place",
+        is_owner: true,
+        is_agent: false,
+        revenue_share_type: "percentage",
+        revenue_share: 0,
+        bedrooms: 1,
+        beds: 1,
+        bathrooms: 1,
+        max_guests: 2,
+        max_adults: 2,
+        max_children: 0,
+        max_infants: 0,
+        pets_allowed: false,
+        price_per_night: "",
+        currency: "USD",
+        cleaning_fee: "",
+        service_fee: 0,
+        weekly_discount: 0,
+        monthly_discount: 0,
+        instant_book: false,
+        location: {
+            address: "",
+            city: "",
+            state: "",
+            country: "",
+            postal_code: "",
+            latitude: "",
+            longitude: "",
+        },
+        amenity_ids: [],
+        house_rules: [""],
+        cancellation_policy: "",
+        check_in_policy: "",
+    };
+
+    const resetForm = () => {
+        // Revoke all pending preview URLs to avoid memory leaks
+        pendingImageFiles.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+        setPendingImageFiles([]);
+        setFormData(INITIAL_FORM_DATA);
+        setCurrentStep(1);
+        setSubmitStatus("");
+    };
+
     const handleSubmit = async () => {
         try {
-            setIsUploading(true);
-            setUploadProgress(0);
+            setIsSubmitting(true);
+            setSubmitStatus("Creating property...");
 
+            // Step 1: Build the property payload (no images yet)
             const propertyMeta = {
                 ...formData,
                 bedrooms: parseInt(formData.bedrooms, 10),
@@ -231,104 +302,66 @@ export default function HostDashboard() {
                 max_adults: parseInt(formData.max_adults, 10),
                 max_children: parseInt(formData.max_children, 10),
                 max_infants: parseInt(formData.max_infants, 10),
-
-                price_per_night: Math.round(
-                    parseFloat(formData.price_per_night || 0) * 100
-                ),
-                cleaning_fee: formData.cleaning_fee
-                    ? Math.round(parseFloat(formData.cleaning_fee) * 100)
-                    : 0,
-                service_fee: formData.service_fee
-                    ? Math.round(parseFloat(formData.service_fee) * 100)
-                    : 0,
-
+                price_per_night: Math.round(parseFloat(formData.price_per_night || 0) * 100),
+                cleaning_fee: formData.cleaning_fee ? Math.round(parseFloat(formData.cleaning_fee) * 100) : 0,
+                service_fee: formData.service_fee ? Math.round(parseFloat(formData.service_fee) * 100) : 0,
                 weekly_discount: parseFloat(formData.weekly_discount) || 0,
                 monthly_discount: parseFloat(formData.monthly_discount) || 0,
                 revenue_share: parseFloat(formData.revenue_share) || 0,
-
                 location: {
                     ...formData.location,
-                    latitude: formData.location.latitude
-                        ? parseFloat(formData.location.latitude)
-                        : 0,
-                    longitude: formData.location.longitude
-                        ? parseFloat(formData.location.longitude)
-                        : 0,
+                    latitude: formData.location.latitude ? parseFloat(formData.location.latitude) : 0,
+                    longitude: formData.location.longitude ? parseFloat(formData.location.longitude) : 0,
                 },
-
-                house_rules: formData.house_rules.filter(
-                    (r) => r.trim() !== ""
-                ),
-
-                images: formData.images.map((img) => ({
-                    display_order: img.display_order,
-                    is_cover: img.is_cover,
-                    alt_text: img.alt_text,
-                    image_url: "",
-                })),
+                house_rules: formData.house_rules.filter((r) => r.trim() !== ""),
+                images: [], // Images uploaded separately after property creation
             };
 
-            const propertyData = new FormData();
-            propertyData.append("property_data", JSON.stringify(propertyMeta));
+            // Step 2: Create the property — get back the new property_id
+            const createdProperty = await createProperty(propertyMeta).unwrap();
+            const propertyId = createdProperty.id;
 
-            formData.images.forEach((img) => {
-                if (img.file) propertyData.append("image_files", img.file);
-            });
+            // Step 3: Upload each pending image to S3 with property_id
+            const uploadedImages = [];
+            if (pendingImageFiles.length > 0) {
+                for (let i = 0; i < pendingImageFiles.length; i++) {
+                    const pending = pendingImageFiles[i];
+                    setSubmitStatus(`Uploading images (${i + 1}/${pendingImageFiles.length})...`);
 
-            await createProperty(propertyData).unwrap();
+                    const uploadData = new FormData();
+                    uploadData.append("image", pending.file);
+                    uploadData.append("display_order", pending.display_order);
+                    uploadData.append("is_cover", pending.is_cover);
+                    uploadData.append("alt_text", pending.alt_text || pending.file.name || "");
+                    uploadData.append("property_id", propertyId); // Tells backend to store under properties/{id}/
+
+                    const uploadResponse = await uploadImage(uploadData).unwrap();
+                    uploadedImages.push({
+                        image_url: uploadResponse.image_url,
+                        display_order: uploadResponse.display_order,
+                        is_cover: uploadResponse.is_cover,
+                        alt_text: uploadResponse.alt_text || "",
+                    });
+                }
+
+                // Step 4: Patch the property with the uploaded image URLs
+                setSubmitStatus("Saving images to property...");
+                await updateProperty({ id: propertyId, images: uploadedImages }).unwrap();
+            }
 
             alert("Property created successfully!");
             setShowAddModal(false);
-            setCurrentStep(1);
-            setFormData({
-                title: "",
-                description: "",
-                property_type: "house",
-                place_type: "entire_place",
-                is_owner: true,
-                is_agent: false,
-                revenue_share_type: "percentage", // "percentage" | "fixed"
-                revenue_share: 0,
-                bedrooms: 1,
-                beds: 1,
-                bathrooms: 1,
-                max_guests: 2,
-                max_adults: 2,
-                max_children: 0,
-                max_infants: 0,
-                pets_allowed: false,
-                price_per_night: "",
-                currency: "USD",
-                cleaning_fee: "",
-                service_fee: 0,
-                weekly_discount: 0,
-                monthly_discount: 0,
-                instant_book: false,
-                location: {
-                    address: "",
-                    city: "",
-                    state: "",
-                    country: "",
-                    postal_code: "",
-                    latitude: "",
-                    longitude: "",
-                },
-                images: [],
-                amenity_ids: [],
-                house_rules: [""],
-                cancellation_policy: "",
-                check_in_policy: "",
-            });
+            resetForm();
         } catch (err) {
             console.error("Failed to create property:", err);
             console.error("Detailed server error:", JSON.stringify(err?.data || err));
-            const errMsg = err?.data?.detail 
+            const errMsg = err?.data?.detail
                 ? (typeof err.data.detail === 'string' ? err.data.detail : JSON.stringify(err.data.detail))
                 : (err?.data?.message || err?.message || "Failed to create property");
             alert(`Error: ${errMsg}`);
         } finally {
-            setIsUploading(false);
-            setUploadProgress(0);
+            setIsSubmitting(false);
+            setSubmitStatus("");
         }
     };
 
@@ -842,7 +875,7 @@ export default function HostDashboard() {
                             <Upload className="mx-auto h-12 w-12 text-gray-400" />
                             <label className="cursor-pointer mt-4 block">
                                 <span className="text-rose-600 font-medium hover:text-rose-700">
-                                    Click to upload images
+                                    Click to select images
                                 </span>
                                 <input
                                     type="file"
@@ -853,46 +886,58 @@ export default function HostDashboard() {
                                 />
                             </label>
                             <p className="text-sm text-gray-500 mt-2">
-                                Minimum 5 images required
+                                Minimum 5 images recommended. Images will be uploaded when you create the listing.
                             </p>
                         </div>
 
-                        {formData.images.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto">
-                                {formData.images.map((img, index) => (
-                                    <div
-                                        key={index}
-                                        className="relative group aspect-square"
+                        {pendingImageFiles.length > 0 && (
+                            <>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {pendingImageFiles.length} image{pendingImageFiles.length !== 1 ? "s" : ""} selected
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            pendingImageFiles.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+                                            setPendingImageFiles([]);
+                                        }}
+                                        className="text-xs text-red-500 hover:text-red-700"
                                     >
-                                        <img
-                                            src={img.image_url}
-                                            alt={img.alt_text}
-                                            className="w-full h-full object-cover rounded-lg"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                                            <button
-                                                onClick={() =>
-                                                    setFormData((prev) => ({
-                                                        ...prev,
-                                                        images: prev.images.filter(
-                                                            (_, i) =>
-                                                                i !== index
-                                                        ),
-                                                    }))
-                                                }
-                                                className="bg-white text-red-600 rounded-full p-2 hover:bg-red-50"
-                                            >
-                                                <X className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                        {index === 0 && (
-                                            <span className="absolute top-2 left-2 bg-rose-600 text-white text-xs px-2 py-1 rounded">
-                                                Cover
+                                        Remove all
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto">
+                                    {pendingImageFiles.map((img, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative group aspect-square"
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={img.previewUrl}
+                                                alt={img.alt_text}
+                                                className="w-full h-full object-cover rounded-lg"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                                <button
+                                                    onClick={() => removePendingImage(index)}
+                                                    className="bg-white text-red-600 rounded-full p-2 hover:bg-red-50"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            {index === 0 && (
+                                                <span className="absolute top-2 left-2 bg-rose-600 text-white text-xs px-2 py-1 rounded">
+                                                    Cover
+                                                </span>
+                                            )}
+                                            <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded truncate max-w-[80%]">
+                                                {img.file.name}
                                             </span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 );
@@ -1181,11 +1226,11 @@ export default function HostDashboard() {
                                 ) : (
                                     <Button
                                         onClick={handleSubmit}
-                                        disabled={isUploading}
-                                        className="bg-green-600 hover:bg-green-700"
+                                        disabled={isSubmitting}
+                                        className="bg-green-600 hover:bg-green-700 min-w-[160px]"
                                     >
-                                        {isUploading ? (
-                                            `Uploading... ${uploadProgress}%`
+                                        {isSubmitting ? (
+                                            <span className="truncate text-sm">{submitStatus || "Submitting..."}</span>
                                         ) : (
                                             <>
                                                 <Check className="w-5 h-5 mr-2" />

@@ -249,6 +249,10 @@ export const propertiesApi = createApi({
                 { type: "Property", id: "MY_PROPERTIES_LIST" },
             ],
         }),
+
+        getExperiencesByProperty: builder.query({
+            query: (propertyId) => `/experiences/property/${propertyId}/experiences`,
+        }),
     }),
 });
 
@@ -266,4 +270,5 @@ export const {
     useUploadImageMutation,
     useUpdatePropertyMutation,
     useDeletePropertyMutation,
+    useGetExperiencesByPropertyQuery,
 } = propertiesApi;

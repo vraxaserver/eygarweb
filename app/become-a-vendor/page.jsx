@@ -58,10 +58,7 @@ const Page = () => {
         
         if (data?.status === "approved") {
             router.push("/dashboard");
-            return;
-        }
-
-        if (data?.current_step) {
+        } else if (data?.current_step) {
             switch (data.current_step) {
                 case "company_details":
                     router.push("/become-a-vendor/company-details");
@@ -84,10 +81,8 @@ const Page = () => {
                     router.push(`/become-a-vendor/${data.current_step}`);
                     break;
             }
-            return null; // Stop execution after redirection
         }
-
-    }, [data?.status, role, dispatch, router]);
+    }, [data?.status, data?.current_step, role, dispatch, router]);
 
   // If the query is still running, do nothing yet.
     if (isLoading || isFetching) {

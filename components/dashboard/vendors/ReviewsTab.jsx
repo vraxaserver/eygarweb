@@ -167,7 +167,7 @@ export const ReviewsTab = () => {
 
                 <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-amber-500 rounded-lg flex items-center justify-center">
                             <MessageCircle className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -183,7 +183,7 @@ export const ReviewsTab = () => {
 
                 <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-orange-400 rounded-lg flex items-center justify-center">
                             <User className="w-6 h-6 text-white" />
                         </div>
                         <div>

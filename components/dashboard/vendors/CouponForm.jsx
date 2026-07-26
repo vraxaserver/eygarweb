@@ -10,12 +10,16 @@ export const CouponForm = ({
     coupon,
     services,
     onSubmit,
+    isLoading,
 }) => {
+    // When editing, the API returns a nested `service` object; extract its id
+    const editServiceId = coupon?.serviceId ?? coupon?.service?.id ?? "";
+
     const [formData, setFormData] = useState({
-        serviceId: coupon?.serviceId || "",
+        serviceId: editServiceId,
         title: coupon?.title || "",
         code: coupon?.code || "",
-        discountType: coupon?.discountType || "percentage", // 'percentage' or 'flat'
+        discountType: coupon?.discountType || "percentage",
         discountValue: coupon?.discountValue || 10,
         validFrom: coupon?.validFrom
             ? new Date(coupon.validFrom).toISOString().slice(0, 16)
@@ -33,13 +37,14 @@ export const CouponForm = ({
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // Let the parent handle closing — it only closes on success
         onSubmit({
             ...formData,
             validFrom: new Date(formData.validFrom).toISOString(),
             validTo: new Date(formData.validTo).toISOString(),
         });
-        onClose();
     };
+
 
     const generateCouponCode = () => {
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -80,7 +85,7 @@ export const CouponForm = ({
                                 }
                                 placeholder="e.g., Summer Sale"
                                 required
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -100,7 +105,7 @@ export const CouponForm = ({
                                     }))
                                 }
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             >
                                 <option value="">Select a service</option>
                                 {services
@@ -132,7 +137,7 @@ export const CouponForm = ({
                                         }
                                         placeholder="e.g., SAVE20"
                                         required
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent font-mono"
                                     />
                                 </div>
                                 <Button
@@ -160,7 +165,7 @@ export const CouponForm = ({
                                         discountType: e.target.value,
                                     }))
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             >
                                 <option value="percentage">Percentage</option>
                                 <option value="flat">Flat Amount</option>
@@ -183,7 +188,7 @@ export const CouponForm = ({
                                             discountValue: Number(e.target.value),
                                         }))
                                     }
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -205,7 +210,7 @@ export const CouponForm = ({
                                     }))
                                 }
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             />
                         </div>
                         <div>
@@ -222,7 +227,7 @@ export const CouponForm = ({
                                     }))
                                 }
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -245,7 +250,7 @@ export const CouponForm = ({
                                             usageLimit: Number(e.target.value),
                                         }))
                                     }
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -265,7 +270,7 @@ export const CouponForm = ({
                                         }))
                                     }
                                     placeholder="e.g., First-time users"
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -288,7 +293,7 @@ export const CouponForm = ({
                                 }
                                 rows="3"
                                 placeholder="Describe the terms of the coupon..."
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             ></textarea>
                         </div>
                     </div>
@@ -305,7 +310,7 @@ export const CouponForm = ({
                                     isActive: e.target.checked,
                                 }))
                             }
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-gray-300 text-rose-600 focus:ring-rose-500"
                         />
                         <label
                             htmlFor="couponActive"
@@ -327,9 +332,14 @@ export const CouponForm = ({
                         </Button>
                         <Button
                             type="submit"
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
+                            disabled={isLoading}
+                            className="flex-1 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60"
                         >
-                            {coupon ? "Update Coupon" : "Create Coupon"}
+                            {isLoading
+                                ? "Saving…"
+                                : coupon
+                                ? "Update Coupon"
+                                : "Create Coupon"}
                         </Button>
                     </div>
                 </form>

@@ -40,7 +40,10 @@ export const vendorServiceApi = createApi({
                 body: newService,
             }),
             // Invalidates the 'Service' list tag to trigger a refetch
-            invalidatesTags: [{ type: "Service", id: "LIST" }],
+            invalidatesTags: [
+                { type: "Service", id: "LIST" },
+                { type: "Service", id: "MY_LIST" },
+            ],
         }),
 
         // Endpoint for listing the logged-in user's vendor services
@@ -55,6 +58,44 @@ export const vendorServiceApi = createApi({
                       ]
                     : [{ type: "Service", id: "MY_LIST" }],
         }),
+
+        // Endpoint for editing an existing vendor service
+        editService: builder.mutation({
+            query: ({ id, ...updatedService }) => ({
+                url: `/vendors/services/${id}`,
+                method: "PUT",
+                body: updatedService,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: "Service", id },
+                { type: "Service", id: "LIST" },
+                { type: "Service", id: "MY_LIST" },
+            ],
+        }),
+
+        // Endpoint for deleting a vendor service
+        deleteService: builder.mutation({
+            query: (id) => ({
+                url: `/vendors/services/${id}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: "Service", id },
+                { type: "Service", id: "LIST" },
+                { type: "Service", id: "MY_LIST" },
+            ],
+        }),
+        // Endpoint for uploading a vendor service image to S3
+        // Caller should set subfolder = vendors/{vendor-id}/services/{service-id}
+        uploadVendorServiceImage: builder.mutation({
+            query: (formData) => ({
+                url: "/images/upload",
+                method: "POST",
+                body: formData,
+                // Don't set Content-Type — browser sets it with boundary for multipart/form-data
+                formData: true,
+            }),
+        }),
     }),
 });
 
@@ -64,4 +105,7 @@ export const {
     useGetServicesQuery,
     useAddServiceMutation,
     useGetMyServicesQuery,
+    useEditServiceMutation,
+    useDeleteServiceMutation,
+    useUploadVendorServiceImageMutation,
 } = vendorServiceApi;

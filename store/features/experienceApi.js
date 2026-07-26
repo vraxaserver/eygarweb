@@ -118,6 +118,18 @@ export const experiencesApi = createApi({
         getPropertiesByExperience: builder.query({
             query: (experienceId) => `/experiences/${experienceId}/properties`,
         }),
+
+        // GET all experiences for a specific property
+        getExperiencesByProperty: builder.query({
+            query: (propertyId) => `/experiences/property/${propertyId}/experiences`,
+            providesTags: (result, error, propertyId) =>
+                result
+                    ? [
+                          ...result.map(({ id }) => ({ type: "Experience", id })),
+                          { type: "Experience", id: `PROPERTY_${propertyId}` },
+                      ]
+                    : [{ type: "Experience", id: `PROPERTY_${propertyId}` }],
+        }),
     }),
 });
 
@@ -128,6 +140,7 @@ export const {
     useGetExperienceQuery,
     useGetMyExperiencesQuery,
     useGetPropertiesByExperienceQuery,
+    useGetExperiencesByPropertyQuery,
     useAddExperienceMutation,
     useUpdateExperienceMutation,
     useDeleteExperienceMutation,

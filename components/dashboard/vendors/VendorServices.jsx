@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ServiceForm } from "./ServiceForm";
@@ -9,11 +9,13 @@ import Image from "next/image";
 import {
     useAddServiceMutation,
     useGetMyServicesQuery,
+    useEditServiceMutation,
+    useDeleteServiceMutation,
+    useUploadVendorServiceImageMutation,
 } from "@/store/features/vendorServiceApi";
 import { toast } from "sonner";
 
 export const ServicesTab = ({ activeUser }) => {
-    const [editServices, setEditServices] = useState([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingService, setEditingService] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +23,9 @@ export const ServicesTab = ({ activeUser }) => {
 
     const { data: services, isLoading, error } = useGetMyServicesQuery();
     const [addService, { isLoading: isLoadingAddService }] = useAddServiceMutation();
+    const [editService, { isLoading: isLoadingEditService }] = useEditServiceMutation();
+    const [deleteService, { isLoading: isLoadingDeleteService }] = useDeleteServiceMutation();
+    const [uploadVendorServiceImage] = useUploadVendorServiceImageMutation();
 
     if (isLoading) {
         return <h1>Loading...</h1>;
@@ -28,7 +33,7 @@ export const ServicesTab = ({ activeUser }) => {
 
     console.log("services: ", services);
 
-    const filteredServices = services.filter((service) => {
+    const filteredServices = services?.filter((service) => {
         const matchesSearch = service.title
             .toLowerCase()
             .includes(searchTerm.toLowerCase());
@@ -37,7 +42,7 @@ export const ServicesTab = ({ activeUser }) => {
             (statusFilter === "active" && service.isActive) ||
             (statusFilter === "inactive" && !service.isActive);
         return matchesSearch && matchesStatus;
-    });
+    }) || [];
 
     const handleCreateService = () => {
         setEditingService(null);
@@ -49,39 +54,97 @@ export const ServicesTab = ({ activeUser }) => {
         setIsFormOpen(true);
     };
 
-    const handleDeleteService = (serviceId) => {
-        setEditServices((prev) => prev.filter((s) => s.id !== serviceId));
+    const handleDeleteService = async (serviceId) => {
+        if (window.confirm("Are you sure you want to delete this service?")) {
+            try {
+                await deleteService(serviceId).unwrap();
+                toast.success("Service deleted successfully!");
+            } catch (err) {
+                toast.error(err?.data?.detail || err?.data?.message || "Failed to delete service");
+            }
+        }
     };
 
-    const handleSubmitService = async (data) => {
+    /**
+     * Upload imageFile to S3 at vendors/{vendorId}/services/{serviceId}/
+     * and return the resulting public URL, or null on failure.
+     */
+    const uploadServiceImage = async (imageFile, vendorId, serviceId) => {
+        if (!imageFile) return null;
+        const uploadData = new FormData();
+        uploadData.append("image", imageFile);
+        uploadData.append("subfolder", `vendors/${vendorId}/services/${serviceId}`);
+        uploadData.append("display_order", 0);
+        uploadData.append("is_cover", true);
+        uploadData.append("alt_text", imageFile.name || "");
+        const uploadResponse = await uploadVendorServiceImage(uploadData).unwrap();
+        return uploadResponse.image_url;
+    };
+
+    const handleSubmitService = async (data, imageFile) => {
+        const vendorId = activeUser?.eygar_vendor?.id || activeUser?.id;
+
         if (editingService) {
             // Update existing service
-            setEditServices((prev) =>
-                prev.map((s) =>
-                    s.id === editingService.id ? { ...s, ...data } : s
-                )
-            );
+            try {
+                let updatedData = { ...data };
+
+                // Upload new image if the vendor selected one
+                if (imageFile) {
+                    toast.info("Uploading image...");
+                    const imageUrl = await uploadServiceImage(
+                        imageFile,
+                        vendorId,
+                        editingService.id
+                    );
+                    if (imageUrl) updatedData.image = imageUrl;
+                }
+
+                await editService({ id: editingService.id, ...updatedData }).unwrap();
+                toast.success("Service updated successfully!");
+                setIsFormOpen(false);
+            } catch (err) {
+                toast.error(
+                    err?.data?.detail || err?.data?.message || "Failed to update service"
+                );
+            }
         } else {
-            // Create new service
+            // Create new service (image field will be set after upload)
             const newService = {
-                id: `service-${Date.now()}`,
-                vendorId: activeUser.eygar_vendor?.id,
-                vendorName: activeUser.first_name,
+                vendorId,
+                vendorName: activeUser?.first_name,
                 rating: 0,
                 reviewCount: 0,
                 createdAt: new Date().toISOString(),
                 ...data,
+                image: data.image || "", // placeholder; replaced after upload
             };
             try {
-                await addService(newService).unwrap();
-                toast.success("Service added successfully!");
-                
-                // reset(); // Reset the form fields after successful submission
-            } catch (error) {
-                toast.error(error?.data?.message || "An error occurred");
+                // Step 1: Create the service to get an ID
+                const created = await addService(newService).unwrap();
+
+                // Step 2: Upload image to S3 using the new service ID
+                if (imageFile && created?.id) {
+                    toast.info("Uploading image...");
+                    const imageUrl = await uploadServiceImage(
+                        imageFile,
+                        vendorId,
+                        created.id
+                    );
+
+                    // Step 3: Patch the service with the S3 URL
+                    if (imageUrl) {
+                        await editService({ id: created.id, image: imageUrl }).unwrap();
+                    }
+                }
+
+                toast.success("Service created successfully!");
+                setIsFormOpen(false);
+            } catch (err) {
+                toast.error(
+                    err?.data?.detail || err?.data?.message || "An error occurred"
+                );
             }
-            
-            setIsFormOpen(false);
         }
     };
 
@@ -100,7 +163,7 @@ export const ServicesTab = ({ activeUser }) => {
                     </div>
                     <Button
                         onClick={handleCreateService}
-                        className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
+                        className="bg-rose-600 hover:bg-rose-700 text-white"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Service
@@ -116,7 +179,7 @@ export const ServicesTab = ({ activeUser }) => {
                             placeholder="Search services..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                         />
                     </div>
                     <div className="flex space-x-2">
@@ -145,14 +208,21 @@ export const ServicesTab = ({ activeUser }) => {
                             key={service.id}
                             className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
                         >
-                            <div className="relative h-48">
-                                <Image
-                                    src={service.image}
-                                    alt={service.title}
-                                    fill
-                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                                    className="w-full h-full object-cover"
-                                />
+                            <div className="relative h-48 bg-gray-100">
+                                {service.image ? (
+                                    <Image
+                                        src={service.image}
+                                        alt={service.title}
+                                        fill
+                                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-gray-100 to-gray-200">
+                                        <ImageIcon className="w-10 h-10 text-gray-300" />
+                                        <span className="text-xs text-gray-400 font-medium">No image</span>
+                                    </div>
+                                )}
                                 <div className="absolute top-3 left-3">
                                     <Badge
                                         variant={
@@ -247,6 +317,7 @@ export const ServicesTab = ({ activeUser }) => {
 
             {/* Service Form Modal */}
             <ServiceForm
+                key={editingService ? editingService.id : "new"}
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 service={editingService}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { X, Upload, Plus, Trash2 } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, Upload, ImageIcon, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PlacesAutocomplete } from "@/components/PlacesAutocomplete"; // Adjust the import path as needed
+import { PlacesAutocomplete } from "@/components/PlacesAutocomplete";
+import Image from "next/image";
 
 const categories = [
     "Food",
@@ -25,21 +26,27 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
         allowedGuests: service?.allowedGuests || 1,
         price: service?.price || 0,
         serviceArea: {
-            name: service?.serviceArea.name || "New York, NY, USA",
-            lat: service?.serviceArea.lat || 40.7128,
-            lng: service?.serviceArea.lng || -74.0060,
-            radius: service?.serviceArea.radius || 5,
+            name: service?.serviceArea?.name || "New York, NY, USA",
+            lat: service?.serviceArea?.lat || 40.7128,
+            lng: service?.serviceArea?.lng || -74.006,
+            radius: service?.serviceArea?.radius || 5,
         },
         image: service?.image || "",
         isActive: service?.isActive ?? true,
     });
 
+    // Image upload state
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(service?.image || null);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const fileInputRef = useRef(null);
+
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData);
-        onClose();
+        // Pass imageFile alongside formData so VendorServices can upload it
+        onSubmit(formData, imageFile);
     };
 
     const handlePlaceSelect = (place) => {
@@ -52,6 +59,55 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                 lng: place.lng,
             },
         }));
+    };
+
+    // ── Image handling ──────────────────────────────────────
+    const processFile = (file) => {
+        if (!file) return;
+        const accepted = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/avif"];
+        if (!accepted.includes(file.type)) {
+            alert("Please select a valid image file (JPG, PNG, WebP, GIF, AVIF).");
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Image size must be less than 10 MB.");
+            return;
+        }
+        setImageFile(file);
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+        // Clear the stored URL since a new file will be uploaded
+        setFormData((prev) => ({ ...prev, image: "" }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        processFile(file);
+        // Reset input so same file can be re-selected if cleared
+        e.target.value = "";
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        processFile(file);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    const handleDragLeave = () => setIsDragOver(false);
+
+    const clearImage = () => {
+        if (imagePreview && imagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(imagePreview);
+        }
+        setImageFile(null);
+        setImagePreview(null);
+        setFormData((prev) => ({ ...prev, image: "" }));
     };
 
     return (
@@ -87,7 +143,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                     }
                                     placeholder="e.g., Italian Cooking Class"
                                     required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
 
@@ -103,7 +159,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                             category: e.target.value,
                                         }))
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 >
                                     {categories.map((cat) => (
                                         <option key={cat} value={cat}>
@@ -126,12 +182,10 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                         onChange={(e) =>
                                             setFormData((prev) => ({
                                                 ...prev,
-                                                duration: Number(
-                                                    e.target.value
-                                                ),
+                                                duration: Number(e.target.value),
                                             }))
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                     />
                                 </div>
 
@@ -147,12 +201,10 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                         onChange={(e) =>
                                             setFormData((prev) => ({
                                                 ...prev,
-                                                allowedGuests: Number(
-                                                    e.target.value
-                                                ),
+                                                allowedGuests: Number(e.target.value),
                                             }))
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                     />
                                 </div>
                             </div>
@@ -172,7 +224,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                             price: Number(e.target.value),
                                         }))
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -184,7 +236,9 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                     Service Area
                                 </label>
                                 <PlacesAutocomplete onPlaceSelect={handlePlaceSelect} />
-                                <p className="text-xs text-gray-500 mt-1">Selected: {formData.serviceArea.name}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Selected: {formData.serviceArea.name}
+                                </p>
                             </div>
 
                             <div>
@@ -205,7 +259,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                             },
                                         }))
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                 />
                             </div>
 
@@ -220,7 +274,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                                             isActive: e.target.checked,
                                         }))
                                     }
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-rose-500"
                                 />
                                 <label
                                     htmlFor="isActive"
@@ -248,26 +302,102 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                             placeholder="Describe your service in detail..."
                             rows={4}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
                         />
                     </div>
 
-                    {/* Image */}
+                    {/* Image Upload */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Service Image (URL)
+                            Service Image
                         </label>
+
+                        {imagePreview ? (
+                            /* Preview */
+                            <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 group">
+                                <div className="relative w-full h-52">
+                                    <Image
+                                        src={imagePreview}
+                                        alt="Service image preview"
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                        className="object-cover"
+                                        unoptimized={imagePreview.startsWith("blob:")}
+                                    />
+                                    {/* Overlay on hover */}
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex items-center gap-1.5 bg-white text-gray-800 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-100 transition"
+                                        >
+                                            <Upload className="w-4 h-4" />
+                                            Change
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={clearImage}
+                                            className="flex items-center gap-1.5 bg-red-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Status badge */}
+                                {imageFile && (
+                                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-emerald-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        Ready to upload
+                                    </div>
+                                )}
+                                <p className="px-3 py-2 text-xs text-gray-500 truncate">
+                                    {imageFile ? imageFile.name : "Current image"}
+                                </p>
+                            </div>
+                        ) : (
+                            /* Drop zone */
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                onDrop={handleDrop}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                className={`relative flex flex-col items-center justify-center gap-3 w-full h-44 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+                                    isDragOver
+                                        ? "border-rose-500 bg-rose-50 scale-[1.01]"
+                                        : "border-gray-300 bg-gray-50 hover:border-rose-400 hover:bg-rose-50/50"
+                                }`}
+                            >
+                                <div className="p-3 bg-white rounded-full shadow-sm border border-gray-200">
+                                    <ImageIcon
+                                        className={`w-7 h-7 transition-colors ${
+                                            isDragOver ? "text-rose-500" : "text-gray-400"
+                                        }`}
+                                    />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {isDragOver
+                                            ? "Drop your image here"
+                                            : "Click to upload or drag & drop"}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                        JPG, PNG, WebP, GIF, AVIF — max 10 MB
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-rose-600 text-white text-xs font-medium px-4 py-1.5 rounded-full hover:bg-rose-700 transition">
+                                    <Upload className="w-3.5 h-3.5" />
+                                    Browse files
+                                </div>
+                            </div>
+                        )}
+
                         <input
-                            type="url"
-                            value={formData.image}
-                            onChange={(e) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    image: e.target.value,
-                                }))
-                            }
-                            placeholder="https://example.com/image.jpg"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/avif"
+                            onChange={handleFileChange}
+                            className="hidden"
                         />
                     </div>
 
@@ -283,7 +413,7 @@ export const ServiceForm = ({ isOpen, onClose, service, onSubmit }) => {
                         </Button>
                         <Button
                             type="submit"
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
+                            className="flex-1 bg-rose-600 hover:bg-rose-700 text-white"
                         >
                             {service ? "Update Service" : "Create Service"}
                         </Button>

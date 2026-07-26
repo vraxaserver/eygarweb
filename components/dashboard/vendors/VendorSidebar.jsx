@@ -31,7 +31,7 @@ export const VendorSidebar = ({ activeTab, onTabChange, isMobileOpen, setIsMobil
                             variant={activeTab === item.id ? "default" : "ghost"}
                             className={cn(
                                 "w-full justify-start space-x-3 h-12 text-base",
-                                activeTab === item.id && "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                activeTab === item.id && "bg-rose-600 hover:bg-rose-700 text-white"
                             )}
                             onClick={() => {
                                 onTabChange(item.id);

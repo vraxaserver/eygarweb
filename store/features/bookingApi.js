@@ -10,7 +10,7 @@ export const bookingApi = createApi({
     baseQuery: fetchBaseQuery({
         baseUrl:
             process.env.NEXT_PUBLIC_BOOKING_API_URL ||
-            "http://localhost:3007/api/v1",
+            "http://127.0.0.1:3007/api/v1",
         prepareHeaders: (headers, { getState }) => {
             headers.set("Content-Type", "application/json");
             headers.set("Accept", "application/json");

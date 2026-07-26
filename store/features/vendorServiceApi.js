@@ -96,6 +96,10 @@ export const vendorServiceApi = createApi({
                 formData: true,
             }),
         }),
+        getServiceById: builder.query({
+            query: (id) => `/vendors/services/${id}`,
+            providesTags: (result, error, id) => [{ type: "Service", id }],
+        }),
     }),
 });
 
@@ -108,4 +112,5 @@ export const {
     useEditServiceMutation,
     useDeleteServiceMutation,
     useUploadVendorServiceImageMutation,
+    useGetServiceByIdQuery,
 } = vendorServiceApi;

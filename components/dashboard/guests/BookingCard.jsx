@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { getBookingState } from "@/lib/bookingUtils";
 import clsx from "clsx";
 
-export function BookingCard({ booking, onView, onShowQr, onCheckin }) {
+export function BookingCard({ booking, onView, onShowQr, onCheckin, disabled }) {
     const state = getBookingState(booking);
 
     const bgClass = clsx({
@@ -68,6 +68,7 @@ export function BookingCard({ booking, onView, onShowQr, onCheckin }) {
                             size="sm"
                             className="bg-yellow-600 hover:bg-yellow-700 text-white"
                             onClick={onCheckin}
+                            disabled={disabled}
                         >
                             <LogIn className="w-4 h-4 mr-1" />
                             Check-in

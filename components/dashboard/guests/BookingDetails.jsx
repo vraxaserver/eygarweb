@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PropertyRules } from "@/components/dashboard/guests/PropertyRules";
 import { formatCurrency } from "@/lib/utils";
 import { useGetExperiencesByPropertyQuery } from "@/store/features/experienceApi";
+import { useRouter } from "next/navigation";
 import { useGetCouponsQuery } from "@/store/features/vendorCouponApi";
 
 // ─── Experience Card ─────────────────────────────────────────────────────────
@@ -114,7 +115,8 @@ function ExperienceItem({ experience }) {
 }
 
 // ─── Coupon Card ─────────────────────────────────────────────────────────────
-function CouponItem({ coupon }) {
+function CouponItem({ coupon, booking }) {
+    const router = useRouter();
     const now = new Date();
     const validTo = coupon.validTo ? new Date(coupon.validTo) : null;
     const validFrom = coupon.validFrom ? new Date(coupon.validFrom) : null;
@@ -133,9 +135,16 @@ function CouponItem({ coupon }) {
             year: "numeric",
         });
 
+    const handleViewService = () => {
+        const serviceId = coupon.serviceId || coupon.service?.id;
+        if (serviceId) {
+            router.push(`/services/${serviceId}?coupon=${coupon.code}&bookingId=${booking?.id || ""}`);
+        }
+    };
+
     return (
         <Card
-            className={`relative overflow-hidden border-l-4 transition-shadow hover:shadow-md ${
+            className={`relative overflow-hidden border-l-4 transition-shadow hover:shadow-md flex flex-col justify-between ${
                 isExpired
                     ? "border-l-gray-300 opacity-60"
                     : isValid
@@ -146,73 +155,87 @@ function CouponItem({ coupon }) {
             {/* Decorative blob */}
             <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-rose-100 to-transparent rounded-bl-full opacity-50" />
 
-            <CardContent className="p-5 space-y-3">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-2">
+            <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                <div className="space-y-3">
+                    {/* Header row */}
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <Gift className="h-5 w-5 text-rose-500 shrink-0" />
+                            <h4 className="font-semibold text-gray-900 leading-snug">
+                                {coupon.title}
+                            </h4>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                            {isExpired && (
+                                <Badge variant="destructive" className="text-xs">Expired</Badge>
+                            )}
+                            {isNotStarted && !isExpired && (
+                                <Badge variant="secondary" className="text-xs">Coming soon</Badge>
+                            )}
+                            {isValid && daysLeft !== null && daysLeft <= 7 && (
+                                <Badge variant="destructive" className="text-xs">Expires in {daysLeft}d</Badge>
+                            )}
+                            {isValid && (daysLeft === null || daysLeft > 7) && (
+                                <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs">Active</Badge>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Discount amount */}
                     <div className="flex items-center gap-2">
-                        <Gift className="h-5 w-5 text-rose-500 shrink-0" />
-                        <h4 className="font-semibold text-gray-900 leading-snug">
-                            {coupon.title}
-                        </h4>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                        {isExpired && (
-                            <Badge variant="destructive" className="text-xs">Expired</Badge>
-                        )}
-                        {isNotStarted && !isExpired && (
-                            <Badge variant="secondary" className="text-xs">Coming soon</Badge>
-                        )}
-                        {isValid && daysLeft !== null && daysLeft <= 7 && (
-                            <Badge variant="destructive" className="text-xs">Expires in {daysLeft}d</Badge>
-                        )}
-                        {isValid && (daysLeft === null || daysLeft > 7) && (
-                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs">Active</Badge>
-                        )}
-                    </div>
-                </div>
-
-                {/* Discount amount */}
-                <div className="flex items-center gap-2">
-                    <Percent className="h-4 w-4 text-rose-500" />
-                    <span className="text-xl font-extrabold text-rose-600">
-                        {coupon.discountType === "percentage"
-                            ? `${coupon.discountValue}% OFF`
-                            : `$${coupon.discountValue} OFF`}
-                    </span>
-                </div>
-
-                {/* Service */}
-                {coupon.service?.title && (
-                    <p className="text-xs text-gray-500">
-                        For: <span className="font-medium text-gray-700">{coupon.service.title}</span>
-                    </p>
-                )}
-
-                {/* Coupon code */}
-                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                    <Tag className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    <span className="font-mono font-bold tracking-widest text-sm text-gray-800">
-                        {coupon.code}
-                    </span>
-                </div>
-
-                {/* Validity */}
-                {validFrom && validTo && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                            {formatDate(coupon.validFrom)} → {formatDate(coupon.validTo)}
+                        <Percent className="h-4 w-4 text-rose-500" />
+                        <span className="text-xl font-extrabold text-rose-600">
+                            {coupon.discountType === "percentage"
+                                 ? `${coupon.discountValue}% OFF`
+                                 : `$${coupon.discountValue} OFF`}
                         </span>
                     </div>
-                )}
 
-                {/* Apply button */}
-                {isValid && (
+                    {/* Coupon code */}
+                    <div className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                            <Tag className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                            <span className="font-mono font-bold tracking-widest text-sm text-gray-800">
+                                {coupon.code}
+                            </span>
+                        </div>
+                        {validFrom && validTo && (
+                            <span className="text-[10px] text-gray-500">
+                                {formatDate(coupon.validTo)}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Associated Service Details */}
+                    {coupon.service && (
+                        <div className="border border-gray-100 rounded-lg p-3 bg-gray-50/50 space-y-2 mt-2">
+                            {coupon.service.image && (
+                                <div className="relative h-24 w-full rounded overflow-hidden mb-2">
+                                    <img
+                                        src={coupon.service.image}
+                                        alt={coupon.service.title}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            )}
+                            <h5 className="font-semibold text-xs text-gray-900 line-clamp-1">{coupon.service.title}</h5>
+                            <p className="text-[11px] text-gray-500 line-clamp-2">{coupon.service.description}</p>
+                            <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1 border-t border-gray-100">
+                                <span>{coupon.service.category} • {coupon.service.duration}h</span>
+                                <span className="font-bold text-gray-900">${coupon.service.price}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Action button */}
+                {isValid && coupon.service && (
                     <Button
                         size="sm"
-                        className="w-full mt-1 bg-rose-600 hover:bg-rose-700 text-white"
+                        onClick={handleViewService}
+                        className="w-full mt-3 bg-rose-600 hover:bg-rose-700 text-white font-medium"
                     >
-                        Apply Code: {coupon.code}
+                        View & Book Service
                     </Button>
                 )}
             </CardContent>
@@ -540,7 +563,7 @@ export function BookingDetail({ booking, onBack }) {
 
                     {/* ── Coupons & Offers tab ── */}
                     <TabsContent value="offers" className="mt-0">
-                        <CouponsSection />
+                        <CouponsSection booking={booking} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -600,13 +623,43 @@ function ExperiencesSection({ propertyId }) {
     );
 }
 
+// Distance calculation helper (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
+    const R = 6371; // Radius of the earth in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 // ─── Coupons Section (fetches all active public coupons) ──────────────────────
-function CouponsSection() {
+function CouponsSection({ booking }) {
     const {
         data: coupons,
         isLoading,
         isError,
     } = useGetCouponsQuery();
+
+    if (booking?.checkout_status !== "checked_in") {
+        return (
+            <div className="text-center py-16">
+                <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="h-8 w-8 text-rose-500 animate-pulse" />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-lg">Check-in to Unlock Offers</h3>
+                <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
+                    Once you check in to your stay, exclusive local vendor coupons and service requests will be unlocked here!
+                </p>
+            </div>
+        );
+    }
 
     if (isLoading) return <SectionSkeleton count={3} />;
 
@@ -621,16 +674,33 @@ function CouponsSection() {
 
     // Filter to only active & not expired coupons for display
     const now = new Date();
+    const propertyLocation = booking?.property_snapshot?.location || {};
+    const propLat = propertyLocation.latitude ?? propertyLocation.lat;
+    const propLng = propertyLocation.longitude ?? propertyLocation.lng;
+
+    const isCouponInArea = (c) => {
+        if (!c.service) return true;
+        const serviceArea = c.service.serviceArea || {};
+        const serviceLat = serviceArea.lat ?? serviceArea.latitude;
+        const serviceLng = serviceArea.lng ?? serviceArea.longitude;
+        const radius = serviceArea.radius ?? 10; // km
+        if (propLat != null && propLng != null && serviceLat != null && serviceLng != null) {
+            const dist = calculateDistance(propLat, propLng, serviceLat, serviceLng);
+            return dist <= radius;
+        }
+        return true;
+    };
+
     const activeCoupons = (coupons || []).filter((c) => {
         const expired = c.validTo && new Date(c.validTo) < now;
-        return c.isActive && !expired;
+        return c.isActive && !expired && isCouponInArea(c);
     });
     const expiredCoupons = (coupons || []).filter((c) => {
         const expired = c.validTo && new Date(c.validTo) < now;
-        return expired || !c.isActive;
+        return (expired || !c.isActive) && isCouponInArea(c);
     });
 
-    if (!coupons || coupons.length === 0) {
+    if (!coupons || coupons.length === 0 || (activeCoupons.length === 0 && expiredCoupons.length === 0)) {
         return (
             <SectionEmpty
                 icon={Tag}
@@ -653,7 +723,7 @@ function CouponsSection() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {activeCoupons.map((coupon) => (
-                            <CouponItem key={coupon.id} coupon={coupon} />
+                            <CouponItem key={coupon.id} coupon={coupon} booking={booking} />
                         ))}
                     </div>
                 </div>
@@ -667,7 +737,7 @@ function CouponsSection() {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {expiredCoupons.map((coupon) => (
-                            <CouponItem key={coupon.id} coupon={coupon} />
+                            <CouponItem key={coupon.id} coupon={coupon} booking={booking} />
                         ))}
                     </div>
                 </div>

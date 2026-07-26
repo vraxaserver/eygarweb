@@ -178,11 +178,23 @@ export default function GuestDashboard() {
 
     const handleCheckin = async (booking) => {
         const id = getBookingId(booking);
-        if (!id) return;
+        if (!id || isCheckinLoading) return;
+
+        if (booking?.checkout_status === "checked_in") {
+            return;
+        }
 
         try {
             await updateCheckIn({ bookingId: id }).unwrap();
         } catch (err) {
+            const msg = err?.data?.message || "";
+            if (
+                msg.includes("checked_in") ||
+                msg.toLowerCase().includes("already checked")
+            ) {
+                console.warn("Booking is already checked in:", err);
+                return;
+            }
             console.error("Failed to check in:", err);
         }
     };

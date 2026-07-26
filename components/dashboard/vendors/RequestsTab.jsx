@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useGetServicesQuery } from "@/store/features/vendorServiceApi";
 import {
     Check,
     X,
@@ -125,17 +126,41 @@ const mockServices = [
 ];
 
 export const RequestsTab = () => {
-    const [requests, setRequests] = useState(mockServiceRequests);
+    const { data: dbServices } = useGetServicesQuery();
+    const [requests, setRequests] = useState([]);
     const [services] = useState(mockServices);
     const [statusFilter, setStatusFilter] = useState("all");
+
+    const loadRequests = () => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("eygar_service_requests");
+            const parsed = saved ? JSON.parse(saved) : [];
+            
+            const allRequests = [...parsed];
+            mockServiceRequests.forEach(mr => {
+                if (!allRequests.some(r => String(r.id) === String(mr.id))) {
+                    allRequests.push(mr);
+                }
+            });
+            setRequests(allRequests);
+        } else {
+            setRequests(mockServiceRequests);
+        }
+    };
+
+    useEffect(() => {
+        loadRequests();
+        window.addEventListener("storage", loadRequests);
+        return () => window.removeEventListener("storage", loadRequests);
+    }, []);
 
     const filteredRequests = requests.filter((request) => {
         return statusFilter === "all" || request.status === statusFilter;
     });
 
     const handleAcceptRequest = (requestId) => {
-        setRequests((prev) =>
-            prev.map((r) =>
+        setRequests((prev) => {
+            const updated = prev.map((r) =>
                 r.id === requestId
                     ? {
                           ...r,
@@ -144,13 +169,16 @@ export const RequestsTab = () => {
                               "Request accepted! Looking forward to serving you.",
                       }
                     : r
-            )
-        );
+            );
+            const customOnly = updated.filter(r => !r.id.toString().startsWith("request-"));
+            localStorage.setItem("eygar_service_requests", JSON.stringify(customOnly));
+            return updated;
+        });
     };
 
     const handleRejectRequest = (requestId) => {
-        setRequests((prev) =>
-            prev.map((r) =>
+        setRequests((prev) => {
+            const updated = prev.map((r) =>
                 r.id === requestId
                     ? {
                           ...r,
@@ -158,20 +186,42 @@ export const RequestsTab = () => {
                           vendorResponse: "Sorry, not available at that time.",
                       }
                     : r
-            )
-        );
+            );
+            const customOnly = updated.filter(r => !r.id.toString().startsWith("request-"));
+            localStorage.setItem("eygar_service_requests", JSON.stringify(customOnly));
+            return updated;
+        });
     };
 
     const handleCompleteRequest = (requestId) => {
-        setRequests((prev) =>
-            prev.map((r) =>
+        setRequests((prev) => {
+            const updated = prev.map((r) =>
                 r.id === requestId ? { ...r, status: "completed" } : r
-            )
-        );
+            );
+            const customOnly = updated.filter(r => !r.id.toString().startsWith("request-"));
+            localStorage.setItem("eygar_service_requests", JSON.stringify(customOnly));
+            return updated;
+        });
     };
 
-    const getService = (serviceId) => {
-        return services.find((s) => s.id === serviceId);
+    const getService = (request) => {
+        const serviceId = request?.serviceId;
+        const dbService = dbServices?.find(
+            (s) => String(s.id) === String(serviceId) || String(s._id) === String(serviceId)
+        );
+        if (dbService) return dbService;
+
+        const mockMatch = services.find(
+            (s) => String(s.id) === String(serviceId) || String(s._id) === String(serviceId)
+        );
+        if (mockMatch) return mockMatch;
+
+        return {
+            id: serviceId || "service-fallback",
+            title: request?.serviceTitle || "Vendor Service",
+            description: request?.message || "Requested vendor service",
+            price: request?.originalPrice || request?.discountedPrice || 0,
+        };
     };
 
     const statusConfig = {
@@ -237,19 +287,17 @@ export const RequestsTab = () => {
             </div>
 
             {/* Requests List */}
-            <div className="flex gap-5 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRequests.map((request) => {
-                    const service = getService(request.serviceId);
-                    const statusInfo = statusConfig[request.status];
+                    const service = getService(request);
+                    const statusInfo = statusConfig[request.status] || statusConfig.pending;
                     const savings =
-                        request.originalPrice - request.discountedPrice;
-
-                    if (!service) return null;
+                        (request.originalPrice || 0) - (request.discountedPrice || 0);
 
                     return (
                         <div
                             key={request.id}
-                            className="w-[500px] bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6"
+                            className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6 border border-gray-100"
                         >
                             {/* Header */}
                             <div className="flex items-start justify-between mb-4">

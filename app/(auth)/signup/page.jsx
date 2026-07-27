@@ -6,14 +6,18 @@ import { Eye, EyeOff, Phone, Mail, Lock, User, AlertCircle, CheckCircle } from "
 import { useSignupMutation } from "@/store/features/authApi";
 import { useSelector } from "react-redux";
 import { selectPendingVerification } from "@/store/slices/authSlice";
+import PhoneInputWithCountry from "@/components/ui/PhoneInputWithCountry";
 
 const SignupPage = () => {
     const router = useRouter();
     const [signup, { isLoading }] = useSignupMutation();
     const pendingVerification = useSelector(selectPendingVerification);
 
+    const [activeTab, setActiveTab] = useState("email"); // "email" | "phone"
+    const [countryCode, setCountryCode] = useState("+974");
     const [formData, setFormData] = useState({
-        email_or_phone: "",
+        email: "",
+        phone: "",
         password: "",
         confirm_password: "",
     });
@@ -53,10 +57,23 @@ const SignupPage = () => {
 
     const validateForm = () => {
         const newErrors = {};
-        const { email_or_phone, password, confirm_password } = formData;
+        const { email, phone, password, confirm_password } = formData;
 
-        if (!email_or_phone) {
-            newErrors.email_or_phone = "Email or phone number is required";
+        if (activeTab === "email") {
+            if (!email.trim()) {
+                newErrors.email = "Email address is required";
+            } else if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+                newErrors.email = "Please enter a valid email address";
+            }
+        } else {
+            if (!phone.trim()) {
+                newErrors.phone = "Phone number is required";
+            } else {
+                const digits = phone.replace(/\D/g, "");
+                if (digits.length < 7 || digits.length > 15) {
+                    newErrors.phone = "Please enter a valid phone number (7 to 15 digits)";
+                }
+            }
         }
 
         if (!password) {
@@ -80,12 +97,21 @@ const SignupPage = () => {
 
         setApiError("");
 
+        const email_or_phone =
+            activeTab === "email"
+                ? formData.email.trim()
+                : `${countryCode}${formData.phone.trim()}`;
+
+        const payload = {
+            email_or_phone,
+            password: formData.password,
+            confirm_password: formData.confirm_password,
+        };
+
         try {
-            const result = await signup(formData).unwrap();
-            // On success the signup mutation dispatches setPendingVerification.
-            // Redirect to OTP activation page with the returned user_id.
+            const result = await signup(payload).unwrap();
             router.push(
-                `/activate?user_id=${result.user_id}&identifier_type=${result.identifier_type}&email_or_phone=${encodeURIComponent(formData.email_or_phone)}`
+                `/activate?user_id=${result.user_id}&identifier_type=${result.identifier_type}&email_or_phone=${encodeURIComponent(email_or_phone)}`
             );
         } catch (error) {
             console.log("Signup error:", error);
@@ -127,37 +153,97 @@ const SignupPage = () => {
                         </div>
                     )}
 
+                    {/* Tabs */}
+                    <div className="flex border-b border-gray-200 mb-6">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveTab("email");
+                                setErrors({});
+                                setApiError("");
+                            }}
+                            className={`flex-1 py-2.5 text-center font-medium text-sm border-b-2 transition-colors ${
+                                activeTab === "email"
+                                    ? "border-blue-600 text-blue-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
+                        >
+                            Email Signup
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveTab("phone");
+                                setErrors({});
+                                setApiError("");
+                            }}
+                            className={`flex-1 py-2.5 text-center font-medium text-sm border-b-2 transition-colors ${
+                                activeTab === "phone"
+                                    ? "border-blue-600 text-blue-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
+                        >
+                            Phone Signup
+                        </button>
+                    </div>
+
                     <div className="space-y-6">
-                        {/* Email or Phone Field */}
-                        <div>
-                            <label htmlFor="email_or_phone" className="block text-sm font-medium text-gray-700 mb-2">
-                                Email or Phone Number
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Phone className="h-5 w-5 text-gray-400" />
+                        {/* Email or Phone Tab Fields */}
+                        {activeTab === "email" ? (
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address *
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            errors.email
+                                                ? "border-red-300 bg-red-50"
+                                                : "border-gray-300 hover:border-gray-400"
+                                        }`}
+                                        placeholder="Enter Email Address (e.g. name@domain.com - max 100 chars)"
+                                        maxLength={100}
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    id="email_or_phone"
-                                    name="email_or_phone"
-                                    value={formData.email_or_phone}
-                                    onChange={handleChange}
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                                        errors.email_or_phone
-                                            ? "border-red-300 bg-red-50"
-                                            : "border-gray-300 hover:border-gray-400"
-                                    }`}
-                                    placeholder="Enter email or phone (e.g. +97451235119)"
-                                />
+                                {errors.email && (
+                                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {errors.email}
+                                    </p>
+                                )}
                             </div>
-                            {errors.email_or_phone && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                    <AlertCircle className="w-4 h-4" />
-                                    {errors.email_or_phone}
-                                </p>
-                            )}
-                        </div>
+                        ) : (
+                            <div>
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                                    GCC Phone Number *
+                                </label>
+                                <PhoneInputWithCountry
+                                    countryCode={countryCode}
+                                    onCountryCodeChange={setCountryCode}
+                                    value={formData.phone}
+                                    onChange={(e) => {
+                                        setFormData((prev) => ({ ...prev, phone: e.target.value }));
+                                        if (errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
+                                        if (apiError) setApiError("");
+                                    }}
+                                    placeholder="Enter Mobile Number (e.g. 55123456 - max 15 digits)"
+                                />
+                                {errors.phone && (
+                                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {errors.phone}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* Password Field */}
                         <div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useGetServicesQuery } from "@/store/features/vendorServiceApi";
+import { useGetMyCouponsQuery } from "@/store/features/vendorCouponApi";
 import {
     Check,
     X,
@@ -127,6 +128,7 @@ const mockServices = [
 
 export const RequestsTab = () => {
     const { data: dbServices } = useGetServicesQuery();
+    const { data: myCoupons } = useGetMyCouponsQuery();
     const [requests, setRequests] = useState([]);
     const [services] = useState(mockServices);
     const [statusFilter, setStatusFilter] = useState("all");
@@ -142,6 +144,17 @@ export const RequestsTab = () => {
                     allRequests.push(mr);
                 }
             });
+
+            // Filter requests to include only those with couponId matching logged-in vendor's coupons
+            if (myCoupons && Array.isArray(myCoupons)) {
+                const vendorCouponIds = new Set(myCoupons.map((c) => String(c.id || c._id)));
+                const vendorRequests = allRequests.filter(
+                    (req) => !req.couponId || vendorCouponIds.has(String(req.couponId))
+                );
+                setRequests(vendorRequests);
+                return;
+            }
+
             setRequests(allRequests);
         } else {
             setRequests(mockServiceRequests);

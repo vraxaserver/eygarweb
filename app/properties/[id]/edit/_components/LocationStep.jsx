@@ -1,8 +1,31 @@
-// app/properties/[id]/edit/components/LocationStep.jsx
+"use client";
+
 import React from 'react';
+import { GoogleMap, Marker } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
+
+const mapContainerStyle = {
+    width: "100%",
+    height: "350px",
+    borderRadius: "0.5rem",
+};
+
+const DEFAULT_CENTER = { lat: 25.2854, lng: 51.531 }; // Doha default
 
 export default function LocationStep({ formData, handleChange }) {
     const location = formData.location || {};
+    const { isLoaded } = useGoogleMaps();
+
+    const currentLat = Number(location.latitude) || DEFAULT_CENTER.lat;
+    const currentLng = Number(location.longitude) || DEFAULT_CENTER.lng;
+
+    const handleMarkerDragEnd = (e) => {
+        if (!e?.latLng) return;
+        const newLat = e.latLng.lat();
+        const newLng = e.latLng.lng();
+        handleChange('latitude', newLat);
+        handleChange('longitude', newLng);
+    };
 
     return (
         <div className="space-y-6">
@@ -18,6 +41,8 @@ export default function LocationStep({ formData, handleChange }) {
                     name="address"
                     value={location.address || ''}
                     onChange={(e) => handleChange('address', e.target.value)}
+                    placeholder="Enter Street Address (max 100 chars)"
+                    maxLength={100}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
             </div>
@@ -33,12 +58,14 @@ export default function LocationStep({ formData, handleChange }) {
                         name="city"
                         value={location.city || ''}
                         onChange={(e) => handleChange('city', e.target.value)}
+                        placeholder="Enter City Name (max 50 chars)"
+                        maxLength={50}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
                 <div>
                     <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                        State
+                        State / Province
                     </label>
                     <input
                         type="text"
@@ -46,6 +73,8 @@ export default function LocationStep({ formData, handleChange }) {
                         name="state"
                         value={location.state || ''}
                         onChange={(e) => handleChange('state', e.target.value)}
+                        placeholder="Enter State / Province (max 50 chars)"
+                        maxLength={50}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
@@ -62,6 +91,8 @@ export default function LocationStep({ formData, handleChange }) {
                         name="country"
                         value={location.country || ''}
                         onChange={(e) => handleChange('country', e.target.value)}
+                        placeholder="Enter Country Name (max 50 chars)"
+                        maxLength={50}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
@@ -75,39 +106,47 @@ export default function LocationStep({ formData, handleChange }) {
                         name="postal_code"
                         value={location.postal_code || ''}
                         onChange={(e) => handleChange('postal_code', e.target.value)}
+                        placeholder="Enter Postal Code (max 20 chars)"
+                        maxLength={20}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label htmlFor="latitude" className="block text-sm font-medium text-gray-700 mb-1">
-                        Latitude
-                    </label>
-                    <input
-                        type="number"
-                        id="latitude"
-                        name="latitude"
-                        value={location.latitude || ''}
-                        onChange={(e) => handleChange('latitude', e.target.value)}
-                        step="any"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
+            {/* Map Pin Picker Step */}
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                    Property Map Pin Location (Drag pin to set exact coordinates)
+                </label>
+                <div className="border rounded-lg overflow-hidden border-gray-300">
+                    {isLoaded ? (
+                        <GoogleMap
+                            mapContainerStyle={mapContainerStyle}
+                            center={{ lat: currentLat, lng: currentLng }}
+                            zoom={13}
+                            options={{
+                                disableDefaultUI: false,
+                                zoomControl: true,
+                            }}
+                        >
+                            <Marker
+                                position={{ lat: currentLat, lng: currentLng }}
+                                draggable={true}
+                                onDragEnd={handleMarkerDragEnd}
+                                title="Drag pin to set property location"
+                            />
+                        </GoogleMap>
+                    ) : (
+                        <div className="h-[350px] bg-gray-100 flex items-center justify-center text-sm text-gray-500">
+                            Loading Map...
+                        </div>
+                    )}
                 </div>
-                <div>
-                    <label htmlFor="longitude" className="block text-sm font-medium text-gray-700 mb-1">
-                        Longitude
-                    </label>
-                    <input
-                        type="number"
-                        id="longitude"
-                        name="longitude"
-                        value={location.longitude || ''}
-                        onChange={(e) => handleChange('longitude', e.target.value)}
-                        step="any"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
+                <div className="text-xs text-gray-500 flex justify-between px-1">
+                    <span>Selected Pin Coordinates:</span>
+                    <span className="font-mono text-indigo-600 font-medium">
+                        Lat: {currentLat.toFixed(6)}, Lng: {currentLng.toFixed(6)}
+                    </span>
                 </div>
             </div>
         </div>

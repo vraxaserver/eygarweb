@@ -33,6 +33,8 @@ import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
 import { useCreatePropertyMutation, useUploadImageMutation, useUpdatePropertyMutation } from "@/store/features/propertiesApi";
 import { BookingDetail } from "../guests/BookingDetails";
+import { GoogleMap, Marker, Autocomplete } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
 
 // --- Lazy Load Components ---
 const TabOverview = React.lazy(() => import("./TabOverview"));
@@ -48,6 +50,7 @@ const LoadingFallback = () => (
 
 export default function HostDashboard() {
     const user = useSelector(selectCurrentUser);
+    const { isLoaded: isGoogleMapLoaded } = useGoogleMaps();
     const [createProperty] = useCreatePropertyMutation();
     const [uploadImage] = useUploadImageMutation();
     const [updateProperty] = useUpdatePropertyMutation();
@@ -58,7 +61,9 @@ export default function HostDashboard() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [stepErrors, setStepErrors] = useState({});
     const [submitStatus, setSubmitStatus] = useState(""); // e.g. "Creating property...", "Uploading images (2/5)..."
+    const [autocomplete, setAutocomplete] = useState(null);
 
     // pendingImageFiles holds { file: File, previewUrl: string, is_cover: bool, alt_text: string, display_order: number }
     // These are NOT uploaded yet — upload happens at submit time once we have a property_id
@@ -128,6 +133,14 @@ export default function HostDashboard() {
         check_in_policy: "",
     });
 
+    const steps = [
+        { number: 1, title: "Basic Info", icon: Home },
+        { number: 2, title: "Location", icon: MapPin },
+        { number: 3, title: "Images", icon: Image },
+        { number: 4, title: "Amenities & Rules", icon: Settings },
+        { number: 5, title: "Policies", icon: FileText },
+    ];
+
     if (user?.eygar_host?.status !== "approved") {
         return (
             <div className="bg-indigo-600 p-8 text-center">
@@ -150,14 +163,6 @@ export default function HostDashboard() {
             </div>
         );
     }
-
-    const steps = [
-        { number: 1, title: "Basic Info", icon: Home },
-        { number: 2, title: "Location", icon: MapPin },
-        { number: 3, title: "Images", icon: Image },
-        { number: 4, title: "Amenities & Rules", icon: Settings },
-        { number: 5, title: "Policies", icon: FileText },
-    ];
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -231,7 +236,64 @@ export default function HostDashboard() {
         }));
     };
 
+    const validateCurrentStep = () => {
+        const errors = {};
+        if (currentStep === 1) {
+            if (!formData.title?.trim()) {
+                errors.title = "Property title is required.";
+            } else if (formData.title.trim().length < 10) {
+                errors.title = "Property title must be at least 10 characters.";
+            } else if (formData.title.trim().length > 100) {
+                errors.title = "Title exceeds 100 characters.";
+            }
+
+            if (!formData.description?.trim()) {
+                errors.description = "Property description is required.";
+            } else if (formData.description.trim().length < 20) {
+                errors.description = "Property description must be at least 20 characters.";
+            } else if (formData.description.trim().length > 1000) {
+                errors.description = "Description exceeds 1000 characters.";
+            }
+
+            if (!formData.price_per_night || Number(formData.price_per_night) <= 0) {
+                errors.price_per_night = "Please enter a valid price per night.";
+            }
+        }
+
+        if (currentStep === 2) {
+            if (!formData.location?.address?.trim()) {
+                errors.address = "Street address is required.";
+            } else if (formData.location.address.trim().length < 5) {
+                errors.address = "Address must be at least 5 characters.";
+            }
+
+            if (!formData.location?.city?.trim()) {
+                errors.city = "City is required.";
+            } else if (formData.location.city.trim().length < 2) {
+                errors.city = "City name must be at least 2 characters.";
+            }
+
+            if (formData.location?.state?.trim() && formData.location.state.trim().length < 2) {
+                errors.state = "State/Province must be at least 2 characters.";
+            }
+
+            if (!formData.location?.country?.trim()) {
+                errors.country = "Country is required.";
+            } else if (formData.location.country.trim().length < 2) {
+                errors.country = "Country name must be at least 2 characters.";
+            }
+
+            if (formData.location?.postal_code?.trim() && formData.location.postal_code.trim().length < 3) {
+                errors.postal_code = "Postal code must be at least 3 characters.";
+            }
+        }
+
+        setStepErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const nextStep = () => {
+        if (!validateCurrentStep()) return;
         if (currentStep < 5) setCurrentStep((s) => s + 1);
     };
 
@@ -373,28 +435,50 @@ export default function HostDashboard() {
                         {/* Title & Description */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Property Title *
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Property Title *
+                                    </label>
+                                    <span className={`text-xs font-medium ${100 - (formData.title?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {100 - (formData.title?.length || 0)}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     name="title"
                                     value={formData.title}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-rose-500 focus:border-rose-500"
+                                    onChange={(e) => {
+                                        handleInputChange(e);
+                                        if (stepErrors.title) setStepErrors(prev => ({ ...prev, title: "" }));
+                                    }}
+                                    placeholder="Enter Property Title (e.g. Modern Sunset Villa - max 100 chars)"
+                                    maxLength={100}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-rose-500 focus:border-rose-500 ${stepErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.title && <p className="mt-1 text-xs text-red-600">{stepErrors.title}</p>}
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Description *
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Description *
+                                    </label>
+                                    <span className={`text-xs font-medium ${1000 - (formData.description?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {1000 - (formData.description?.length || 0)}
+                                    </span>
+                                </div>
                                 <textarea
                                     name="description"
                                     value={formData.description}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        handleInputChange(e);
+                                        if (stepErrors.description) setStepErrors(prev => ({ ...prev, description: "" }));
+                                    }}
                                     rows="3"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring-rose-500 focus:border-rose-500"
+                                    placeholder="Enter Detailed Description (max 1000 chars)"
+                                    maxLength={1000}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-rose-500 focus:border-rose-500 ${stepErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.description && <p className="mt-1 text-xs text-red-600">{stepErrors.description}</p>}
                             </div>
                         </div>
 
@@ -439,7 +523,7 @@ export default function HostDashboard() {
                                     </option>
                                 </select>
                             </div>
-                            {/* ✅ Ownership / Agent (Grouped Radio) */}
+                            {/* Ownership / Agent */}
                             <div className="p-4 bg-gray-50 rounded-lg border">
                                 <h3 className="text-sm font-semibold mb-3 text-gray-700">
                                     Listing Role
@@ -478,7 +562,6 @@ export default function HostDashboard() {
                                     </label>
                                 </div>
 
-                                {/* ✅ Revenue Share Fields: show only for Agent */}
                                 {formData.is_agent && (
                                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -525,13 +608,6 @@ export default function HostDashboard() {
                                                         : "0.00"
                                                 }
                                             />
-                                            {formData.revenue_share_type ===
-                                                "percentage" && (
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Use a value between 0 and
-                                                    100.
-                                                </p>
-                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -651,25 +727,29 @@ export default function HostDashboard() {
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border rounded-lg"
                                 >
+                                    <option value="QAR">QAR</option>
+                                    <option value="AED">AED</option>
+                                    <option value="KWD">KWD</option>
                                     <option value="USD">USD</option>
                                     <option value="EUR">EUR</option>
-                                    <option value="GBP">GBP</option>
-                                    <option value="SAR">SAR</option>
-                                    <option value="QAR">QAR</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Price/Night
+                                    Price/Night *
                                 </label>
                                 <input
                                     type="number"
                                     name="price_per_night"
-                                    placeholder="0.00"
+                                    placeholder="Enter Price/Night (max 6 digits)"
                                     value={formData.price_per_night}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    onChange={(e) => {
+                                        handleInputChange(e);
+                                        if (stepErrors.price_per_night) setStepErrors(prev => ({ ...prev, price_per_night: "" }));
+                                    }}
+                                    className={`w-full px-4 py-2 border rounded-lg ${stepErrors.price_per_night ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.price_per_night && <p className="mt-1 text-xs text-red-600">{stepErrors.price_per_night}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -698,171 +778,224 @@ export default function HostDashboard() {
                                 />
                             </div>
                         </div>
-
-                        {/* Discounts */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Weekly Discount (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="weekly_discount"
-                                    value={formData.weekly_discount}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Monthly Discount (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="monthly_discount"
-                                    value={formData.monthly_discount}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Toggles */}
-                        <div className="flex flex-col gap-2 p-2">
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="instant_book"
-                                    name="instant_book"
-                                    checked={formData.instant_book}
-                                    onChange={handleInputChange}
-                                    className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
-                                />
-                                <label
-                                    htmlFor="instant_book"
-                                    className="ml-2 text-sm text-gray-700"
-                                >
-                                    Enable Instant Book
-                                </label>
-                            </div>
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="pets_allowed"
-                                    name="pets_allowed"
-                                    checked={formData.pets_allowed}
-                                    onChange={handleInputChange}
-                                    className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
-                                />
-                                <label
-                                    htmlFor="pets_allowed"
-                                    className="ml-2 text-sm text-gray-700"
-                                >
-                                    Pets Allowed
-                                </label>
-                            </div>
-                        </div>
                     </div>
                 );
 
             case 2:
+                const currentLat = Number(formData.location.latitude) || 25.2854;
+                const currentLng = Number(formData.location.longitude) || 51.531;
+
                 return (
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Address *
-                            </label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Address *
+                                </label>
+                                <span className={`text-xs font-medium ${100 - (formData.location.address?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                    Remaining: {100 - (formData.location.address?.length || 0)}
+                                </span>
+                            </div>
                             <input
                                 type="text"
                                 name="address"
-                                placeholder="Street address"
+                                placeholder="Enter Street Address (max 100 chars)"
+                                maxLength={100}
                                 value={formData.location.address}
-                                onChange={handleLocationChange}
-                                className="w-full px-4 py-2 border rounded-lg"
+                                onChange={(e) => {
+                                    handleLocationChange(e);
+                                    if (stepErrors.address) setStepErrors(prev => ({ ...prev, address: "" }));
+                                }}
+                                className={`w-full px-4 py-2 border rounded-lg ${stepErrors.address ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                             />
+                            {stepErrors.address && <p className="mt-1 text-xs text-red-600">{stepErrors.address}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    City *
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        City *
+                                    </label>
+                                    <span className={`text-xs font-medium ${50 - (formData.location.city?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {50 - (formData.location.city?.length || 0)}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     name="city"
+                                    placeholder="Enter City Name (max 50 chars)"
+                                    maxLength={50}
                                     value={formData.location.city}
-                                    onChange={handleLocationChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    onChange={(e) => {
+                                        handleLocationChange(e);
+                                        if (stepErrors.city) setStepErrors(prev => ({ ...prev, city: "" }));
+                                    }}
+                                    className={`w-full px-4 py-2 border rounded-lg ${stepErrors.city ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.city && <p className="mt-1 text-xs text-red-600">{stepErrors.city}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    State/Province
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        State/Province
+                                    </label>
+                                    <span className={`text-xs font-medium ${50 - (formData.location.state?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {50 - (formData.location.state?.length || 0)}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     name="state"
+                                    placeholder="Enter State/Province (max 50 chars)"
+                                    maxLength={50}
                                     value={formData.location.state}
-                                    onChange={handleLocationChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    onChange={(e) => {
+                                        handleLocationChange(e);
+                                        if (stepErrors.state) setStepErrors(prev => ({ ...prev, state: "" }));
+                                    }}
+                                    className={`w-full px-4 py-2 border rounded-lg ${stepErrors.state ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.state && <p className="mt-1 text-xs text-red-600">{stepErrors.state}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Country
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Country *
+                                    </label>
+                                    <span className={`text-xs font-medium ${50 - (formData.location.country?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {50 - (formData.location.country?.length || 0)}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     name="country"
+                                    placeholder="Enter Country Name (max 50 chars)"
+                                    maxLength={50}
                                     value={formData.location.country}
-                                    onChange={handleLocationChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    onChange={(e) => {
+                                        handleLocationChange(e);
+                                        if (stepErrors.country) setStepErrors(prev => ({ ...prev, country: "" }));
+                                    }}
+                                    className={`w-full px-4 py-2 border rounded-lg ${stepErrors.country ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.country && <p className="mt-1 text-xs text-red-600">{stepErrors.country}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Postal Code
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Postal Code
+                                    </label>
+                                    <span className={`text-xs font-medium ${20 - (formData.location.postal_code?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                        Remaining: {20 - (formData.location.postal_code?.length || 0)}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     name="postal_code"
+                                    placeholder="Enter Postal Code (max 20 chars)"
+                                    maxLength={20}
                                     value={formData.location.postal_code}
-                                    onChange={handleLocationChange}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    onChange={(e) => {
+                                        handleLocationChange(e);
+                                        if (stepErrors.postal_code) setStepErrors(prev => ({ ...prev, postal_code: "" }));
+                                    }}
+                                    className={`w-full px-4 py-2 border rounded-lg ${stepErrors.postal_code ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                                 />
+                                {stepErrors.postal_code && <p className="mt-1 text-xs text-red-600">{stepErrors.postal_code}</p>}
                             </div>
                         </div>
 
-                        <div className="p-3 bg-gray-50 border rounded-lg">
-                            <h4 className="text-sm font-medium mb-2 text-gray-700">
-                                Coordinates (Optional)
-                            </h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500">
-                                        Latitude
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="latitude"
-                                        step="any"
-                                        value={formData.location.latitude}
-                                        onChange={handleLocationChange}
-                                        className="w-full mt-1 px-3 py-1.5 border rounded"
-                                    />
+                        {/* Interactive Google Map Pin Picker with Search Box */}
+                        <div className="space-y-2 pt-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Select Property Map Location (Search or drag pin to place exact location)
+                            </label>
+                            {isGoogleMapLoaded && (
+                                <div className="mb-2">
+                                    <Autocomplete
+                                        onLoad={(instance) => setAutocomplete(instance)}
+                                        onPlaceChanged={() => {
+                                            if (autocomplete !== null) {
+                                                const place = autocomplete.getPlace();
+                                                if (place?.geometry?.location) {
+                                                    const lat = place.geometry.location.lat();
+                                                    const lng = place.geometry.location.lng();
+                                                    const formattedAddress = place.formatted_address || place.name || "";
+                                                    
+                                                    // Parse address components if possible
+                                                    let city = "";
+                                                    let country = "";
+                                                    let state = "";
+                                                    let postalCode = "";
+
+                                                    place.address_components?.forEach((component) => {
+                                                        const types = component.types;
+                                                        if (types.includes("locality")) city = component.long_name;
+                                                        if (types.includes("country")) country = component.long_name;
+                                                        if (types.includes("administrative_area_level_1")) state = component.long_name;
+                                                        if (types.includes("postal_code")) postalCode = component.long_name;
+                                                    });
+
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        location: {
+                                                            ...prev.location,
+                                                            address: prev.location.address || formattedAddress,
+                                                            city: prev.location.city || city,
+                                                            country: prev.location.country || country,
+                                                            state: prev.location.state || state,
+                                                            postal_code: prev.location.postal_code || postalCode,
+                                                            latitude: lat,
+                                                            longitude: lng,
+                                                        },
+                                                    }));
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <input
+                                            type="text"
+                                            placeholder="Search location on Google Map (e.g. West Bay, Doha)"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-rose-500 focus:border-rose-500 text-sm"
+                                        />
+                                    </Autocomplete>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500">
-                                        Longitude
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="longitude"
-                                        step="any"
-                                        value={formData.location.longitude}
-                                        onChange={handleLocationChange}
-                                        className="w-full mt-1 px-3 py-1.5 border rounded"
-                                    />
-                                </div>
+                            )}
+
+                            <div className="border rounded-lg overflow-hidden border-gray-300">
+                                {isGoogleMapLoaded ? (
+                                    <GoogleMap
+                                        mapContainerStyle={{ width: "100%", height: "300px" }}
+                                        center={{ lat: currentLat, lng: currentLng }}
+                                        zoom={13}
+                                        options={{ zoomControl: true }}
+                                    >
+                                        <Marker
+                                            position={{ lat: currentLat, lng: currentLng }}
+                                            draggable={true}
+                                            onDragEnd={(e) => {
+                                                if (e?.latLng) {
+                                                    const newLat = e.latLng.lat();
+                                                    const newLng = e.latLng.lng();
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        location: { ...prev.location, latitude: newLat, longitude: newLng }
+                                                    }));
+                                                }
+                                            }}
+                                        />
+                                    </GoogleMap>
+                                ) : (
+                                    <div className="h-[300px] bg-gray-100 flex items-center justify-center text-sm text-gray-500">
+                                        Loading Google Map...
+                                    </div>
+                                )}
+                            </div>
+                            <div className="text-xs text-gray-500 flex justify-between px-1">
+                                <span>Selected Pin Coordinates:</span>
+                                <span className="font-mono text-indigo-600 font-medium">
+                                    Lat: {currentLat.toFixed(6)}, Lng: {currentLng.toFixed(6)}
+                                </span>
                             </div>
                         </div>
                     </div>

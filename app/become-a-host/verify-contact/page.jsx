@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { useVerifyContactMutation } from "@/store/features/hostProfileApi";
+import PhoneInputWithCountry from "@/components/ui/PhoneInputWithCountry";
 
 // Reusable input component for consistency
 const FormInput = ({ label, name, value, onChange, placeholder, error, isRequired = false }) => (
@@ -23,7 +24,8 @@ const FormInput = ({ label, name, value, onChange, placeholder, error, isRequire
             name={name}
             value={value}
             onChange={onChange}
-            placeholder={placeholder}
+            placeholder={placeholder || `Enter ${label} (max 100 chars)`}
+            maxLength={100}
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${
                 error ? 'border-red-300' : 'border-gray-300'
             }`}
@@ -35,6 +37,9 @@ const FormInput = ({ label, name, value, onChange, placeholder, error, isRequire
 export default function VerifyContactPage() {
     const router = useRouter();
     const [verifyContact, { isLoading }] = useVerifyContactMutation();
+
+    const [mobileCountry, setMobileCountry] = useState("+974");
+    const [whatsappCountry, setWhatsappCountry] = useState("+974");
 
     const [formData, setFormData] = useState({
         address_line1: "",
@@ -145,8 +150,31 @@ export default function VerifyContactPage() {
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="text-lg font-semibold text-gray-800">Contact Numbers</h3>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    <FormInput label="Mobile Number" name="mobile_number" value={formData.mobile_number} onChange={handleInputChange} placeholder="+1 123 456 7890" error={errors.mobile_number} isRequired />
-                                    <FormInput label="WhatsApp Number (Optional)" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} placeholder="Same as mobile, if applicable" error={errors.whatsapp_number} />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Mobile Number *
+                                        </label>
+                                        <PhoneInputWithCountry
+                                            countryCode={mobileCountry}
+                                            onCountryCodeChange={setMobileCountry}
+                                            value={formData.mobile_number}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, mobile_number: e.target.value }))}
+                                            placeholder="Enter Mobile Number (max 15 digits)"
+                                        />
+                                        {errors.mobile_number && <p className="mt-1 text-sm text-red-600">{errors.mobile_number}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            WhatsApp Number (Optional)
+                                        </label>
+                                        <PhoneInputWithCountry
+                                            countryCode={whatsappCountry}
+                                            onCountryCodeChange={setWhatsappCountry}
+                                            value={formData.whatsapp_number}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_number: e.target.value }))}
+                                            placeholder="Enter WhatsApp Number (max 15 digits)"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             

@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useUpdateContactDetailsMutation } from "@/store/features/vendorProfileApi";
 import { useRouter } from "next/navigation";
 import { User, ArrowRight } from "lucide-react";
+import PhoneInputWithCountry from "@/components/ui/PhoneInputWithCountry";
 
 export default function ContactDetailsPage() {
+    const [phoneCountry, setPhoneCountry] = useState("+974");
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
         formState: { errors },
     } = useForm();
     const [updateContactDetails, { isLoading }] = useUpdateContactDetailsMutation();
@@ -64,8 +69,9 @@ export default function ContactDetailsPage() {
                                     {...register("primary_contact_name", {
                                         required: "Contact name is required.",
                                     })}
+                                    maxLength={100}
                                     className={inputClass(errors.primary_contact_name)}
-                                    placeholder="e.g., Jane Doe"
+                                    placeholder="Enter Full Name (max 100 chars)"
                                 />
                                 {errors.primary_contact_name && (
                                     <p className="mt-1 text-sm text-red-600">
@@ -89,8 +95,9 @@ export default function ContactDetailsPage() {
                                             message: "Please enter a valid email address."
                                         }
                                     })}
+                                    maxLength={100}
                                     className={inputClass(errors.primary_contact_email)}
-                                    placeholder="you@example.com"
+                                    placeholder="Enter Email Address (e.g. name@domain.com - max 100 chars)"
                                 />
                                 {errors.primary_contact_email && (
                                     <p className="mt-1 text-sm text-red-600">
@@ -104,15 +111,15 @@ export default function ContactDetailsPage() {
                                 <label htmlFor="primary_contact_phone" className="block text-sm font-medium text-gray-700">
                                     Phone Number *
                                 </label>
-                                <input
-                                    id="primary_contact_phone"
-                                    type="tel"
-                                    {...register("primary_contact_phone", {
-                                        required: "Phone number is required.",
-                                    })}
-                                    className={inputClass(errors.primary_contact_phone)}
-                                    placeholder="(123) 456-7890"
-                                />
+                                <div className="mt-2">
+                                    <PhoneInputWithCountry
+                                        countryCode={phoneCountry}
+                                        onCountryCodeChange={setPhoneCountry}
+                                        value={watch("primary_contact_phone") || ""}
+                                        onChange={(e) => setValue("primary_contact_phone", e.target.value)}
+                                        placeholder="Enter Phone Number (max 15 digits)"
+                                    />
+                                </div>
                                 {errors.primary_contact_phone && (
                                     <p className="mt-1 text-sm text-red-600">
                                         {errors.primary_contact_phone.message}

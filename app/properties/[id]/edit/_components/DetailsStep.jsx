@@ -36,8 +36,10 @@ export default function DetailsStep({ formData, handleChange }) {
                     name="price_per_night"
                     value={formData.price_per_night || ''}
                     onChange={handleChange}
+                    placeholder="Enter Price Per Night (e.g. 150 - max 6 digits)"
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     min="0"
+                    max="999999"
                 />
             </div>
 
@@ -45,14 +47,19 @@ export default function DetailsStep({ formData, handleChange }) {
                 <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
                     Currency
                 </label>
-                <input
-                    type="text"
+                <select
                     id="currency"
                     name="currency"
-                    value={formData.currency || ''}
+                    value={formData.currency || 'QAR'}
                     onChange={handleChange}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+                >
+                    <option value="QAR">QAR (Qatari Riyal)</option>
+                    <option value="AED">AED (UAE Dirham)</option>
+                    <option value="KWD">KWD (Kuwaiti Dinar)</option>
+                    <option value="USD">USD (US Dollar)</option>
+                    <option value="EUR">EUR (Euro)</option>
+                </select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

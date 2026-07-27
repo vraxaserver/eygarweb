@@ -83,7 +83,8 @@ export const CouponForm = ({
                                         title: e.target.value,
                                     }))
                                 }
-                                placeholder="e.g., Summer Sale"
+                                placeholder="Enter Coupon Title (max 60 chars)"
+                                maxLength={60}
                                 required
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                             />
@@ -135,7 +136,8 @@ export const CouponForm = ({
                                                 code: e.target.value.toUpperCase(),
                                             }))
                                         }
-                                        placeholder="e.g., SAVE20"
+                                        placeholder="Enter Code (max 20 chars)"
+                                        maxLength={20}
                                         required
                                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent font-mono"
                                     />

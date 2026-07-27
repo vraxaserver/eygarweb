@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-pm2 start npm --name "egarweb-app" -- run start
+pm2 start npm --name "eygarweb-app" -- run start

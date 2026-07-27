@@ -173,11 +173,9 @@ export default function UserSettingsPage() {
                                                     />
                                                 ) : null}
                                                 <AvatarFallback>
-                                                    {(user?.first_name?.[0] ||
-                                                        "") +
-                                                        (user?.last_name?.[0] ||
-                                                            "") ||
-                                                        user?.email?.[0].toUpperCase()}
+                                                    {(user?.first_name?.[0] || "") + (user?.last_name?.[0] || "") ||
+                                                        user?.email?.[0]?.toUpperCase() ||
+                                                        "U"}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="space-x-2">

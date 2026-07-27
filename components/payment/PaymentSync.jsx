@@ -25,7 +25,7 @@ export default function PaymentSync({ paymentData }) {
                 console.log("Payment recorded successfully");
             } catch (error) {
                 // If error is "Already exists", that's fine.
-                console.error("Failed to record payment:", error);
+                console.error("Failed to record payment:", error?.data || error?.message || error);
             }
         };
 

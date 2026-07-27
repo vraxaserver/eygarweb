@@ -10,7 +10,7 @@ export const paymentApi = createApi({
     tagTypes: ["Payment"], // Used for cache invalidation
 
     baseQuery: fetchBaseQuery({
-        baseUrl: `${BASE_URL}/payments`, // Matches your FastAPI router prefix
+        baseUrl: BASE_URL, // Matches your Kong /payments path or FastAPI root
 
         // Automatically injects the JWT token from your Redux Auth state
         prepareHeaders: (headers, { getState }) => {
@@ -29,7 +29,7 @@ export const paymentApi = createApi({
          * @description Get payment history for the current logged-in user
          */
         getPaymentHistory: builder.query({
-            query: () => "/my-history",
+            query: () => "/payments/my-history",
             // Smart Caching: Associate this list with the 'Payment' tag
             providesTags: (result) =>
                 result
@@ -45,7 +45,7 @@ export const paymentApi = createApi({
          * @param {number} id - The payment ID
          */
         getPaymentById: builder.query({
-            query: (id) => `/${id}`,
+            query: (id) => `/payments/${id}`,
             providesTags: (result, error, id) => [{ type: "Payment", id }],
         }),
 
@@ -55,7 +55,7 @@ export const paymentApi = createApi({
          */
         createPayment: builder.mutation({
             query: (body) => ({
-                url: "/",
+                url: "/payments/",
                 method: "POST",
                 body,
             }),

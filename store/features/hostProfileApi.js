@@ -71,7 +71,7 @@ export const profileApi = createApi({
         }),
         getHostProfile: builder.query({
             query: (id) => ({
-                url: `/profiles/hosts/${id}`,
+                url: `/profiles/hosts/${id}/`,
                 method: "GET",
             })
         })

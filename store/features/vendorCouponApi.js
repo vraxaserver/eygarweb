@@ -30,7 +30,7 @@ export const vendorCouponApi = createApi({
 
         // Fetch all coupons (admin / public listing)
         getCoupons: builder.query({
-            query: () => "/vendors/coupons/",
+            query: () => "/vendors/coupons",
             transformResponse: (response) => response.results ?? response ?? [],
             providesTags: (result) =>
                 result
@@ -44,7 +44,7 @@ export const vendorCouponApi = createApi({
         // Create a new coupon
         addCoupon: builder.mutation({
             query: (newCoupon) => ({
-                url: "/vendors/coupons/",
+                url: "/vendors/coupons",
                 method: "POST",
                 body: newCoupon,
             }),

@@ -221,11 +221,17 @@ export default function ReservePage({ params }) {
             0
         );
 
+        const formatIso = (val) => {
+            if (!val) return "";
+            const d = val instanceof Date ? val : new Date(val);
+            return isNaN(d.getTime()) ? String(val) : d.toISOString();
+        };
+
         const booking_req_body = {
-            property_id: property.id,
+            property_id: String(property.id),
             property_snapshot: property,
-            check_in_date: bookingDetails.checkIn,
-            check_out_date: bookingDetails.checkOut,
+            check_in_date: formatIso(bookingDetails.checkIn),
+            check_out_date: formatIso(bookingDetails.checkOut),
             guests_count: guestsCount,
             currency: bookingDetails.currency?.toUpperCase(),
             nights_stay: bookingDetails.nights,
@@ -248,12 +254,13 @@ export default function ReservePage({ params }) {
             setCurrentStep(2);
         } catch (err) {
             console.error("Booking confirmation failed:", err);
-            alert(
+            const errorMessage =
+                err?.data?.message ||
                 err?.data?.error ||
-                    err?.error ||
-                    err?.message ||
-                    "Failed to confirm booking."
-            );
+                err?.error ||
+                err?.message ||
+                "Failed to confirm booking.";
+            alert(errorMessage);
         } finally {
             setConfirmingBooking(false);
         }

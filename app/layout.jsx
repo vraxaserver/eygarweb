@@ -1,5 +1,6 @@
 import { Montserrat, Roboto, Noto_Sans_Arabic } from "next/font/google";
 import ReduxProvider from "@/providers/ReduxProvider";
+import { LanguageProvider } from "@/lib/i18n";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import { Toaster } from "sonner";
@@ -40,18 +41,19 @@ export default function RootLayout({ children }) {
         >
             <body>
                 <ReduxProvider>
-                    <div className="min-h-screen">
-                        <Toaster position="top-right" richColors />
-                        <LocationFetcher />
-                        <Header />
+                    <LanguageProvider>
+                        <div className="min-h-screen">
+                            <Toaster position="top-right" richColors />
+                            <LocationFetcher />
+                            <Header />
 
-                        {/* Main Content */}
-                        {children}
+                            {/* Main Content */}
+                            {children}
 
-                        {/* Footer */}
-                        <Footer />
-                    </div>
-                   
+                            {/* Footer */}
+                            <Footer />
+                        </div>
+                    </LanguageProvider>
                 </ReduxProvider>
             </body>
         </html>

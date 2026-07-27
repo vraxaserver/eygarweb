@@ -7,10 +7,13 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
  * Endpoint: GET /amenities/
  */
 
+const rawBaseUrl = process.env.NEXT_PUBLIC_PROPERTIES_API_URL || "http://127.0.0.1:8080/propertylisting";
+const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl : `${rawBaseUrl}/`;
+
 export const amenitiesApi = createApi({
     reducerPath: "amenitiesApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: process.env.NEXT_PUBLIC_PROPERTIES_API_URL,
+        baseUrl: baseUrl,
         prepareHeaders: (headers, { getState }) => {
             headers.set("Accept", "application/json");
 
@@ -25,11 +28,11 @@ export const amenitiesApi = createApi({
     endpoints: (builder) => ({
         /**
          * Get all amenities
-         * GET /amenities/
+         * GET amenities/ or amenities
          */
         getAmenities: builder.query({
             query: () => ({
-                url: "/amenities/",
+                url: "amenities",
                 method: "GET",
             }),
             providesTags: (result) =>

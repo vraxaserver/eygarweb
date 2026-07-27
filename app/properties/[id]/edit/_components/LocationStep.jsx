@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import React, { useState } from 'react';
+import { GoogleMap, Marker, Autocomplete } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
 
 const mapContainerStyle = {
@@ -15,6 +15,7 @@ const DEFAULT_CENTER = { lat: 25.2854, lng: 51.531 }; // Doha default
 export default function LocationStep({ formData, handleChange }) {
     const location = formData.location || {};
     const { isLoaded } = useGoogleMaps();
+    const [autocomplete, setAutocomplete] = useState(null);
 
     const currentLat = Number(location.latitude) || DEFAULT_CENTER.lat;
     const currentLng = Number(location.longitude) || DEFAULT_CENTER.lng;
@@ -30,6 +31,45 @@ export default function LocationStep({ formData, handleChange }) {
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-semibold mb-4 text-gray-700">Location Details</h2>
+
+            {/* Map Search Box */}
+            {isLoaded && (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Search Location on Map
+                    </label>
+                    <Autocomplete
+                        onLoad={(instance) => setAutocomplete(instance)}
+                        onPlaceChanged={() => {
+                            if (autocomplete !== null) {
+                                const place = autocomplete.getPlace();
+                                if (place?.geometry?.location) {
+                                    const lat = place.geometry.location.lat();
+                                    const lng = place.geometry.location.lng();
+                                    const addressStr = place.formatted_address || place.name || "";
+                                    
+                                    handleChange('address', location.address || addressStr);
+                                    handleChange('latitude', lat);
+                                    handleChange('longitude', lng);
+
+                                    place.address_components?.forEach((comp) => {
+                                        if (comp.types.includes('locality')) handleChange('city', comp.long_name);
+                                        if (comp.types.includes('country')) handleChange('country', comp.long_name);
+                                        if (comp.types.includes('administrative_area_level_1')) handleChange('state', comp.long_name);
+                                        if (comp.types.includes('postal_code')) handleChange('postal_code', comp.long_name);
+                                    });
+                                }
+                            }
+                        }}
+                    >
+                        <input
+                            type="text"
+                            placeholder="Type to search location on Google Maps..."
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                    </Autocomplete>
+                </div>
+            )}
 
             <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">

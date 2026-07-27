@@ -1,14 +1,30 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
     const [language, setLanguage] = useState("en");
 
+    useEffect(() => {
+        // Load initial language preference from localStorage if available
+        const savedLang = localStorage.getItem("eygar_lang");
+        if (savedLang && (savedLang === "en" || savedLang === "ar")) {
+            setLanguage(savedLang);
+            document.documentElement.dir = savedLang === "ar" ? "rtl" : "ltr";
+            document.documentElement.lang = savedLang;
+        } else {
+            document.documentElement.dir = "ltr";
+            document.documentElement.lang = "en";
+        }
+    }, []);
+
     const changeLanguage = (newLanguage) => {
         setLanguage(newLanguage);
+        localStorage.setItem("eygar_lang", newLanguage);
+        document.documentElement.dir = newLanguage === "ar" ? "rtl" : "ltr";
+        document.documentElement.lang = newLanguage;
     };
 
     return (
@@ -144,17 +160,17 @@ export const useTranslation = () => {
         },
         ar: {
             // Navigation
-            "nav.home": "وطن",
+            "nav.home": "الرئيسية",
             "nav.placesToStay": "أماكن الإقامة",
             "nav.complimentary_activities": "الأنشطة المجانية",
-            "nav.stays": "إقامات +",
-            "nav.place_by_image": "أماكن حسب الصورة",
+            "nav.stays": "إقامات مميزة",
+            "nav.place_by_image": "أماكن بالصور",
             "nav.becomeHost": "كن مضيفاً",
             "nav.findSafeProperty": "البحث عن عقارات آمنة",
             "nav.helpCenter": "مركز المساعدة",
             "nav.login": "تسجيل الدخول",
             "nav.signup": "إنشاء حساب",
-            "nav.help": "مساعدة",
+            "nav.help": "المساعدة",
 
             // Home page
             "home.featured_section_title": "العقارات المميزة",
@@ -164,7 +180,7 @@ export const useTranslation = () => {
                 "استمتع بسفر خالٍ من القلق بفضل تدابير السلامة الشاملة لدينا، والامتثال الحكومي، والتغطية التأمينية المجانية لكل حجز.",
             "home.PopularDestinations_title": "الوجهات الأكثر شعبية",
             "home.PopularDestinations_desc":
-                "استكشف الوجهات الأكثر حبًا لدى المسافرين ",
+                "استكشف الوجهات الأكثر حبًا لدى المسافرين",
             "home.popular": "شائع",
             "home.safety_certified_host_section_title":
                 "المضيفون المعتمدون للسلامة",
@@ -192,21 +208,21 @@ export const useTranslation = () => {
 
             // Search
             "search.destination": "البحث عن الوجهات",
-            "search.destinationPlaceholder": "إلى أين تذهب؟",
+            "search.destinationPlaceholder": "إلى أين تريد الذهاب؟",
             "search.checkIn": "تسجيل الوصول",
             "search.checkOut": "تسجيل المغادرة",
             "search.guests": "الضيوف",
             "search.categories": "الفئات",
-            "search.filters": "المرشحات",
+            "search.filters": "الفلاتر",
             "search.addDates": "إضافة تواريخ",
             "search.allCategories": "جميع الفئات",
             "search.searchButton": "بحث",
             "search.adults": "البالغون",
             "search.children": "الأطفال",
             "search.pets": "الحيوانات الأليفة",
-            "search.adultsDesc": "أعمار 13 سنة فما فوق",
-            "search.childrenDesc": "أعمار 2-12 سنة",
-            "search.petsDesc": "تحضر حيوان خدمة؟",
+            "search.adultsDesc": "من عمر 13 سنة فما فوق",
+            "search.childrenDesc": "من عمر 2 إلى 12 سنة",
+            "search.petsDesc": "هل تصطحب حيوان خدمة؟",
 
             // Property
             "property.night": "ليلة",
@@ -216,11 +232,11 @@ export const useTranslation = () => {
             "property.safetyBadge": "معتمد الأمان",
             "property.freeExperience": "تجربة مجانية",
             "property.localCoupons": "كوبونات محلية",
-            "property.bookNow": "احجز",
+            "property.bookNow": "احجز الآن",
             "property.viewDetails": "عرض التفاصيل",
 
             // Host Dashboard
-            "host.dashboard": "لوحة المضيف",
+            "host.dashboard": "لوحة تحكم المضيف",
             "host.overview": "نظرة عامة",
             "host.properties": "العقارات",
             "host.bookings": "الحجوزات",
@@ -238,7 +254,7 @@ export const useTranslation = () => {
             // Common
             "common.loading": "جاري التحميل...",
             "common.error": "خطأ",
-            "common.success": "نجح",
+            "common.success": "تم بنجاح",
             "common.cancel": "إلغاء",
             "common.save": "حفظ",
             "common.edit": "تعديل",

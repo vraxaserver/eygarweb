@@ -498,16 +498,23 @@ const SearchBar = () => {
                 </div>
 
                 {/* ======= Mobile View ======= */}
-                <div className="flex md:hidden items-center bg-white border border-gray-300 rounded-full shadow p-2 space-x-2">
-                    <div className="flex-1">
-                        <LocationSearch />
+                <div className="flex flex-col md:hidden space-y-3">
+                    <div className="flex items-center bg-white border border-gray-300 rounded-full shadow-md p-1.5 space-x-2">
+                        <div className="flex-1">
+                            <LocationSearch />
+                        </div>
+                        <Button
+                            onClick={handleSearch}
+                            className="bg-[#814193] hover:bg-[#6d3580] text-white rounded-full w-10 h-10 flex items-center justify-center p-0 flex-shrink-0"
+                        >
+                            <Search className="h-5 w-5" />
+                        </Button>
                     </div>
-                    <Button
-                        onClick={handleSearch}
-                        className="bg-[#814193] hover:bg-[#6d3580] text-white rounded-full w-10 h-10 flex items-center justify-center p-0"
-                    >
-                        <Search className="h-5 w-5" />
-                    </Button>
+
+                    {/* Mobile Filter Chips Bar */}
+                    <div className="pt-1">
+                        <FilterBar />
+                    </div>
                 </div>
             </div>
         </div>

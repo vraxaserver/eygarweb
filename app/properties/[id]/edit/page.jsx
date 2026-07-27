@@ -8,6 +8,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import DetailsStep from "./_components/DetailsStep";
 import LocationStep from "./_components/LocationStep";
+import AmenitiesExperiencesStep from "./_components/AmenitiesExperiencesStep";
 import ImagesDisplay from "./_components/ImagesDisplay";
 import ConfirmStep from "./_components/ConfirmStep";
 import {
@@ -60,6 +61,8 @@ export default function PropertyEditPage({ params }) {
             if (propertyData.host_id === currentUserId) {
                 setHasPermission(true);
                 setFormData({
+                    title: propertyData.title || "",
+                    description: propertyData.description || "",
                     property_type: propertyData.property_type || "",
                     place_type: propertyData.place_type || "",
                     price_per_night: propertyData.price_per_night,
@@ -69,6 +72,8 @@ export default function PropertyEditPage({ params }) {
                     bathrooms: propertyData.bathrooms,
                     max_guests: propertyData.max_guests,
                     is_featured: propertyData.is_featured,
+                    amenity_ids: propertyData.amenities ? propertyData.amenities.map(a => a.id) : [],
+                    experience_ids: propertyData.experiences ? propertyData.experiences.map(e => e.id) : [],
                     location: { ...propertyData.location },
                 });
                 setExistingImages(propertyData.images || []);
@@ -190,6 +195,8 @@ export default function PropertyEditPage({ params }) {
         try {
             const payload = {
                 id: propertyId,
+                title: formData.title || "",
+                description: formData.description || "",
                 property_type: formData.property_type || "",
                 place_type: formData.place_type || "",
                 currency: formData.currency || "",
@@ -201,6 +208,8 @@ export default function PropertyEditPage({ params }) {
                 beds: formData.beds ? parseInt(formData.beds, 10) : 0,
                 bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms) : 0,
                 max_guests: formData.max_guests ? parseInt(formData.max_guests, 10) : 1,
+                amenity_ids: formData.amenity_ids || [],
+                experience_ids: formData.experience_ids || [],
                 location: {
                     address: formData.location.address || "",
                     city: formData.location.city || "",
@@ -250,6 +259,11 @@ export default function PropertyEditPage({ params }) {
             key="location"
             formData={formData}
             handleChange={handleLocationChange}
+        />,
+        <AmenitiesExperiencesStep
+            key="amenities_experiences"
+            formData={formData}
+            setFormData={setFormData}
         />,
         <ImagesDisplay
             key="images"

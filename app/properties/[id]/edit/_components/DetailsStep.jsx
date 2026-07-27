@@ -4,7 +4,49 @@ import React from 'react';
 export default function DetailsStep({ formData, handleChange }) {
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-700">Property Details</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-gray-700">Property Basic Information</h2>
+
+            <div>
+                <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                        Property Title *
+                    </label>
+                    <span className={`text-xs font-medium ${100 - (formData.title?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                        Remaining: {100 - (formData.title?.length || 0)}
+                    </span>
+                </div>
+                <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title || ''}
+                    onChange={handleChange}
+                    placeholder="Enter Property Title (e.g. Luxury Beachside Villa - max 100 chars)"
+                    maxLength={100}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+            </div>
+
+            <div>
+                <div className="flex justify-between items-center mb-1">
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                        Description *
+                    </label>
+                    <span className={`text-xs font-medium ${1000 - (formData.description?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                        Remaining: {1000 - (formData.description?.length || 0)}
+                    </span>
+                </div>
+                <textarea
+                    id="description"
+                    name="description"
+                    rows="4"
+                    value={formData.description || ''}
+                    onChange={handleChange}
+                    placeholder="Enter Property Description (max 1000 chars)"
+                    maxLength={1000}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+            </div>
 
             <div>
                 <label htmlFor="property_type" className="block text-sm font-medium text-gray-700 mb-1">

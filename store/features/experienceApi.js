@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_PROPERTIES_API_URL;
+const rawBaseUrl = process.env.NEXT_PUBLIC_PROPERTIES_API_URL || "http://127.0.0.1:8080/propertylisting";
+const BASE_URL = rawBaseUrl.endsWith("/") ? rawBaseUrl : `${rawBaseUrl}/`;
 
 
 // Define a service using a base URL and expected endpoints
@@ -22,16 +23,16 @@ export const experiencesApi = createApi({
     endpoints: (builder) => ({
         // GET all experiences
         getMyExperiences: builder.query({
-            query: () => "/experiences/my-experiences",
+            query: () => "experiences/my-experiences",
             // Provides the 'Experience' tag for the fetched list.
             // If any mutation invalidates this tag, this query will be re-fetched.
             transformResponse: (response, meta, arg) => {
                 console.log("Received experiences from server:", response);
                 // You can modify the response here if needed before it hits the cache
-                return response.items;
+                return response?.items || response || [];
             },
             providesTags: (result) =>
-                result
+                Array.isArray(result)
                     ? [
                           ...result.map(({ id }) => ({
                               type: "Experience",
@@ -43,16 +44,16 @@ export const experiencesApi = createApi({
         }),
 
         getExperiences: builder.query({
-            query: () => "/experiences",
+            query: () => "experiences",
             // Provides the 'Experience' tag for the fetched list.
             // If any mutation invalidates this tag, this query will be re-fetched.
             transformResponse: (response, meta, arg) => {
                 console.log("Received experiences from server:", response);
                 // You can modify the response here if needed before it hits the cache
-                return response.items;
+                return response?.items || response || [];
             },
             providesTags: (result) =>
-                result
+                Array.isArray(result)
                     ? [
                           ...result.map(({ id }) => ({
                               type: "Experience",
@@ -65,14 +66,14 @@ export const experiencesApi = createApi({
 
         // GET a single experience by ID
         getExperience: builder.query({
-            query: (id) => `/experiences/${id}`,
+            query: (id) => `experiences/${id}`,
             providesTags: (result, error, id) => [{ type: "Experience", id }],
         }),
 
         // POST (create) a new experience
         addExperience: builder.mutation({
             query: (newExperience) => ({
-                url: "/experiences",
+                url: "experiences",
                 method: "POST",
                 body: newExperience,
             }),
@@ -83,7 +84,7 @@ export const experiencesApi = createApi({
         // PUT (update) an existing experience
         updateExperience: builder.mutation({
             query: ({ id, ...updatedExperience }) => ({
-                url: `/experiences/${id}`,
+                url: `experiences/${id}`,
                 method: "PUT",
                 body: updatedExperience,
             }),
@@ -97,8 +98,9 @@ export const experiencesApi = createApi({
         // DELETE an experience
         deleteExperience: builder.mutation({
             query: (id) => ({
-                url: `/experiences/${id}`,
+                url: `experiences/${id}`,
                 method: "DELETE",
+                body: {},
             }),
             // Invalidates the specific experience tag and the list tag.
             invalidatesTags: (result, error, id) => [
@@ -108,7 +110,7 @@ export const experiencesApi = createApi({
         }),
         attachProperties: builder.mutation({
             query: ({ experienceId, propertyIds }) => ({
-                url: `/experiences/${experienceId}/properties`,
+                url: `experiences/${experienceId}/properties`,
                 method: 'POST',
                 body: propertyIds, // The body is an array of IDs
             }),
@@ -116,14 +118,14 @@ export const experiencesApi = createApi({
             invalidatesTags: (result, error, { experienceId }) => [{ type: 'Experience', id: experienceId }],
         }),
         getPropertiesByExperience: builder.query({
-            query: (experienceId) => `/experiences/${experienceId}/properties`,
+            query: (experienceId) => `experiences/${experienceId}/properties`,
         }),
 
         // GET all experiences for a specific property
         getExperiencesByProperty: builder.query({
-            query: (propertyId) => `/experiences/property/${propertyId}/experiences`,
+            query: (propertyId) => `experiences/property/${propertyId}/experiences`,
             providesTags: (result, error, propertyId) =>
-                result
+                Array.isArray(result)
                     ? [
                           ...result.map(({ id }) => ({ type: "Experience", id })),
                           { type: "Experience", id: `PROPERTY_${propertyId}` },

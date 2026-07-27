@@ -515,7 +515,7 @@ export default function PropertyDetails({ params }) {
 
                         {/* Amenities */}
                         <div id="amenities">
-                            <Amenities amenities={amenitiesList} />
+                            <Amenities amenities={property.amenities?.length ? property.amenities : amenitiesList} />
                         </div>
                         <Separator className="mb-8" />
 

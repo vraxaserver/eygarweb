@@ -24,7 +24,12 @@ import AttachPropertiesModal from "@/components/experience/AttachPropertiesModal
 
 // Note: You might want to add a toast library like 'react-hot-toast' or 'sonner' for user feedback.
 
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/store/slices/authSlice";
+
 const TabMyExperiences = () => {
+    const user = useSelector(selectCurrentUser);
+    const hostId = user?.eygar_host?.id || user?.id;
     // === RTK Query Hooks ===
     const { data: experiences, error, isLoading } = useGetMyExperiencesQuery();
     const [addExperience, { isLoading: isAdding }] = useAddExperienceMutation();
@@ -181,6 +186,7 @@ const TabMyExperiences = () => {
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleFormSubmit}
                 experience={editingExperience}
+                hostId={hostId}
                 isLoading={isAdding || isUpdating}
             />
             <DeleteConfirmationDialog

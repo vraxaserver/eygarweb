@@ -20,6 +20,17 @@ export default function LocationStep({ formData, handleChange }) {
     const currentLat = Number(location.latitude) || DEFAULT_CENTER.lat;
     const currentLng = Number(location.longitude) || DEFAULT_CENTER.lng;
 
+    const [mapCenter, setMapCenter] = useState({ lat: currentLat, lng: currentLng });
+
+    React.useEffect(() => {
+        if (location.latitude && location.longitude) {
+            setMapCenter({
+                lat: Number(location.latitude),
+                lng: Number(location.longitude),
+            });
+        }
+    }, [location.latitude, location.longitude]);
+
     const handleMarkerDragEnd = (e) => {
         if (!e?.latLng) return;
         const newLat = e.latLng.lat();
@@ -41,22 +52,57 @@ export default function LocationStep({ formData, handleChange }) {
                     <Autocomplete
                         onLoad={(instance) => setAutocomplete(instance)}
                         onPlaceChanged={() => {
-                            if (autocomplete !== null) {
+                            if (autocomplete) {
                                 const place = autocomplete.getPlace();
-                                if (place?.geometry?.location) {
+                                if (place && place.geometry && place.geometry.location) {
                                     const lat = place.geometry.location.lat();
                                     const lng = place.geometry.location.lng();
                                     const addressStr = place.formatted_address || place.name || "";
                                     
-                                    handleChange('address', location.address || addressStr);
+                                    let city = "";
+                                    let country = "";
+                                    let state = "";
+                                    let postalCode = "";
+
+                                    if (place.address_components) {
+                                        for (const comp of place.address_components) {
+                                            const types = comp.types || [];
+                                            if (types.includes('locality') || types.includes('postal_town') || types.includes('sublocality')) {
+                                                city = comp.long_name;
+                                            }
+                                            if (types.includes('country')) {
+                                                country = comp.long_name;
+                                            }
+                                            if (types.includes('administrative_area_level_1')) {
+                                                state = comp.long_name;
+                                            }
+                                            if (types.includes('postal_code')) {
+                                                postalCode = comp.long_name;
+                                            }
+                                        }
+                                    }
+
+                                    // Update map center immediately
+                                    setMapCenter({ lat, lng });
+
+                                    // Update individual fields
+                                    handleChange('address', addressStr);
+                                    handleChange('city', city);
+                                    handleChange('country', country);
+                                    handleChange('state', state);
+                                    handleChange('postal_code', postalCode);
                                     handleChange('latitude', lat);
                                     handleChange('longitude', lng);
 
-                                    place.address_components?.forEach((comp) => {
-                                        if (comp.types.includes('locality')) handleChange('city', comp.long_name);
-                                        if (comp.types.includes('country')) handleChange('country', comp.long_name);
-                                        if (comp.types.includes('administrative_area_level_1')) handleChange('state', comp.long_name);
-                                        if (comp.types.includes('postal_code')) handleChange('postal_code', comp.long_name);
+                                    // Also trigger object format update if parent handles object
+                                    handleChange({
+                                        address: addressStr,
+                                        city,
+                                        country,
+                                        state,
+                                        postal_code: postalCode,
+                                        latitude: lat,
+                                        longitude: lng,
                                     });
                                 }
                             }
@@ -162,7 +208,7 @@ export default function LocationStep({ formData, handleChange }) {
                     {isLoaded ? (
                         <GoogleMap
                             mapContainerStyle={mapContainerStyle}
-                            center={{ lat: currentLat, lng: currentLng }}
+                            center={mapCenter}
                             zoom={13}
                             options={{
                                 disableDefaultUI: false,

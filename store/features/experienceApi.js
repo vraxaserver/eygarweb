@@ -79,7 +79,7 @@ export const experiencesApi = createApi({
         // POST (create) a new experience
         addExperience: builder.mutation({
             query: (newExperience) => ({
-                url: "experiences",
+                url: "experiences/",
                 method: "POST",
                 body: newExperience,
             }),
@@ -138,6 +138,13 @@ export const experiencesApi = createApi({
                       ]
                     : [{ type: "Experience", id: `PROPERTY_${propertyId}` }],
         }),
+        uploadExperienceImage: builder.mutation({
+            query: (formData) => ({
+                url: "images/upload",
+                method: "POST",
+                body: formData,
+            }),
+        }),
     }),
 });
 
@@ -153,5 +160,5 @@ export const {
     useUpdateExperienceMutation,
     useDeleteExperienceMutation,
     useAttachPropertiesMutation,
-    
+    useUploadExperienceImageMutation,
 } = experiencesApi;

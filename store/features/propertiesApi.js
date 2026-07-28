@@ -82,7 +82,7 @@ const baseQueryWithAuth = fetchBaseQuery({
 export const propertiesApi = createApi({
     reducerPath: "propertiesApi",
     baseQuery: baseQueryWithAuth,
-    tagTypes: ["Property", "PropertySearch"],
+    tagTypes: ["Property", "PropertySearch", "Experience"],
     refetchOnFocus: true,
     refetchOnReconnect: true,
 
@@ -235,6 +235,8 @@ export const propertiesApi = createApi({
                 { type: "Property", id },
                 { type: "PropertySearch", id: "RESULT" },
                 { type: "Property", id: "MY_PROPERTIES_LIST" },
+                { type: "Experience", id: `PROPERTY_${id}` },
+                { type: "Experience", id: "LIST" },
             ],
         }),
 

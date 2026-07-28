@@ -188,7 +188,7 @@ export default async function Success({ searchParams }) {
                             href="/"
                             className="inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
                         >
-                            Continue shopping
+                            Continue
                         </Link>
                     </div>
                 </section>

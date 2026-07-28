@@ -3,12 +3,12 @@
 import React from "react";
 import { Check, Sparkles } from "lucide-react";
 import { useGetAmenitiesQuery } from "@/store/features/amenitiesApi";
-import { useGetExperiencesQuery } from "@/store/features/experienceApi";
+import { useGetMyExperiencesQuery } from "@/store/features/experienceApi";
 import { resolveAmenityIcon } from "@/utils/amenityIconMap";
 
 export default function AmenitiesExperiencesStep({ formData, setFormData }) {
     const { data: amenitiesList = [], isLoading: amenitiesLoading } = useGetAmenitiesQuery();
-    const { data: experiencesList = [], isLoading: experiencesLoading } = useGetExperiencesQuery();
+    const { data: experiencesList = [], isLoading: experiencesLoading } = useGetMyExperiencesQuery();
 
     const selectedAmenityIds = formData.amenity_ids || [];
     const selectedExperienceIds = formData.experience_ids || [];

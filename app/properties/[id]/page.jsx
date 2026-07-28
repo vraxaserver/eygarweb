@@ -456,58 +456,11 @@ export default function PropertyDetails({ params }) {
                         <LocalCoupons />
                         <Separator className="my-10" />
 
-                        {/* Available Experiences */}
-                        {experiencesData && experiencesData.length > 0 && (
-                            <>
-                                <div className="space-y-6">
-                                    <h3 className="flex items-center space-x-2 text-lg font-semibold">
-                                        <Gift className="h-7 w-7 text-rose-600" />
-                                        <span>Available Experiences</span>
-                                    </h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {experiencesData.map((exp) => (
-                                            <Card
-                                                key={exp.id}
-                                                className="overflow-hidden py-0 border border-accent/20 shadow-sm hover:shadow-md transition-shadow rounded-xl flex flex-col"
-                                            >
-                                                {/* Image */}
-                                                <div className="relative w-full h-48">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={exp.image_url}
-                                                        alt={exp.title}
-                                                        className="w-full h-full object-cover rounded-t-2xl"
-                                                    />
-                                                </div>
-
-                                                {/* Content */}
-                                                <CardContent className="flex flex-col flex-grow p-4">
-                                                    <h4 className="font-semibold text-foreground text-base mb-2 line-clamp-2">
-                                                        {exp.title}
-                                                    </h4>
-                                                    {exp.description && (
-                                                        <p className="text-sm text-gray-500 line-clamp-3">
-                                                            {exp.description}
-                                                        </p>
-                                                    )}
-                                                    {exp.min_nights > 0 && (
-                                                        <div className="mt-2 text-xs text-rose-600 font-medium">
-                                                            Requires min {exp.min_nights} nights stay
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </div>
-                                <Separator className="my-10" />
-                            </>
-                        )}
-
-                        {property.experiences && (
+                        {/* Enjoy Free Experiences */}
+                        {(experiencesData?.length > 0 || property.experiences?.length > 0) && (
                             <>
                                 <FreeExperiences
-                                    experiences={property.experiences}
+                                    experiences={experiencesData?.length ? experiencesData : property.experiences}
                                 />
                                 <Separator className="my-10" />
                             </>

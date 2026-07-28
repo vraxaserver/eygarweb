@@ -32,6 +32,7 @@ import {
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
 import { useCreatePropertyMutation, useUploadImageMutation, useUpdatePropertyMutation } from "@/store/features/propertiesApi";
+import { useGetAmenitiesQuery } from "@/store/features/amenitiesApi";
 import { BookingDetail } from "../guests/BookingDetails";
 import { GoogleMap, Marker, Autocomplete } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
@@ -51,9 +52,24 @@ const LoadingFallback = () => (
 export default function HostDashboard() {
     const user = useSelector(selectCurrentUser);
     const { isLoaded: isGoogleMapLoaded } = useGoogleMaps();
+    const { data: amenitiesData, isLoading: isAmenitiesLoading, error: amenitiesError } = useGetAmenitiesQuery();
     const [createProperty] = useCreatePropertyMutation();
     const [uploadImage] = useUploadImageMutation();
     const [updateProperty] = useUpdatePropertyMutation();
+
+    const handleAmenityToggle = (amenityId) => {
+        setFormData((prev) => {
+            const currentIds = prev.amenity_ids || [];
+            const exists = currentIds.includes(amenityId);
+            const updatedIds = exists
+                ? currentIds.filter((id) => id !== amenityId)
+                : [...currentIds, amenityId];
+            return {
+                ...prev,
+                amenity_ids: updatedIds,
+            };
+        });
+    };
 
     const [selectedBooking, setSelectedBooking] = useState(null);
 
@@ -451,6 +467,18 @@ export default function HostDashboard() {
                                         handleInputChange(e);
                                         if (stepErrors.title) setStepErrors(prev => ({ ...prev, title: "" }));
                                     }}
+                                    onBlur={(e) => {
+                                        const val = e.target.value.trim();
+                                        if (!val) {
+                                            setStepErrors(prev => ({ ...prev, title: "Property title is required." }));
+                                        } else if (val.length < 10) {
+                                            setStepErrors(prev => ({ ...prev, title: `Title is too short — minimum 10 characters (${val.length}/10).` }));
+                                        } else if (val.length > 100) {
+                                            setStepErrors(prev => ({ ...prev, title: "Title exceeds the 100 character limit." }));
+                                        } else {
+                                            setStepErrors(prev => ({ ...prev, title: "" }));
+                                        }
+                                    }}
                                     placeholder="Enter Property Title (e.g. Modern Sunset Villa - max 100 chars)"
                                     maxLength={100}
                                     className={`w-full px-4 py-2 border rounded-lg focus:ring-rose-500 focus:border-rose-500 ${stepErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
@@ -472,6 +500,18 @@ export default function HostDashboard() {
                                     onChange={(e) => {
                                         handleInputChange(e);
                                         if (stepErrors.description) setStepErrors(prev => ({ ...prev, description: "" }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = e.target.value.trim();
+                                        if (!val) {
+                                            setStepErrors(prev => ({ ...prev, description: "Property description is required." }));
+                                        } else if (val.length < 20) {
+                                            setStepErrors(prev => ({ ...prev, description: `Description is too short — minimum 20 characters (${val.length}/20).` }));
+                                        } else if (val.length > 1000) {
+                                            setStepErrors(prev => ({ ...prev, description: "Description exceeds the 1000 character limit." }));
+                                        } else {
+                                            setStepErrors(prev => ({ ...prev, description: "" }));
+                                        }
                                     }}
                                     rows="3"
                                     placeholder="Enter Detailed Description (max 1000 chars)"
@@ -922,7 +962,7 @@ export default function HostDashboard() {
                                                     const lng = place.geometry.location.lng();
                                                     const formattedAddress = place.formatted_address || place.name || "";
                                                     
-                                                    // Parse address components if possible
+                                                    // Parse address components
                                                     let city = "";
                                                     let country = "";
                                                     let state = "";
@@ -930,24 +970,42 @@ export default function HostDashboard() {
 
                                                     place.address_components?.forEach((component) => {
                                                         const types = component.types;
-                                                        if (types.includes("locality")) city = component.long_name;
-                                                        if (types.includes("country")) country = component.long_name;
-                                                        if (types.includes("administrative_area_level_1")) state = component.long_name;
-                                                        if (types.includes("postal_code")) postalCode = component.long_name;
+                                                        if (types.includes("locality") || types.includes("postal_town")) {
+                                                            city = component.long_name;
+                                                        }
+                                                        if (types.includes("country")) {
+                                                            country = component.long_name;
+                                                        }
+                                                        if (types.includes("administrative_area_level_1")) {
+                                                            state = component.long_name;
+                                                        }
+                                                        if (types.includes("postal_code")) {
+                                                            postalCode = component.long_name;
+                                                        }
                                                     });
 
                                                     setFormData((prev) => ({
                                                         ...prev,
                                                         location: {
                                                             ...prev.location,
-                                                            address: prev.location.address || formattedAddress,
-                                                            city: prev.location.city || city,
-                                                            country: prev.location.country || country,
-                                                            state: prev.location.state || state,
-                                                            postal_code: prev.location.postal_code || postalCode,
+                                                            address: formattedAddress,
+                                                            city: city || prev.location.city,
+                                                            country: country || prev.location.country,
+                                                            state: state || prev.location.state,
+                                                            postal_code: postalCode || prev.location.postal_code,
                                                             latitude: lat,
                                                             longitude: lng,
                                                         },
+                                                    }));
+
+                                                    // Clear location step errors when place is picked
+                                                    setStepErrors((prev) => ({
+                                                        ...prev,
+                                                        address: "",
+                                                        city: "",
+                                                        country: "",
+                                                        state: "",
+                                                        postal_code: "",
                                                     }));
                                                 }
                                             }
@@ -979,7 +1037,11 @@ export default function HostDashboard() {
                                                     const newLng = e.latLng.lng();
                                                     setFormData(prev => ({
                                                         ...prev,
-                                                        location: { ...prev.location, latitude: newLat, longitude: newLng }
+                                                        location: {
+                                                            ...prev.location,
+                                                            latitude: newLat,
+                                                            longitude: newLng
+                                                        }
                                                     }));
                                                 }
                                             }}
@@ -1119,16 +1181,56 @@ export default function HostDashboard() {
                             </button>
                         </div>
 
-                        <div className="opacity-50">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Amenities (IDs)
-                            </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Amenities
+                                </label>
+                                <span className="text-xs text-gray-500">
+                                    Selected: {formData.amenity_ids?.length || 0}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-3">
                                 Select amenities available at your property.
                             </p>
-                            <div className="border p-4 rounded-lg bg-gray-50 text-center text-sm text-gray-400">
-                                Amenity selection interface would load here...
-                            </div>
+
+                            {isAmenitiesLoading ? (
+                                <div className="border p-4 rounded-lg bg-gray-50 text-center text-sm text-gray-500">
+                                    Loading available amenities...
+                                </div>
+                            ) : amenitiesError ? (
+                                <div className="border p-4 rounded-lg bg-red-50 text-center text-sm text-red-600">
+                                    Failed to load amenities. ({amenitiesError?.data?.message || amenitiesError?.error || "Error"})
+                                </div>
+                            ) : !amenitiesData || amenitiesData.length === 0 ? (
+                                <div className="border p-4 rounded-lg bg-gray-50 text-center text-sm text-gray-500">
+                                    No amenities found.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto border p-3 rounded-lg bg-gray-50">
+                                    {amenitiesData.map((amenity) => {
+                                        const isChecked = formData.amenity_ids?.includes(amenity.id);
+                                        return (
+                                            <label
+                                                key={amenity.id}
+                                                className={`flex items-center space-x-2.5 p-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                                                    isChecked
+                                                        ? "border-rose-500 bg-rose-50 text-rose-900 font-medium"
+                                                        : "border-gray-200 bg-white hover:bg-gray-100 text-gray-700"
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => handleAmenityToggle(amenity.id)}
+                                                    className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
+                                                />
+                                                <span className="truncate">{amenity.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );

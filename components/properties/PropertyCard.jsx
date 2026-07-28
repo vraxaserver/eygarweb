@@ -37,6 +37,7 @@ import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
 
 import { useDeletePropertyMutation } from "@/store/features/propertiesApi";
+import EditPropertyModal from "./EditPropertyModal";
 
 export default function PropertyCard({ property, currentUserId }) {
     const router = useRouter();
@@ -51,6 +52,7 @@ export default function PropertyCard({ property, currentUserId }) {
     const [modalImageIndex, setModalImageIndex] = useState(0);
 
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const [deleteProperty, { isLoading: isDeleting }] =
@@ -93,7 +95,7 @@ export default function PropertyCard({ property, currentUserId }) {
 
     const handleEdit = (e) => {
         e.stopPropagation();
-        router.push(`/properties/${property.id}/edit`);
+        setShowEditModal(true);
     };
 
     const handleDelete = (e) => {
@@ -432,6 +434,13 @@ export default function PropertyCard({ property, currentUserId }) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Edit Property Modal */}
+            <EditPropertyModal
+                propertyId={property.id}
+                open={showEditModal}
+                onOpenChange={setShowEditModal}
+            />
         </>
     );
 }

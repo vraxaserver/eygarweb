@@ -197,11 +197,11 @@ export default function ReservePage({ params }) {
 
     const paymentMethods = paymentMethodsData?.paymentMethods ?? [];
 
-    // ✅ Avoid reversing on every render
+    // ✅ Avoid reversing on every render — show only 3 most recent
     const orderedPaymentMethods = useMemo(() => {
         // If API returns newest-first, use as-is.
         // If API returns oldest-first, reverse once here.
-        return [...paymentMethods].reverse();
+        return [...paymentMethods].reverse().slice(0, 3);
     }, [paymentMethods]);
 
     const handleConfirmBooking = useCallback(async () => {

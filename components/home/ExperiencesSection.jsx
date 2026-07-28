@@ -9,15 +9,22 @@ import Link from "next/link";
 
 const ExperiencesSection = () => {
     const { t } = useTranslation();
-    const { data: experiences, error, isLoading } = useGetExperiencesQuery();
+    const { data: experiencesData, error, isLoading } = useGetExperiencesQuery();
+    const experiences = Array.isArray(experiencesData)
+        ? experiencesData
+        : experiencesData?.items && Array.isArray(experiencesData.items)
+            ? experiencesData.items
+            : [];
 
     if (isLoading) return <div>Loading experiences...</div>;
-    if (error)
-        return (
-            <div>
-                An error occurred: {error.message || "Something went wrong"}
-            </div>
-        );
+    // if (error)
+    //     return (
+    //         <div>
+    //             An error occurred: {error?.data?.message || error?.error || error?.message || "Something went wrong"}
+    //         </div>
+    //     );
+
+    if (!isLoading && experiences?.length === 0) return <div className="mb-3 mt-3"></div>;
 
     return (
         <div className="w-full mb-16 mt-10">

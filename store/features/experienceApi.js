@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const rawBaseUrl = process.env.NEXT_PUBLIC_PROPERTIES_API_URL || "http://127.0.0.1:8080/propertylisting";
+const rawBaseUrl = process.env.NEXT_PUBLIC_PROPERTIES_API_URL || "http://127.0.0.1:8001/api/v1";
 const BASE_URL = rawBaseUrl.endsWith("/") ? rawBaseUrl : `${rawBaseUrl}/`;
 
 
@@ -28,8 +28,11 @@ export const experiencesApi = createApi({
             // If any mutation invalidates this tag, this query will be re-fetched.
             transformResponse: (response, meta, arg) => {
                 console.log("Received experiences from server:", response);
-                // You can modify the response here if needed before it hits the cache
-                return response?.items || response || [];
+                if (Array.isArray(response)) return response;
+                if (response?.items && Array.isArray(response.items)) return response.items;
+                if (response?.results && Array.isArray(response.results)) return response.results;
+                if (response?.data && Array.isArray(response.data)) return response.data;
+                return [];
             },
             providesTags: (result) =>
                 Array.isArray(result)
@@ -44,13 +47,16 @@ export const experiencesApi = createApi({
         }),
 
         getExperiences: builder.query({
-            query: () => "experiences",
+            query: () => "experiences/",
             // Provides the 'Experience' tag for the fetched list.
             // If any mutation invalidates this tag, this query will be re-fetched.
             transformResponse: (response, meta, arg) => {
                 console.log("Received experiences from server:", response);
-                // You can modify the response here if needed before it hits the cache
-                return response?.items || response || [];
+                if (Array.isArray(response)) return response;
+                if (response?.items && Array.isArray(response.items)) return response.items;
+                if (response?.results && Array.isArray(response.results)) return response.results;
+                if (response?.data && Array.isArray(response.data)) return response.data;
+                return [];
             },
             providesTags: (result) =>
                 Array.isArray(result)

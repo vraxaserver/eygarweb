@@ -28,7 +28,7 @@ export const categoryApi = createApi({
         // 1. Query: Get all categories
         getCategories: builder.query({
             // The query function returns the endpoint path, which is appended to the baseUrl
-            query: () => "/categories",
+            query: () => "categories/",
             // Provide a tag for this list query, which will be used for invalidation
             providesTags: (result) =>
                 result
@@ -42,14 +42,14 @@ export const categoryApi = createApi({
 
         // 2. Query: Get a single category by ID
         getCategoryById: builder.query({
-            query: (id) => `/categories/${id}`,
+            query: (id) => `categories/${id}`,
             providesTags: (result, error, id) => [{ type: "Category", id }],
         }),
 
         // 3. Mutation: Create a new category (POST request)
         addCategory: builder.mutation({
             query: (newCategory) => ({
-                url: "/categories",
+                url: "categories/",
                 method: "POST",
                 // fetchBaseQuery will automatically serialize the body to JSON
                 body: newCategory,
@@ -61,7 +61,7 @@ export const categoryApi = createApi({
         // 4. Mutation: Update an existing category (PUT or PATCH request)
         updateCategory: builder.mutation({
             query: ({ id, ...patch }) => ({
-                url: `/categories/${id}`,
+                url: `categories/${id}`,
                 method: "PUT", // or 'PATCH'
                 body: patch,
             }),
@@ -75,7 +75,7 @@ export const categoryApi = createApi({
         // 5. Mutation: Delete a category (DELETE request)
         deleteCategory: builder.mutation({
             query: (id) => ({
-                url: `/categories/${id}`,
+                url: `categories/${id}`,
                 method: "DELETE",
             }),
             // Invalidate both the specific item and the list

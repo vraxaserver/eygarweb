@@ -21,7 +21,7 @@ export const vendorServiceApi = createApi({
     endpoints: (builder) => ({
         // Endpoint for listing all vendor services
         getServices: builder.query({
-            query: () => "/vendors/services/",
+            query: () => "vendors/services/",
             // Provides a 'Service' tag to the cached data
             providesTags: (result) =>
                 result
@@ -35,7 +35,7 @@ export const vendorServiceApi = createApi({
         // Endpoint for adding a new vendor service
         addService: builder.mutation({
             query: (newService) => ({
-                url: "/vendors/services/",
+                url: "vendors/services/",
                 method: "POST",
                 body: newService,
             }),
@@ -48,7 +48,7 @@ export const vendorServiceApi = createApi({
 
         // Endpoint for listing the logged-in user's vendor services
         getMyServices: builder.query({
-            query: () => "/vendors/services/my",
+            query: () => "vendors/services/my",
             // Provides a 'Service' tag to the cached data for the logged-in user
             providesTags: (result) =>
                 result
@@ -62,7 +62,7 @@ export const vendorServiceApi = createApi({
         // Endpoint for editing an existing vendor service
         editService: builder.mutation({
             query: ({ id, ...updatedService }) => ({
-                url: `/vendors/services/${id}`,
+                url: `vendors/services/${id}`,
                 method: "PUT",
                 body: updatedService,
             }),
@@ -76,7 +76,7 @@ export const vendorServiceApi = createApi({
         // Endpoint for deleting a vendor service
         deleteService: builder.mutation({
             query: (id) => ({
-                url: `/vendors/services/${id}`,
+                url: `vendors/services/${id}`,
                 method: "DELETE",
             }),
             invalidatesTags: (result, error, id) => [
@@ -89,7 +89,7 @@ export const vendorServiceApi = createApi({
         // Caller should set subfolder = vendors/{vendor-id}/services/{service-id}
         uploadVendorServiceImage: builder.mutation({
             query: (formData) => ({
-                url: "/images/upload",
+                url: "images/upload",
                 method: "POST",
                 body: formData,
                 // Don't set Content-Type — browser sets it with boundary for multipart/form-data
@@ -97,7 +97,7 @@ export const vendorServiceApi = createApi({
             }),
         }),
         getServiceById: builder.query({
-            query: (id) => `/vendors/services/${id}`,
+            query: (id) => `vendors/services/${id}`,
             providesTags: (result, error, id) => [{ type: "Service", id }],
         }),
     }),

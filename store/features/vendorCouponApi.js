@@ -18,7 +18,7 @@ export const vendorCouponApi = createApi({
     endpoints: (builder) => ({
         // Fetch all coupons belonging to the logged-in vendor
         getMyCoupons: builder.query({
-            query: () => "/vendors/coupons/my",
+            query: () => "vendors/coupons/my",
             providesTags: (result) =>
                 result
                     ? [
@@ -30,7 +30,7 @@ export const vendorCouponApi = createApi({
 
         // Fetch all coupons (admin / public listing)
         getCoupons: builder.query({
-            query: () => "/vendors/coupons",
+            query: () => "vendors/coupons",
             transformResponse: (response) => response.results ?? response ?? [],
             providesTags: (result) =>
                 result
@@ -44,7 +44,7 @@ export const vendorCouponApi = createApi({
         // Create a new coupon
         addCoupon: builder.mutation({
             query: (newCoupon) => ({
-                url: "/vendors/coupons",
+                url: "vendors/coupons",
                 method: "POST",
                 body: newCoupon,
             }),
@@ -57,7 +57,7 @@ export const vendorCouponApi = createApi({
         // Update an existing coupon
         updateCoupon: builder.mutation({
             query: ({ id, ...patch }) => ({
-                url: `/vendors/coupons/${id}`,
+                url: `vendors/coupons/${id}`,
                 method: "PUT",
                 body: patch,
             }),
@@ -71,7 +71,7 @@ export const vendorCouponApi = createApi({
         // Delete a coupon
         deleteCoupon: builder.mutation({
             query: (id) => ({
-                url: `/vendors/coupons/${id}`,
+                url: `vendors/coupons/${id}`,
                 method: "DELETE",
             }),
             invalidatesTags: (result, error, id) => [

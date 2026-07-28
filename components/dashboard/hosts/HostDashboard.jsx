@@ -41,7 +41,6 @@ import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
 const TabOverview = React.lazy(() => import("./TabOverview"));
 const TabMyProperty = React.lazy(() => import("./TabMyProperty"));
 const TabMyBookings = React.lazy(() => import("./TabMyBookings"));
-const TabMyGuests = React.lazy(() => import("./TabMyGuests"));
 const TabMyExperiences = React.lazy(() => import("./TabMyExperiences"));
 const TabAnalytics = React.lazy(() => import("./TabAnalytics"));
 
@@ -1333,11 +1332,10 @@ export default function HostDashboard() {
                 </div>
 
                 <Tabs defaultValue="overview" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="properties">Properties</TabsTrigger>
                         <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                        <TabsTrigger value="guests">Guests</TabsTrigger>
                         <TabsTrigger value="experiences">
                             Experiences
                         </TabsTrigger>
@@ -1363,13 +1361,6 @@ export default function HostDashboard() {
                                 onViewDetails={(booking) =>
                                     setSelectedBooking(booking)
                                 }
-                            />
-                        </TabsContent>
-
-                        <TabsContent value="guests">
-                            <TabMyGuests
-                                ongoingBookings={ongoingBookings}
-                                upcomingBookings={upcomingBookings}
                             />
                         </TabsContent>
 

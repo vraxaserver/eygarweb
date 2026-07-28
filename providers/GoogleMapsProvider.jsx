@@ -11,6 +11,7 @@ export const GoogleMapsProvider = ({ children }) => {
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
         libraries: useMemo(() => ["places", "maps"], []), // keep this consistent app-wide
         version: "weekly",
+        googleMapsBuildId: "weekly",
     });
 
     if (loadError) {

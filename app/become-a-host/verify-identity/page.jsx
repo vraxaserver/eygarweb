@@ -8,15 +8,44 @@ import {
     ShieldCheck,
     FileCheck2,
     Info,
+    AlertCircle,
 } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { useVerifyIdentityMutation } from "@/store/features/hostProfileApi";
 
-// Reusable file upload component
-const FileUploader = ({ title, onFileChange, fileName, error }) => {
+const FileUploader = ({ title, onFileChange, fileName, error, setError }) => {
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
-        onFileChange(file || null);
+        if (!file) {
+            onFileChange(null);
+            return;
+        }
+
+        setError?.("");
+
+        const allowedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const validExts = ['png', 'jpg', 'jpeg', 'webp'];
+
+        if (!allowedImageTypes.includes(file.type.toLowerCase()) && !validExts.includes(fileExt)) {
+            setError?.(
+                "PDF and document files are not supported for ID verification. Please upload a clear photo or scan of your document in image format (JPG, JPEG, or PNG)."
+            );
+            onFileChange(null);
+            return;
+        }
+
+        const maxSizeBytes = 5 * 1024 * 1024; // 5MB limit matching backend serializer
+        if (file.size > maxSizeBytes) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            setError?.(
+                `File size limit exceeded: Selected document is ${sizeMB}MB. Please select an image file smaller than 5MB.`
+            );
+            onFileChange(null);
+            return;
+        }
+
+        onFileChange(file);
     };
 
     const borderColor = error ? "border-red-400" : "border-gray-300";
@@ -29,13 +58,13 @@ const FileUploader = ({ title, onFileChange, fileName, error }) => {
                     type="file"
                     className="sr-only"
                     onChange={handleFileChange}
-                    accept="image/png, image/jpeg, application/pdf"
+                    accept="image/png, image/jpeg, image/jpg, image/webp"
                 />
                 <div className="flex flex-col items-center">
                     {fileName ? (
                         <>
                             <FileCheck2 className="mx-auto h-12 w-12 text-green-500" />
-                            <span className="mt-2 block text-sm font-medium text-gray-900 truncate">
+                            <span className="mt-2 block text-sm font-medium text-gray-900 truncate max-w-xs">
                                 {fileName}
                             </span>
                         </>
@@ -46,13 +75,13 @@ const FileUploader = ({ title, onFileChange, fileName, error }) => {
                                 {title}
                             </span>
                             <span className="text-xs text-gray-500">
-                                PNG, JPG or PDF up to 10MB
+                                PNG, JPG, or JPEG images up to 5MB (PDFs are not accepted)
                             </span>
                         </>
                     )}
                 </div>
             </label>
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-1.5 text-sm text-red-600 font-medium">{error}</p>}
         </div>
     );
 };
@@ -69,61 +98,77 @@ export default function VerifyIdentityPage() {
 
     const handleDocTypeChange = (type) => {
         if (type === "passport" && backFile) {
-            setBackFile(null); // Clear back file when switching to passport
+            setBackFile(null);
         }
         setDocType(type);
+        setErrors({});
     };
     
     const validateForm = () => {
         const newErrors = {};
         if (!documentNumber.trim()) {
             newErrors.documentNumber = "Document number is required.";
+        } else if (documentNumber.trim().length < 5) {
+            newErrors.documentNumber = "Document number must be at least 5 characters long.";
         }
+
         if (!frontFile) {
-            newErrors.frontFile = "Please upload the front of your document.";
+            newErrors.frontFile = `Please upload the ${docType === "passport" ? "passport image" : "front of your ID"} file (JPG or PNG).`;
         }
+
         if (docType === "id" && !backFile) {
-            newErrors.backFile = "Please upload the back of your ID.";
+            newErrors.backFile = "Please upload the back of your ID file (JPG or PNG).";
         }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrors(prev => ({ ...prev, submit: "" })); // Clear previous submission errors
+        setErrors(prev => ({ ...prev, submit: "" }));
 
         if (!validateForm()) {
             return;
         }
 
-        // FormData is correctly populated here.
         const formData = new FormData();
         formData.append("document_type", docType);
-        formData.append("document_number", documentNumber);
+        formData.append("document_number", documentNumber.trim());
         
-        // Ensure files are appended correctly before submission.
         if (frontFile) {
             formData.append("document_image_front", frontFile);
         }
         if (docType === "id" && backFile) {
             formData.append("document_image_back", backFile);
         }
-        
-        // For debugging: To properly view FormData contents, iterate over its entries.
-        // for (let [key, value] of formData.entries()) {
-        //     console.log(`${key}:`, value);
-        // }
 
         try {
-            // The API call logic is now active.
-            const res = await verifyIdentity(formData).unwrap();
-            
-            // Navigate to the next step on success
+            await verifyIdentity(formData).unwrap();
             router.push("/become-a-host/verify-contact");
         } catch (err) {
-            console.error("Failed to verify identity:", err);
-            const errorMessage = err.data?.detail || 'Verification failed. Please check your files and try again.';
+            console.error("Failed to verify identity error details:", JSON.stringify(err));
+            
+            let errorMessage = "Identity verification failed. Please check your files and try again.";
+            
+            if (err?.data) {
+                if (typeof err.data === 'string') {
+                    errorMessage = err.data;
+                } else if (err.data.error) {
+                    errorMessage = err.data.error;
+                } else if (err.data.detail) {
+                    errorMessage = err.data.detail;
+                } else if (err.data.document_image_front?.[0]) {
+                    errorMessage = `Front Document Error: ${err.data.document_image_front[0]}`;
+                } else if (err.data.document_image_back?.[0]) {
+                    errorMessage = `Back Document Error: ${err.data.document_image_back[0]}`;
+                } else if (err.data.document_number?.[0]) {
+                    errorMessage = `Document Number Error: ${err.data.document_number[0]}`;
+                }
+            } else if (err?.error) {
+                errorMessage = err.error;
+            }
+
             setErrors(prev => ({ ...prev, submit: errorMessage }));
         }
     };
@@ -150,7 +195,8 @@ export default function VerifyIdentityPage() {
                         </div>
                         
                         {errors.submit && (
-                            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                                 <p className="text-red-700 text-sm">{errors.submit}</p>
                             </div>
                         )}
@@ -158,7 +204,7 @@ export default function VerifyIdentityPage() {
                         <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
                             {/* Document Type Selector */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Document Type</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Document Type *</label>
                                 <div className="grid grid-cols-2 gap-4">
                                     {["passport", "id"].map((type) => (
                                         <button
@@ -182,18 +228,22 @@ export default function VerifyIdentityPage() {
                             {/* Document Number */}
                             <div>
                                 <label htmlFor="documentNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                                    {docType === 'passport' ? 'Passport Number' : 'ID Number'} *
+                                    {docType === 'passport' ? 'Passport Number' : 'National ID Number'} *
                                 </label>
                                 <input
                                     type="text"
                                     name="documentNumber"
                                     id="documentNumber"
                                     value={documentNumber}
-                                    onChange={(e) => setDocumentNumber(e.target.value)}
+                                    onChange={(e) => {
+                                        setDocumentNumber(e.target.value);
+                                        if (errors.documentNumber) setErrors(prev => ({ ...prev, documentNumber: "" }));
+                                    }}
+                                    maxLength={30}
                                     className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${
                                         errors.documentNumber ? 'border-red-300' : 'border-gray-300'
                                     }`}
-                                    placeholder="Enter your document number"
+                                    placeholder={docType === 'passport' ? "e.g., A12345678" : "e.g., 10987654321"}
                                 />
                                 {errors.documentNumber && <p className="mt-1 text-sm text-red-600">{errors.documentNumber}</p>}
                             </div>
@@ -201,17 +251,19 @@ export default function VerifyIdentityPage() {
                             {/* File Uploaders */}
                             <div className="space-y-6">
                                 <FileUploader
-                                    title={`Upload ${docType === "passport" ? "passport" : "front of ID"} *`}
+                                    title={`Upload ${docType === "passport" ? "passport image (JPG/PNG)" : "front of National ID (JPG/PNG)"} *`}
                                     onFileChange={setFrontFile}
                                     fileName={frontFile?.name}
                                     error={errors.frontFile}
+                                    setError={(msg) => setErrors(prev => ({ ...prev, frontFile: msg }))}
                                 />
                                 {docType === "id" && (
                                     <FileUploader
-                                        title="Upload back of ID *"
+                                        title="Upload back of National ID (JPG/PNG) *"
                                         onFileChange={setBackFile}
                                         fileName={backFile?.name}
                                         error={errors.backFile}
+                                        setError={(msg) => setErrors(prev => ({ ...prev, backFile: msg }))}
                                     />
                                 )}
                             </div>
@@ -221,7 +273,7 @@ export default function VerifyIdentityPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                 >
                                     {isLoading ? (
                                         <>

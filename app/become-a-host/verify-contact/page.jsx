@@ -4,28 +4,26 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     MapPin,
-    Smartphone,
-    Share2,
     ArrowRight,
+    AlertCircle,
 } from "lucide-react";
 import StepProgressIndicator from "@/components/become-a-host/StepProgressIndicator";
 import { useVerifyContactMutation } from "@/store/features/hostProfileApi";
 import PhoneInputWithCountry from "@/components/ui/PhoneInputWithCountry";
 
-// Reusable input component for consistency
-const FormInput = ({ label, name, value, onChange, placeholder, error, isRequired = false }) => (
+const FormInput = ({ label, name, value, onChange, placeholder, error, isRequired = false, type = "text" }) => (
     <div>
         <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
             {label} {isRequired && '*'}
         </label>
         <input
-            type="text"
+            type={type}
             id={name}
             name={name}
             value={value}
             onChange={onChange}
-            placeholder={placeholder || `Enter ${label} (max 100 chars)`}
-            maxLength={100}
+            placeholder={placeholder || `Enter ${label}`}
+            maxLength={150}
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary ${
                 error ? 'border-red-300' : 'border-gray-300'
             }`}
@@ -68,17 +66,63 @@ export default function VerifyContactPage() {
     
     const validateForm = () => {
         const newErrors = {};
-        const requiredFields = ['address_line1', 'city', 'state', 'postal_code', 'country', 'mobile_number'];
-        
-        requiredFields.forEach(field => {
-            if (!formData[field].trim()) {
-                newErrors[field] = `${field.replace(/_/g, ' ')} is required.`;
-            }
-        });
 
-        // Basic mobile number validation (e.g., must be digits, optional +)
-        if (formData.mobile_number && !/^\+?[\d\s-]{10,15}$/.test(formData.mobile_number)) {
-            newErrors.mobile_number = "Please enter a valid mobile number.";
+        if (!formData.address_line1.trim()) {
+            newErrors.address_line1 = "Address line 1 is required.";
+        } else if (formData.address_line1.trim().length < 3) {
+            newErrors.address_line1 = "Address line 1 must be at least 3 characters.";
+        }
+
+        if (!formData.city.trim()) {
+            newErrors.city = "City is required.";
+        } else if (formData.city.trim().length < 2) {
+            newErrors.city = "City must be at least 2 characters.";
+        }
+
+        if (!formData.state.trim()) {
+            newErrors.state = "State / Province is required.";
+        } else if (formData.state.trim().length < 2) {
+            newErrors.state = "State / Province must be at least 2 characters.";
+        }
+
+        if (!formData.postal_code.trim()) {
+            newErrors.postal_code = "Postal code is required.";
+        } else if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(formData.postal_code.trim())) {
+            newErrors.postal_code = "Please enter a valid postal code (3-10 characters).";
+        }
+
+        if (!formData.country.trim()) {
+            newErrors.country = "Country is required.";
+        } else if (formData.country.trim().length < 2) {
+            newErrors.country = "Country must be at least 2 characters.";
+        }
+
+        if (formData.latitude.trim() && isNaN(Number(formData.latitude))) {
+            newErrors.latitude = "Please enter a valid numeric latitude (e.g. 24.7136).";
+        }
+
+        if (formData.longitude.trim() && isNaN(Number(formData.longitude))) {
+            newErrors.longitude = "Please enter a valid numeric longitude (e.g. 46.6753).";
+        }
+
+        if (!formData.mobile_number.trim()) {
+            newErrors.mobile_number = "Mobile number is required.";
+        } else {
+            const digits = formData.mobile_number.replace(/\D/g, "");
+            if (digits.length < 7 || digits.length > 15) {
+                newErrors.mobile_number = "Please enter a valid mobile number (7 to 15 digits).";
+            }
+        }
+
+        if (formData.whatsapp_number.trim()) {
+            const digits = formData.whatsapp_number.replace(/\D/g, "");
+            if (digits.length < 7 || digits.length > 15) {
+                newErrors.whatsapp_number = "Please enter a valid WhatsApp number (7 to 15 digits).";
+            }
+        }
+
+        if (formData.facebook_page_url.trim() && !/^(https?:\/\/)?(www\.)?facebook\.com\/.+/i.test(formData.facebook_page_url.trim())) {
+            newErrors.facebook_page_url = "Please enter a valid Facebook URL starting with https://facebook.com/";
         }
 
         setErrors(newErrors);
@@ -93,12 +137,34 @@ export default function VerifyContactPage() {
             return;
         }
 
+        let mobile = formData.mobile_number.trim();
+        if (mobile && !mobile.startsWith("+")) {
+            mobile = `${mobileCountry}${mobile.replace(/\D/g, "")}`;
+        }
+
+        let whatsapp = formData.whatsapp_number.trim();
+        if (whatsapp && !whatsapp.startsWith("+")) {
+            whatsapp = `${whatsappCountry}${whatsapp.replace(/\D/g, "")}`;
+        }
+
+        const payload = {
+            ...formData,
+            address_line1: formData.address_line1.trim(),
+            address_line2: formData.address_line2.trim(),
+            city: formData.city.trim(),
+            state: formData.state.trim(),
+            postal_code: formData.postal_code.trim(),
+            country: formData.country.trim(),
+            mobile_number: mobile,
+            whatsapp_number: whatsapp,
+        };
+
         try {
-            await verifyContact(formData).unwrap();
+            await verifyContact(payload).unwrap();
             router.push("/become-a-host/review-submit");
         } catch (err) {
             console.error("Failed to save contact info:", err);
-            const errorMessage = err.data?.detail || 'Failed to save information. Please try again.';
+            const errorMessage = err.data?.detail || err.data?.mobile_number?.[0] || 'Failed to save contact information. Please check your details and try again.';
             setErrors(prev => ({ ...prev, submit: errorMessage }));
         }
     };
@@ -120,7 +186,8 @@ export default function VerifyContactPage() {
                         </div>
                         
                         {errors.submit && (
-                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                                 <p className="text-red-700 text-sm">{errors.submit}</p>
                             </div>
                         )}
@@ -131,18 +198,78 @@ export default function VerifyContactPage() {
                                 <h3 className="text-lg font-semibold text-gray-800">Physical Address</h3>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     <div className="lg:col-span-2">
-                                        <FormInput label="Address Line 1" name="address_line1" value={formData.address_line1} onChange={handleInputChange} error={errors.address_line1} isRequired />
+                                        <FormInput
+                                            label="Address Line 1"
+                                            name="address_line1"
+                                            value={formData.address_line1}
+                                            onChange={handleInputChange}
+                                            placeholder="e.g. 123 Palm Boulevard, Building A"
+                                            error={errors.address_line1}
+                                            isRequired
+                                        />
                                     </div>
                                     <div className="lg:col-span-2">
-                                        <FormInput label="Address Line 2" name="address_line2" value={formData.address_line2} onChange={handleInputChange} error={errors.address_line2} />
+                                        <FormInput
+                                            label="Address Line 2 (Optional)"
+                                            name="address_line2"
+                                            value={formData.address_line2}
+                                            onChange={handleInputChange}
+                                            placeholder="e.g. Suite 402 or Villa 12 (optional)"
+                                            error={errors.address_line2}
+                                        />
                                     </div>
-                                    <FormInput label="City" name="city" value={formData.city} onChange={handleInputChange} error={errors.city} isRequired />
-                                    <FormInput label="State / Province" name="state" value={formData.state} onChange={handleInputChange} error={errors.state} isRequired />
-                                    <FormInput label="Postal Code" name="postal_code" value={formData.postal_code} onChange={handleInputChange} error={errors.postal_code} isRequired />
-                                    <FormInput label="Country" name="country" value={formData.country} onChange={handleInputChange} error={errors.country} isRequired />
-                                    {/* Latitude and Longitude can be hidden or auto-filled with a map API */}
-                                    <FormInput label="Latitude" name="latitude" value={formData.latitude} onChange={handleInputChange} placeholder="e.g., 40.7128" error={errors.latitude} />
-                                    <FormInput label="Longitude" name="longitude" value={formData.longitude} onChange={handleInputChange} placeholder="e.g., -74.0060" error={errors.longitude} />
+                                    <FormInput
+                                        label="City"
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. Riyadh"
+                                        error={errors.city}
+                                        isRequired
+                                    />
+                                    <FormInput
+                                        label="State / Province"
+                                        name="state"
+                                        value={formData.state}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. Riyadh Region"
+                                        error={errors.state}
+                                        isRequired
+                                    />
+                                    <FormInput
+                                        label="Postal Code"
+                                        name="postal_code"
+                                        value={formData.postal_code}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 12211"
+                                        error={errors.postal_code}
+                                        isRequired
+                                    />
+                                    <FormInput
+                                        label="Country"
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. Saudi Arabia"
+                                        error={errors.country}
+                                        isRequired
+                                    />
+                                    <FormInput
+                                        label="Latitude (Optional)"
+                                        name="latitude"
+                                        value={formData.latitude}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 24.7136"
+                                        error={errors.latitude}
+                                    />
+                                    <FormInput
+                                        label="Longitude (Optional)"
+                                        name="longitude"
+                                        value={formData.longitude}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 46.6753"
+                                        error={errors.longitude}
+                                    />
                                 </div>
                             </div>
                             
@@ -158,8 +285,11 @@ export default function VerifyContactPage() {
                                             countryCode={mobileCountry}
                                             onCountryCodeChange={setMobileCountry}
                                             value={formData.mobile_number}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, mobile_number: e.target.value }))}
-                                            placeholder="Enter Mobile Number (max 15 digits)"
+                                            onChange={(e) => {
+                                                setFormData(prev => ({ ...prev, mobile_number: e.target.value }));
+                                                if (errors.mobile_number) setErrors(prev => ({ ...prev, mobile_number: "" }));
+                                            }}
+                                            placeholder="Enter Mobile Number (e.g. 501234567)"
                                         />
                                         {errors.mobile_number && <p className="mt-1 text-sm text-red-600">{errors.mobile_number}</p>}
                                     </div>
@@ -171,9 +301,13 @@ export default function VerifyContactPage() {
                                             countryCode={whatsappCountry}
                                             onCountryCodeChange={setWhatsappCountry}
                                             value={formData.whatsapp_number}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_number: e.target.value }))}
-                                            placeholder="Enter WhatsApp Number (max 15 digits)"
+                                            onChange={(e) => {
+                                                setFormData(prev => ({ ...prev, whatsapp_number: e.target.value }));
+                                                if (errors.whatsapp_number) setErrors(prev => ({ ...prev, whatsapp_number: "" }));
+                                            }}
+                                            placeholder="Enter WhatsApp Number (e.g. 501234567)"
                                         />
+                                        {errors.whatsapp_number && <p className="mt-1 text-sm text-red-600">{errors.whatsapp_number}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -182,8 +316,22 @@ export default function VerifyContactPage() {
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="text-lg font-semibold text-gray-800">Social Presence (Optional)</h3>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    <FormInput label="Telegram Username" name="telegram_username" value={formData.telegram_username} onChange={handleInputChange} placeholder="@yourusername" error={errors.telegram_username} />
-                                    <FormInput label="Facebook Page URL" name="facebook_page_url" value={formData.facebook_page_url} onChange={handleInputChange} placeholder="https://facebook.com/yourpage" error={errors.facebook_page_url} />
+                                    <FormInput
+                                        label="Telegram Username (Optional)"
+                                        name="telegram_username"
+                                        value={formData.telegram_username}
+                                        onChange={handleInputChange}
+                                        placeholder="@yourusername"
+                                        error={errors.telegram_username}
+                                    />
+                                    <FormInput
+                                        label="Facebook Page URL (Optional)"
+                                        name="facebook_page_url"
+                                        value={formData.facebook_page_url}
+                                        onChange={handleInputChange}
+                                        placeholder="https://facebook.com/yourpage"
+                                        error={errors.facebook_page_url}
+                                    />
                                 </div>
                             </div>
 
@@ -192,7 +340,7 @@ export default function VerifyContactPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                 >
                                     {isLoading ? (
                                         <>

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { useLoginMutation } from "@/store/features/authApi";
@@ -172,9 +173,17 @@ const LoginForm = () => {
 
                 {/* Password field */}
                 <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                        Password *
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                            Password *
+                        </label>
+                        <Link
+                            href="/forgot-password"
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+                        >
+                            Forgot Password?
+                        </Link>
+                    </div>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Lock className="h-5 w-5 text-gray-400" />

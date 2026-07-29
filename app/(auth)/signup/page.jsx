@@ -247,9 +247,17 @@ const SignupPage = () => {
 
                         {/* Password Field */}
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                Password
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                    Password
+                                </label>
+                                <Link
+                                    href="/forgot-password"
+                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+                                >
+                                    Forgot Password?
+                                </Link>
+                            </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Lock className="h-5 w-5 text-gray-400" />
@@ -374,15 +382,24 @@ const SignupPage = () => {
                         </button>
                     </div>
 
-                    {/* Login Link */}
-                    <div className="mt-6 text-center">
-                        <p className="text-gray-600">
+                    {/* Login & Forgot Password Links */}
+                    <div className="mt-6 text-center space-y-2">
+                        <p className="text-gray-600 text-sm">
                             Already have an account?{" "}
                             <Link
                                 href="/login"
                                 className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
                             >
                                 Sign in here
+                            </Link>
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                            Forgot your password?{" "}
+                            <Link
+                                href="/forgot-password"
+                                className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+                            >
+                                Reset it here
                             </Link>
                         </p>
                     </div>

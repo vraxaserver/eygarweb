@@ -1,22 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import { selectCurrentUser } from "@/store/slices/authSlice";
+import { useGetVendorStatusQuery } from "@/store/features/vendorProfileApi";
 import { Button } from "@/components/ui/button";
-import { Menu } from 'lucide-react';
+import { Menu, Loader2 } from "lucide-react";
 import { VendorSidebar } from "./VendorSidebar";
 import { ServicesTab } from "./VendorServices";
 import { CouponsTab } from "./Coupons";
 import { RequestsTab } from "./RequestsTab";
 import { ReviewsTab } from "./ReviewsTab";
+import VendorPendingApproval from "./VendorPendingApproval";
 
 export default function VendorDashboard() {
+    const router = useRouter();
+    const user = useSelector(selectCurrentUser);
     const [activeTab, setActiveTab] = useState("services");
     const [isMobileOpen, setIsMobileOpen] = useState(false);
-    const user = useSelector(selectCurrentUser);
 
-    // This function remains the same, correctly rendering the active tab's component
+    // Fetch live vendor status
+    const { data: statusData, isLoading, isFetching, refetch } = useGetVendorStatusQuery();
+
+    useEffect(() => {
+        if (statusData?.current_step && statusData.status !== "approved") {
+            const incompleteSteps = [
+                "company_details",
+                "service_area",
+                "contact_details",
+                "submit_for_review",
+            ];
+            if (incompleteSteps.includes(statusData.current_step)) {
+                router.push(`/become-a-vendor/${statusData.current_step}`);
+            }
+        }
+    }, [statusData, router]);
+
+    // 1. Show loading indicator while checking status
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+                <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-3" />
+                <p className="text-gray-600 text-sm font-medium">Verifying vendor account status...</p>
+            </div>
+        );
+    }
+
+    // 2. Block access if status is not approved
+    if (!statusData || statusData.status !== "approved") {
+        return (
+            <VendorPendingApproval
+                statusData={statusData}
+                refetch={refetch}
+                isRefetching={isFetching}
+            />
+        );
+    }
+
+    // 3. Render Dashboard features only when status === "approved"
     const renderContent = () => {
         switch (activeTab) {
             case "services":
@@ -28,15 +70,12 @@ export default function VendorDashboard() {
             case "reviews":
                 return <ReviewsTab />;
             default:
-                // It's good practice for the default to match one of the primary states
                 return <ServicesTab activeUser={user} />;
         }
     };
 
     return (
-        // The root div now focuses only on the flex layout
         <div id="vendor-dashboard" className="flex min-h-screen bg-slate-50">
-            {/* The sidebar handles its own visibility and state */}
             <VendorSidebar
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
@@ -44,9 +83,7 @@ export default function VendorDashboard() {
                 setIsMobileOpen={setIsMobileOpen}
             />
 
-            {/* Main Content Area */}
             <div className="flex-1 flex flex-col w-full">
-                {/* Mobile Header with Menu Button, sits above the main content */}
                 <header className="lg:hidden flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
                     <h2 className="text-lg font-semibold">Vendor Dashboard</h2>
                     <Button
@@ -59,11 +96,10 @@ export default function VendorDashboard() {
                     </Button>
                 </header>
 
-                {/* The main content area where tabs are rendered */}
                 <main className="flex-grow p-4 sm:p-6 lg:p-8">
                     {renderContent()}
                 </main>
             </div>
         </div>
     );
-};
+}

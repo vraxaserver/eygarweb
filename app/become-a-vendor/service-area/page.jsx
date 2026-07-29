@@ -1,15 +1,15 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useUpdateServiceAreaMutation } from "@/store/features/vendorProfileApi";
 import { useRouter } from "next/navigation";
-import { useRef, useEffect } from "react";
-import useGoogleMapsScript from "@/hooks/useGoogleMapsScript"; // <-- Make sure this path is correct
-import { MapPin, ArrowRight } from "lucide-react";
-
+import useGoogleMapsScript from "@/hooks/useGoogleMapsScript";
+import { MapPin, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function ServiceAreaPage() {
-    const router = useRouter()
+    const router = useRouter();
+    const [apiError, setApiError] = useState("");
     const {
         register,
         handleSubmit,
@@ -18,46 +18,33 @@ export default function ServiceAreaPage() {
     } = useForm();
 
     const [updateServiceArea, { isLoading }] = useUpdateServiceAreaMutation();
-    
-    // 1. Use your custom hook to load the script
     const isGoogleMapsLoaded = useGoogleMapsScript();
 
-    // 2. Refs for the input element and the autocomplete instance
     const inputRef = useRef(null);
     const autocompleteInstanceRef = useRef(null);
 
-    // 3. useEffect to initialize Autocomplete when the script is loaded
     useEffect(() => {
-        // Ensure the script is loaded, the input ref is attached, and we haven't already initialized.
         if (isGoogleMapsLoaded && inputRef.current && !autocompleteInstanceRef.current) {
-            
-            // Create a new Autocomplete instance
             const autocomplete = new window.google.maps.places.Autocomplete(
                 inputRef.current,
                 {
-                    fields: ["address_components", "geometry", "name"], // Specify which data to return
-                    types: ["address"], // Restrict to addresses
+                    fields: ["address_components", "geometry", "name"],
+                    types: ["address"],
                 }
             );
 
-            // Store the instance in a ref
             autocompleteInstanceRef.current = autocomplete;
-
-            // Add listener for when a place is selected
             autocomplete.addListener("place_changed", handlePlaceSelect);
         }
 
-        // Cleanup function to remove the listener
         return () => {
             if (autocompleteInstanceRef.current) {
-                 // The google object might not be available during fast-refresh in development
-                if(window.google && window.google.maps && window.google.maps.event){
+                if (window.google && window.google.maps && window.google.maps.event) {
                     window.google.maps.event.clearInstanceListeners(autocompleteInstanceRef.current);
                 }
             }
         };
-    }, [isGoogleMapsLoaded]); // Rerun this effect if the loaded status changes
-
+    }, [isGoogleMapsLoaded]);
 
     const handlePlaceSelect = () => {
         if (autocompleteInstanceRef.current) {
@@ -75,12 +62,10 @@ export default function ServiceAreaPage() {
             const streetNumber = getAddressComponent("street_number");
             const route = getAddressComponent("route");
             
-            // Manually set the value for the location name input
             if (inputRef.current) {
                 inputRef.current.value = place.name;
             }
 
-            // Populate all form fields
             setValue("location_name", place.name, { shouldValidate: true });
             setValue("address_line1", `${streetNumber} ${route}`.trim(), { shouldValidate: true });
             setValue("city", getAddressComponent("locality"), { shouldValidate: true });
@@ -93,12 +78,40 @@ export default function ServiceAreaPage() {
     };
     
     const onSubmit = async (data) => {
+        setApiError("");
         try {
-            // console.log(data)
-            await updateServiceArea(data).unwrap();
+            const payload = {
+                ...data,
+                location_name: data.location_name.trim(),
+                address_line1: data.address_line1.trim(),
+                city: data.city.trim(),
+                state: data.state.trim(),
+                postal_code: data.postal_code.trim(),
+                country: data.country.trim(),
+            };
+            await updateServiceArea(payload).unwrap();
             router.push("/become-a-vendor/contact-details");
         } catch (error) {
             console.error("Failed to update service area:", error);
+            if (error?.data?.location_name?.[0]) {
+                setApiError(`Location Name: ${error.data.location_name[0]}`);
+            } else if (error?.data?.address_line1?.[0]) {
+                setApiError(`Address: ${error.data.address_line1[0]}`);
+            } else if (error?.data?.city?.[0]) {
+                setApiError(`City: ${error.data.city[0]}`);
+            } else if (error?.data?.state?.[0]) {
+                setApiError(`State: ${error.data.state[0]}`);
+            } else if (error?.data?.postal_code?.[0]) {
+                setApiError(`Postal Code: ${error.data.postal_code[0]}`);
+            } else if (error?.data?.country?.[0]) {
+                setApiError(`Country: ${error.data.country[0]}`);
+            } else if (error?.data?.detail) {
+                setApiError(error.data.detail);
+            } else if (error?.data?.message) {
+                setApiError(error.data.message);
+            } else {
+                setApiError("Failed to update service area. Please check your inputs.");
+            }
         }
     };
 
@@ -107,11 +120,11 @@ export default function ServiceAreaPage() {
             hasError ? 'border-red-400' : 'border-gray-300'
         }`;
 
-    // Show a loading state until your custom hook reports the script is ready
     if (!isGoogleMapsLoaded) {
         return (
-             <div className="min-h-screen flex items-center justify-center">
-                <p>Loading Map...</p>
+             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
+                <p className="text-gray-600 text-sm">Loading map & location services...</p>
              </div>
         );
     }
@@ -136,18 +149,33 @@ export default function ServiceAreaPage() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form onSubmit={handleSubmit(onSubmit)} noValidate>
                         <div className="p-8 space-y-6">
-                            {/* Location Name (Autocomplete) */}
+                            {/* API Error Alert */}
+                            {apiError && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                    <p className="text-red-700 text-sm">{apiError}</p>
+                                </div>
+                            )}
+
+                            {/* Location Name */}
                             <div>
                                 <label htmlFor="location_name" className="block text-sm font-medium text-gray-700">
                                     Location Name *
                                 </label>
-                                {/* 4. Attach the ref directly to the input */}
                                 <input
                                     id="location_name"
                                     ref={inputRef}
-                                    {...register("location_name", { required: "Location is required." })}
+                                    {...register("location_name", {
+                                        required: "Location name is required.",
+                                        minLength: {
+                                            value: 2,
+                                            message: "Location name must be at least 2 characters.",
+                                        },
+                                        validate: (val) =>
+                                            !!val.trim() || "Location name cannot be empty or only spaces.",
+                                    })}
                                     className={inputClass(errors.location_name)}
                                     placeholder="Start typing your business address..."
                                 />
@@ -158,36 +186,129 @@ export default function ServiceAreaPage() {
                                 )}
                             </div>
                             
-                            {/* The rest of the form is the same, now populated by setValue */}
+                            {/* Address Line 1 */}
                             <div>
-                                <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">Address Line 1 *</label>
-                                <input id="address_line1" {...register("address_line1", { required: "Address is required." })} className={inputClass(errors.address_line1)} />
-                                {errors.address_line1 && <p className="mt-1 text-sm text-red-600">{errors.address_line1.message}</p>}
+                                <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700">
+                                    Address Line 1 *
+                                </label>
+                                <input
+                                    id="address_line1"
+                                    {...register("address_line1", {
+                                        required: "Address line 1 is required.",
+                                        minLength: {
+                                            value: 3,
+                                            message: "Address line 1 must be at least 3 characters.",
+                                        },
+                                        validate: (val) =>
+                                            !!val.trim() || "Address line 1 cannot be empty or only spaces.",
+                                    })}
+                                    className={inputClass(errors.address_line1)}
+                                    placeholder="Street address or P.O. Box"
+                                />
+                                {errors.address_line1 && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.address_line1.message}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">City *</label>
-                                    <input id="city" {...register("city", { required: "City is required." })} className={inputClass(errors.city)} />
-                                    {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>}
+                                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                                        City *
+                                    </label>
+                                    <input
+                                        id="city"
+                                        {...register("city", {
+                                            required: "City is required.",
+                                            minLength: {
+                                                value: 2,
+                                                message: "City name must be at least 2 characters.",
+                                            },
+                                            validate: (val) =>
+                                                !!val.trim() || "City cannot be empty or only spaces.",
+                                        })}
+                                        className={inputClass(errors.city)}
+                                        placeholder="e.g., Doha"
+                                    />
+                                    {errors.city && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.city.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
-                                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">State / Province *</label>
-                                    <input id="state" {...register("state", { required: "State is required." })} className={inputClass(errors.state)} />
-                                    {errors.state && <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>}
+                                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                                        State / Province *
+                                    </label>
+                                    <input
+                                        id="state"
+                                        {...register("state", {
+                                            required: "State or Province is required.",
+                                            minLength: {
+                                                value: 2,
+                                                message: "State name must be at least 2 characters.",
+                                            },
+                                            validate: (val) =>
+                                                !!val.trim() || "State cannot be empty or only spaces.",
+                                        })}
+                                        className={inputClass(errors.state)}
+                                        placeholder="e.g., Doha Municipality"
+                                    />
+                                    {errors.state && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.state.message}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">Postal Code *</label>
-                                    <input id="postal_code" {...register("postal_code", { required: "Postal code is required." })} className={inputClass(errors.postal_code)} />
-                                    {errors.postal_code && <p className="mt-1 text-sm text-red-600">{errors.postal_code.message}</p>}
+                                    <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
+                                        Postal Code *
+                                    </label>
+                                    <input
+                                        id="postal_code"
+                                        {...register("postal_code", {
+                                            required: "Postal code is required.",
+                                            pattern: {
+                                                value: /^[a-zA-Z0-9\s-]{3,10}$/,
+                                                message: "Please enter a valid postal code (3-10 characters).",
+                                            },
+                                        })}
+                                        className={inputClass(errors.postal_code)}
+                                        placeholder="e.g., 00000"
+                                    />
+                                    {errors.postal_code && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.postal_code.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
-                                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country *</label>
-                                    <input id="country" {...register("country", { required: "Country is required." })} className={inputClass(errors.country)} />
-                                    {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country.message}</p>}
+                                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                                        Country *
+                                    </label>
+                                    <input
+                                        id="country"
+                                        {...register("country", {
+                                            required: "Country is required.",
+                                            minLength: {
+                                                value: 2,
+                                                message: "Country name must be at least 2 characters.",
+                                            },
+                                            validate: (val) =>
+                                                !!val.trim() || "Country cannot be empty or only spaces.",
+                                        })}
+                                        className={inputClass(errors.country)}
+                                        placeholder="e.g., Qatar"
+                                    />
+                                    {errors.country && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {errors.country.message}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -199,7 +320,7 @@ export default function ServiceAreaPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                             >
                                 {isLoading ? (
                                     <>

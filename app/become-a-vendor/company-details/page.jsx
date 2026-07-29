@@ -1,22 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useUpdateCompanyDetailsMutation } from "@/store/features/vendorProfileApi";
 import { useRouter } from "next/navigation";
-import { Building2, ArrowRight } from "lucide-react";
-
-// It's good practice to have a visual indicator for multi-step forms.
-// If you don't have this component, you can remove it or create a simple one.
-// const StepProgressIndicator = () => (
-//     <div className="w-full max-w-2xl mb-8">
-//         {/* A placeholder for your progress bar */}
-//         <div className="bg-gray-200 rounded-full h-2.5">
-//             <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: "25%" }}></div>
-//         </div>
-//     </div>
-// );
+import { Building2, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function CompanyDetailsPage() {
+    const [apiError, setApiError] = useState("");
     const {
         register,
         handleSubmit,
@@ -26,17 +17,33 @@ export default function CompanyDetailsPage() {
     const router = useRouter();
 
     const onSubmit = async (data) => {
+        setApiError("");
         try {
-            await updateCompanyDetails(data).unwrap();
-            // Navigate to the next step on success
+            const payload = {
+                company_name: data.company_name.trim(),
+                company_description: data.company_description.trim(),
+                website: data.website ? data.website.trim() : "",
+            };
+            await updateCompanyDetails(payload).unwrap();
             router.push("/become-a-vendor/service-area");
         } catch (error) {
-            // The console.error is kept for debugging, but you might want to show a toast notification here
             console.error("Failed to update company details:", error);
+            if (error?.data?.company_name?.[0]) {
+                setApiError(`Company Name: ${error.data.company_name[0]}`);
+            } else if (error?.data?.company_description?.[0]) {
+                setApiError(`Company Description: ${error.data.company_description[0]}`);
+            } else if (error?.data?.website?.[0]) {
+                setApiError(`Website: ${error.data.website[0]}`);
+            } else if (error?.data?.detail) {
+                setApiError(error.data.detail);
+            } else if (error?.data?.message) {
+                setApiError(error.data.message);
+            } else {
+                setApiError("Failed to update company details. Please check your inputs.");
+            }
         }
     };
     
-    // Reusable class strings for inputs to keep the JSX clean
     const inputClass = (hasError) => 
         `w-full px-4 py-2 mt-2 border rounded-lg shadow-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
             hasError ? 'border-red-400' : 'border-gray-300'
@@ -44,8 +51,6 @@ export default function CompanyDetailsPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
-            {/* <StepProgressIndicator /> */}
-
             <div className="w-full max-w-2xl">
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                     {/* Card Header */}
@@ -66,8 +71,16 @@ export default function CompanyDetailsPage() {
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form onSubmit={handleSubmit(onSubmit)} noValidate>
                         <div className="p-8 space-y-6">
+                            {/* API Error Alert */}
+                            {apiError && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                    <p className="text-red-700 text-sm">{apiError}</p>
+                                </div>
+                            )}
+
                             {/* Company Name Field */}
                             <div>
                                 <label htmlFor="company_name" className="block text-sm font-medium text-gray-700">
@@ -75,7 +88,20 @@ export default function CompanyDetailsPage() {
                                 </label>
                                 <input
                                     id="company_name"
-                                    {...register("company_name", { required: "Company name is required." })}
+                                    {...register("company_name", {
+                                        required: "Company name is required.",
+                                        minLength: {
+                                            value: 2,
+                                            message: "Company name must be at least 2 characters.",
+                                        },
+                                        maxLength: {
+                                            value: 100,
+                                            message: "Company name cannot exceed 100 characters.",
+                                        },
+                                        validate: (val) =>
+                                            !!val.trim() || "Company name cannot be empty or only spaces.",
+                                    })}
+                                    maxLength={100}
                                     className={inputClass(errors.company_name)}
                                     placeholder="e.g., Pro Event Planners Inc."
                                 />
@@ -94,7 +120,20 @@ export default function CompanyDetailsPage() {
                                 <textarea
                                     id="company_description"
                                     rows="4"
-                                    {...register("company_description", { required: "A description is required." })}
+                                    {...register("company_description", {
+                                        required: "A company description is required.",
+                                        minLength: {
+                                            value: 10,
+                                            message: "Description must be at least 10 characters.",
+                                        },
+                                        maxLength: {
+                                            value: 1000,
+                                            message: "Description cannot exceed 1000 characters.",
+                                        },
+                                        validate: (val) =>
+                                            !!val.trim() || "Description cannot be empty or only spaces.",
+                                    })}
+                                    maxLength={1000}
                                     className={inputClass(errors.company_description)}
                                     placeholder="Describe your company, your services, and what makes you unique."
                                 />
@@ -113,10 +152,20 @@ export default function CompanyDetailsPage() {
                                 <input
                                     id="website"
                                     type="url"
-                                    {...register("website")}
+                                    {...register("website", {
+                                        pattern: {
+                                            value: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i,
+                                            message: "Please enter a valid website URL (e.g., https://example.com).",
+                                        },
+                                    })}
                                     className={inputClass(errors.website)}
                                     placeholder="https://www.example.com"
                                 />
+                                {errors.website && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        {errors.website.message}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         
@@ -125,7 +174,7 @@ export default function CompanyDetailsPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                             >
                                 {isLoading ? (
                                     <>

@@ -128,39 +128,33 @@ function MessageGuestDialog({ booking, open, onClose }) {
         setSent(false);
 
         try {
-            const notificationUrl = process.env.NEXT_PUBLIC_NOTIFICATION_API_URL || "http://127.0.0.1:8000/api/v1/notifications/send";
             const payload = {
-                channel: activeChannel === "email" ? "email" : "sms",
+                channel:   activeChannel === "email" ? "email" : "sms",
                 recipient: activeChannel === "email" ? email : phone,
-                subject: activeChannel === "email" ? (subject || "Message from Host") : undefined,
-                body: message,
-                sender: "Eygar Host"
+                subject:   activeChannel === "email" ? (subject || "Message from your Eygar Host") : undefined,
+                body:      message,
             };
 
-            const res = await fetch(notificationUrl, {
-                method: "POST",
+            const res = await fetch("/api/notifications/send", {
+                method:  "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body:    JSON.stringify(payload),
             });
 
+            const data = await res.json().catch(() => ({}));
+
             if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.message || data.detail || "Failed to send notification via SQS endpoint.");
+                throw new Error(data.error || "Failed to queue notification.");
             }
 
             setSent(true);
+            // Dismiss the dialog after a short success flash
+            setTimeout(() => {
+                onClose();
+            }, 1200);
         } catch (err) {
-            console.warn("Direct API notification dispatch fallback to client protocol:", err);
-            // Fallback gracefully to browser protocol (mailto / wa.me) if local microservice not direct
-            if (activeChannel === "email") {
-                const mailto = `mailto:${email}?subject=${encodeURIComponent(subject || "Message from Host")}&body=${encodeURIComponent(message)}`;
-                window.open(mailto, "_blank");
-            } else {
-                const cleanPhone = (phone || "").replace(/\D/g, "");
-                const whatsapp = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-                window.open(whatsapp, "_blank");
-            }
-            setSent(true);
+            console.error("Notification send failed:", err);
+            setSendError(err.message || "Failed to send. Please try again.");
         } finally {
             setSending(false);
         }

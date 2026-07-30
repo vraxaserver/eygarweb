@@ -18,9 +18,6 @@ import { Label } from "@/components/ui/label";
 import { useUpdateProfileMutation } from "@/store/features/authApi"; // 1. IMPORT THE HOOK
 import {
     User,
-    Shield,
-    Bell,
-    CreditCard,
     Camera,
     Loader2,
     AlertCircle,
@@ -96,21 +93,6 @@ export default function UserSettingsPage() {
             key: "profile",
             label: "Profile",
             icon: <User className="w-4 h-4 mr-2" />,
-        },
-        {
-            key: "security",
-            label: "Security",
-            icon: <Shield className="w-4 h-4 mr-2" />,
-        },
-        {
-            key: "notifications",
-            label: "Notifications",
-            icon: <Bell className="w-4 h-4 mr-2" />,
-        },
-        {
-            key: "payment",
-            label: "Payment Methods",
-            icon: <CreditCard className="w-4 h-4 mr-2" />,
         },
     ];
 

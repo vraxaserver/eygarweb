@@ -67,6 +67,7 @@ export const bookingApi = createApi({
                 url: "/bookings/mine",
                 method: "GET",
             }),
+            providesTags: [{ type: "Booking", id: "LIST" }],
         }),
 
         cancelBooking: builder.mutation({

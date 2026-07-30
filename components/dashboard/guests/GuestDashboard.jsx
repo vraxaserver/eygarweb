@@ -86,6 +86,7 @@ function LoadingState({ title = "Loading...", description = "Please wait." }) {
 
 export default function GuestDashboard() {
     const [selectedBookingId, setSelectedBookingId] = useState(null);
+    const [activeTab, setActiveTab] = useState(null);
 
     const { data, isLoading, isFetching, isError, error, refetch } =
         useListBookingsQuery(undefined, {
@@ -163,6 +164,7 @@ export default function GuestDashboard() {
 
     const activeBooking = activeBookings.length ? activeBookings[0] : null;
     const defaultTab = activeBooking ? "active" : "upcoming";
+    const currentTab = activeTab || defaultTab;
 
     const isBusy = isLoading || isFetching;
     const hasAnyBookings = bookings.length > 0;
@@ -186,6 +188,8 @@ export default function GuestDashboard() {
 
         try {
             await updateCheckIn({ bookingId: id }).unwrap();
+            await refetch();
+            setActiveTab("active");
         } catch (err) {
             const msg = err?.data?.message || "";
             if (
@@ -193,6 +197,8 @@ export default function GuestDashboard() {
                 msg.toLowerCase().includes("already checked")
             ) {
                 console.warn("Booking is already checked in:", err);
+                await refetch();
+                setActiveTab("active");
                 return;
             }
             console.error("Failed to check in:", err);
@@ -267,7 +273,7 @@ export default function GuestDashboard() {
                         description="When you make your first reservation, it will appear here in your dashboard."
                     />
                 ) : (
-                    <Tabs defaultValue={defaultTab} className="w-full">
+                    <Tabs value={currentTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList
                             className={`grid w-full ${
                                 activeBooking ? "grid-cols-3" : "grid-cols-2"
@@ -306,9 +312,9 @@ export default function GuestDashboard() {
                                     <h2 className="text-2xl font-bold text-gray-900">
                                         Current Stay
                                     </h2>
-                                    <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                                    <Badge className={activeBooking?.checkout_status === "checked_in" ? "bg-green-500 hover:bg-green-600 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-white"}>
                                         <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                                        Checked In
+                                        {activeBooking?.checkout_status === "checked_in" ? "Checked In" : "Ready for Check-in"}
                                     </Badge>
                                 </div>
 

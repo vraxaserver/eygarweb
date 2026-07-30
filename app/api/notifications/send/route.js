@@ -119,9 +119,10 @@ export async function POST(request) {
 
         const queueUrl = process.env.AWS_SQS_QUEUE_URL;
 
-        const channelUpper = channel.toUpperCase();
-        const template     = channelUpper === "EMAIL" ? "HOST_MESSAGE" : "HOST_SMS";
-        const eventType    = channelUpper === "EMAIL" ? "HostGuestEmail" : "HostGuestSMS";
+        const channelUpper   = channel.toUpperCase();
+        const template       = channelUpper === "EMAIL" ? "HOST_MESSAGE" : "HOST_SMS";
+        const eventType      = channelUpper === "EMAIL" ? "HostGuestEmail" : "HostGuestSMS";
+        const cleanRecipient = channelUpper === "EMAIL" ? recipient : recipient.replace(/\D/g, "");
 
         const envelope = {
             event_id: makeEventId(),
@@ -131,9 +132,9 @@ export async function POST(request) {
                 channels: [channelUpper],
             },
             recipient: {
-                ...(channelUpper === "EMAIL" ? { email: recipient } : {}),
-                ...(channelUpper === "SMS" ? { phone: recipient } : {}),
-                ...(channelUpper === "WHATSAPP" ? { phone: recipient } : {}),
+                ...(channelUpper === "EMAIL" ? { email: cleanRecipient } : {}),
+                ...(channelUpper === "SMS" ? { phone: cleanRecipient } : {}),
+                ...(channelUpper === "WHATSAPP" ? { phone: cleanRecipient } : {}),
             },
             variables: {
                 body: body,

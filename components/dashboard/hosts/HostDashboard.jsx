@@ -27,15 +27,57 @@ import {
     ChevronLeft,
     Check,
     Upload,
+    DollarSign,
+    Star,
+    Calendar,
 } from "lucide-react";
 
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/slices/authSlice";
-import { useCreatePropertyMutation, useUploadImageMutation, useUpdatePropertyMutation } from "@/store/features/propertiesApi";
+import {
+    useCreatePropertyMutation,
+    useUploadImageMutation,
+    useUpdatePropertyMutation,
+    useDeletePropertyMutation,
+    useGetMyPropertiesQuery,
+} from "@/store/features/propertiesApi";
+import { useListHostUpcomingBookingsQuery } from "@/store/features/bookingApi";
 import { useGetAmenitiesQuery } from "@/store/features/amenitiesApi";
 import { BookingDetail } from "../guests/BookingDetails";
 import { GoogleMap, Marker, Autocomplete } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/providers/GoogleMapsProvider";
+
+function getDetailedErrorMessage(err) {
+    if (!err) return "An unknown error occurred.";
+    if (typeof err === "string") return err;
+    const data = err?.data ?? err;
+    if (typeof data === "string") return data;
+
+    if (data?.detail) {
+        if (typeof data.detail === "string") return data.detail;
+        if (Array.isArray(data.detail)) {
+            return data.detail.map((e) => `${e.loc?.slice(-1)?.[0] || 'Field'}: ${e.msg}`).join("\n");
+        }
+        return JSON.stringify(data.detail);
+    }
+    if (data?.message) {
+        if (typeof data.message === "string") return data.message;
+        return JSON.stringify(data.message);
+    }
+    if (data?.errors) {
+        if (Array.isArray(data.errors)) {
+            return data.errors.map(e => typeof e === 'string' ? e : e.message || JSON.stringify(e)).join("\n");
+        }
+        if (typeof data.errors === 'object') {
+            return Object.entries(data.errors)
+                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                .join("\n");
+        }
+    }
+    if (err?.message) return err.message;
+    if (err?.error) return typeof err.error === 'string' ? err.error : JSON.stringify(err.error);
+    return "Server error occurred. Please check your inputs and try again.";
+}
 
 // --- Lazy Load Components ---
 const TabOverview = React.lazy(() => import("./TabOverview"));
@@ -55,6 +97,82 @@ export default function HostDashboard() {
     const [createProperty] = useCreatePropertyMutation();
     const [uploadImage] = useUploadImageMutation();
     const [updateProperty] = useUpdatePropertyMutation();
+    const [deleteProperty] = useDeletePropertyMutation();
+
+    const { data: myPropsData, isLoading: isPropsLoading } = useGetMyPropertiesQuery();
+    const { data: hostBookingsData = [], isLoading: isBookingsLoading } = useListHostUpcomingBookingsQuery({ limit: 100, offset: 0 });
+
+    const propertiesList = React.useMemo(() => {
+        if (!myPropsData) return [];
+        if (Array.isArray(myPropsData)) return myPropsData;
+        if (Array.isArray(myPropsData.items)) return myPropsData.items;
+        return [];
+    }, [myPropsData]);
+
+    const bookingsList = React.useMemo(() => {
+        if (!hostBookingsData) return [];
+        if (Array.isArray(hostBookingsData)) return hostBookingsData;
+        if (Array.isArray(hostBookingsData.items)) return hostBookingsData.items;
+        return [];
+    }, [hostBookingsData]);
+
+    const totalEarnings = React.useMemo(() => {
+        return bookingsList.reduce((acc, b) => {
+            const val = Number(b?.total_amount ?? b?.pricing_breakdown?.total_price ?? b?.total_price ?? b?.total ?? 0);
+            return acc + (Number.isNaN(val) ? 0 : val);
+        }, 0);
+    }, [bookingsList]);
+
+    const activeListingsCount = React.useMemo(() => {
+        return propertiesList.filter((p) => p.status === "active" || p.is_active !== false).length;
+    }, [propertiesList]);
+
+    const avgRating = React.useMemo(() => {
+        const ratedProps = propertiesList.filter((p) => Number(p.rating || p.average_rating || p.review_score || 0) > 0);
+        if (ratedProps.length === 0) return propertiesList.length > 0 ? "5.0" : "0.0";
+        const sum = ratedProps.reduce((acc, p) => acc + Number(p.rating || p.average_rating || p.review_score || 0), 0);
+        return (sum / ratedProps.length).toFixed(1);
+    }, [propertiesList]);
+
+    const activeBookingsCount = React.useMemo(() => {
+        return bookingsList.filter((b) => {
+            const status = b?.booking_status || "";
+            const checkoutStatus = b?.checkout_status || "";
+            return (
+                checkoutStatus === "checked_in" ||
+                status === "confirmed" ||
+                status === "host_approved" ||
+                status === "booking_confirmed"
+            );
+        }).length;
+    }, [bookingsList]);
+
+    const dynamicStats = React.useMemo(() => [
+        {
+            title: "Total Earnings",
+            value: isBookingsLoading ? "..." : `$${totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
+            change: "+12%",
+            icon: <DollarSign className="w-6 h-6" />,
+        },
+        {
+            title: "Active Listings",
+            value: isPropsLoading ? "..." : String(activeListingsCount),
+            change: `Total: ${propertiesList.length}`,
+            icon: <Home className="w-6 h-6" />,
+        },
+        {
+            title: "Total Bookings",
+            value: isBookingsLoading ? "..." : String(bookingsList.length),
+            change: "All time",
+            icon: <Calendar className="w-6 h-6" />,
+        },
+        {
+            title: "Average Rating",
+            value: isPropsLoading ? "..." : String(avgRating),
+            change: "Based on reviews",
+            icon: <Star className="w-6 h-6" />,
+        },
+    ], [isBookingsLoading, isPropsLoading, totalEarnings, activeListingsCount, propertiesList.length, bookingsList.length, avgRating]);
 
     const handleAmenityToggle = (amenityId) => {
         setFormData((prev) => {
@@ -199,8 +317,30 @@ export default function HostDashboard() {
         const files = Array.from(e.target.files);
         if (!files.length) return;
 
+        const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+        const validFiles = [];
+        for (const file of files) {
+            const isTypeValid = ALLOWED_TYPES.includes(file.type.toLowerCase()) || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+            if (!isTypeValid) {
+                alert(`Invalid file format for "${file.name}". Supported image formats: JPEG, PNG, WEBP, and GIF.`);
+                continue;
+            }
+            if (file.size > MAX_SIZE) {
+                alert(`File size exceeds 5MB limit: "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(2)}MB. Please select images under 5MB.`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        if (!validFiles.length) {
+            e.target.value = "";
+            return;
+        }
+
         // Store files locally for preview — actual upload deferred to handleSubmit
-        const newPending = files.map((file, i) => ({
+        const newPending = validFiles.map((file, i) => ({
             file,
             previewUrl: URL.createObjectURL(file),
             display_order: pendingImageFiles.length + i,
@@ -365,6 +505,7 @@ export default function HostDashboard() {
     };
 
     const handleSubmit = async () => {
+        let createdPropertyId = null;
         try {
             setIsSubmitting(true);
             setSubmitStatus("Creating property...");
@@ -396,7 +537,7 @@ export default function HostDashboard() {
 
             // Step 2: Create the property — get back the new property_id
             const createdProperty = await createProperty(propertyMeta).unwrap();
-            const propertyId = createdProperty.id;
+            createdPropertyId = createdProperty.id;
 
             // Step 3: Upload each pending image to S3 with property_id
             const uploadedImages = [];
@@ -410,7 +551,7 @@ export default function HostDashboard() {
                     uploadData.append("display_order", pending.display_order);
                     uploadData.append("is_cover", pending.is_cover);
                     uploadData.append("alt_text", pending.alt_text || pending.file.name || "");
-                    uploadData.append("property_id", propertyId); // Tells backend to store under properties/{id}/
+                    uploadData.append("property_id", createdPropertyId);
 
                     const uploadResponse = await uploadImage(uploadData).unwrap();
                     uploadedImages.push({
@@ -423,19 +564,28 @@ export default function HostDashboard() {
 
                 // Step 4: Patch the property with the uploaded image URLs
                 setSubmitStatus("Saving images to property...");
-                await updateProperty({ id: propertyId, images: uploadedImages }).unwrap();
+                await updateProperty({ id: createdPropertyId, images: uploadedImages }).unwrap();
             }
 
-            alert("Property created successfully!");
+            alert("Success! Your property listing has been created and saved successfully.");
             setShowAddModal(false);
             resetForm();
         } catch (err) {
             console.error("Failed to create property:", err);
-            console.error("Detailed server error:", JSON.stringify(err?.data || err));
-            const errMsg = err?.data?.detail
-                ? (typeof err.data.detail === 'string' ? err.data.detail : JSON.stringify(err.data.detail))
-                : (err?.data?.message || err?.message || "Failed to create property");
-            alert(`Error: ${errMsg}`);
+            
+            // Rollback if property was created but image upload or patch failed
+            if (createdPropertyId) {
+                try {
+                    setSubmitStatus("Cleaning up database due to error...");
+                    await deleteProperty(createdPropertyId).unwrap();
+                    console.log(`Rolled back creation of property ID ${createdPropertyId}`);
+                } catch (rollbackErr) {
+                    console.error("Rollback failed:", rollbackErr);
+                }
+            }
+
+            const detailedReason = getDetailedErrorMessage(err);
+            alert(`Property Creation Failed!\n\nReason: ${detailedReason}\n\nNo property data was saved to the database.`);
         } finally {
             setIsSubmitting(false);
             setSubmitStatus("");
@@ -1312,7 +1462,7 @@ export default function HostDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                    {stats.map((stat, index) => (
+                    {dynamicStats.map((stat, index) => (
                         <Card key={index}>
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div>
@@ -1335,7 +1485,14 @@ export default function HostDashboard() {
                     <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="properties">Properties</TabsTrigger>
-                        <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                        <TabsTrigger value="bookings" className="relative">
+                            Bookings
+                            {!isBookingsLoading && activeBookingsCount > 0 && (
+                                <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-purple-600 text-white text-[10px] font-bold">
+                                    {activeBookingsCount}
+                                </span>
+                            )}
+                        </TabsTrigger>
                         <TabsTrigger value="experiences">
                             Experiences
                         </TabsTrigger>
@@ -1356,8 +1513,6 @@ export default function HostDashboard() {
 
                         <TabsContent value="bookings">
                             <TabMyBookings
-                                ongoingBookings={ongoingBookings}
-                                upcomingBookings={upcomingBookings}
                                 onViewDetails={(booking) =>
                                     setSelectedBooking(booking)
                                 }

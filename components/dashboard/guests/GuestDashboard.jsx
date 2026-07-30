@@ -10,7 +10,7 @@ import {
     useListBookingsQuery,
     useUpdateBookingCheckInMutation,
 } from "@/store/features/bookingApi";
-import { getBookingState } from "@/lib/bookingUtils";
+import { getBookingState, isWithinCheckInWindow } from "@/lib/bookingUtils";
 import {
     Dialog,
     DialogContent,
@@ -183,6 +183,13 @@ export default function GuestDashboard() {
         if (!id || isCheckinLoading) return;
 
         if (booking?.checkout_status === "checked_in") {
+            return;
+        }
+
+        if (!isWithinCheckInWindow(booking)) {
+            const checkInStr = new Date(booking.check_in_date).toLocaleDateString();
+            const checkOutStr = new Date(booking.check_out_date).toLocaleDateString();
+            alert(`Check-in is only active between your check-in date (${checkInStr}) and check-out date (${checkOutStr}).`);
             return;
         }
 

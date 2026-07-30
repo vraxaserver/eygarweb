@@ -17,6 +17,45 @@ import {
     useUploadImageMutation,
 } from "@/store/features/propertiesApi";
 
+function getDetailedErrorMessage(err) {
+    if (!err) return "An unknown error occurred.";
+    if (typeof err === "string" && err.trim()) return err;
+    const data = err?.data ?? err;
+    if (typeof data === "string" && data.trim()) return data;
+
+    if (data?.detail) {
+        if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
+        if (Array.isArray(data.detail)) {
+            return data.detail.map((e) => typeof e === 'string' ? e : `${e.loc?.slice(-1)?.[0] || 'Field'}: ${e.msg || JSON.stringify(e)}`).join("\n");
+        }
+        return JSON.stringify(data.detail);
+    }
+    if (data?.message) {
+        if (typeof data.message === "string" && data.message.trim()) return data.message;
+        return JSON.stringify(data.message);
+    }
+    if (data?.errors) {
+        if (Array.isArray(data.errors)) {
+            return data.errors.map(e => typeof e === 'string' ? e : e.message || JSON.stringify(e)).join("\n");
+        }
+        if (typeof data.errors === 'object') {
+            return Object.entries(data.errors)
+                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                .join("\n");
+        }
+    }
+    if (err?.error && typeof err.error === 'string') return err.error;
+    if (err?.message && typeof err.message === 'string') return err.message;
+    if (err?.status) return `Request failed with status code ${err.status}`;
+
+    try {
+        const str = JSON.stringify(err);
+        if (str && str !== "{}") return str;
+    } catch {}
+
+    return "Server error occurred. Please verify inputs and try again.";
+}
+
 export default function PropertyEditPage({ params }) {
     const { id: propertyId } = use(params);
     const router = useRouter();
@@ -87,20 +126,16 @@ export default function PropertyEditPage({ params }) {
     useEffect(() => {
         if (isUpdateSuccess) {
             setSubmitMessage("Property updated successfully!");
+            alert("Success! Property updated successfully.");
             setIsSubmitting(false);
-            // Small delay so user sees the success message
             setTimeout(() => {
                 router.push("/dashboard");
             }, 1000);
         }
         if (isUpdateError) {
-            setSubmitMessage(
-                `Error updating property: ${
-                    updateError?.data?.detail ||
-                    updateError?.message ||
-                    "Unknown error"
-                }`
-            );
+            const reason = getDetailedErrorMessage(updateError);
+            setSubmitMessage(`Error updating property: ${reason}`);
+            alert(`Property Update Failed!\n\nReason: ${reason}`);
             setIsSubmitting(false);
         }
     }, [isUpdateSuccess, isUpdateError, updateError, router]);
@@ -112,18 +147,41 @@ export default function PropertyEditPage({ params }) {
             const files = Array.from(e.target.files);
             if (!files.length) return;
 
+            const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+            const validFiles = [];
+            for (const file of files) {
+                const isTypeValid = ALLOWED_TYPES.includes(file.type.toLowerCase()) || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+                if (!isTypeValid) {
+                    alert(`Invalid file format for "${file.name}". Supported formats: JPEG, PNG, WEBP, and GIF.`);
+                    continue;
+                }
+                if (file.size > MAX_SIZE) {
+                    alert(`File size exceeds 5MB limit: "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(2)}MB. Please select images under 5MB.`);
+                    continue;
+                }
+                validFiles.push(file);
+            }
+
+            if (!validFiles.length) {
+                e.target.value = "";
+                return;
+            }
+
             setIsUploading(true);
             setSubmitMessage("Uploading images...");
 
             try {
                 const uploadedUrls = [];
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                for (let i = 0; i < validFiles.length; i++) {
+                    const file = validFiles[i];
                     const uploadData = new FormData();
                     uploadData.append("image", file);
                     uploadData.append("display_order", existingImages.length + i);
                     uploadData.append("is_cover", existingImages.length === 0 && i === 0);
                     uploadData.append("alt_text", file.name || "");
+                    uploadData.append("property_id", propertyId);
 
                     const response = await uploadImage(uploadData).unwrap();
                     uploadedUrls.push({
@@ -137,9 +195,12 @@ export default function PropertyEditPage({ params }) {
                 setSubmitMessage("Images uploaded successfully!");
             } catch (err) {
                 console.error("Failed to upload images:", err);
-                setSubmitMessage("Error uploading images. Please try again.");
+                const reason = getDetailedErrorMessage(err);
+                setSubmitMessage(`Upload failed: ${reason}`);
+                alert(`Image Upload Failed!\n\nReason: ${reason}`);
             } finally {
                 setIsUploading(false);
+                e.target.value = "";
             }
         }
     };
@@ -152,10 +213,70 @@ export default function PropertyEditPage({ params }) {
         setExistingImages((prev) => prev.filter((img) => img.id !== imageId && img.image_url !== imageId));
     };
 
-    // FIXED: Added preventDefault to stop auto-submission
+    const validateStep = (step) => {
+        const errors = [];
+        if (step === 0) { // Basic Details
+            const title = formData.title?.trim() || "";
+            if (!title) {
+                errors.push("Property Title is required.");
+            } else if (title.length < 10) {
+                errors.push(`Property Title must be at least 10 characters (${title.length}/10).`);
+            } else if (title.length > 100) {
+                errors.push("Property Title cannot exceed 100 characters.");
+            }
+
+            const desc = formData.description?.trim() || "";
+            if (!desc) {
+                errors.push("Description is required.");
+            } else if (desc.length < 50) {
+                errors.push(`Description must be at least 50 characters (${desc.length}/50).`);
+            } else if (desc.length > 500) {
+                errors.push("Description cannot exceed 500 characters.");
+            }
+
+            const price = Number(formData.price_per_night);
+            if (!formData.price_per_night || Number.isNaN(price) || price <= 0) {
+                errors.push("Price Per Night must be a valid number greater than 0.");
+            }
+        }
+
+        if (step === 1) { // Location
+            const loc = formData.location || {};
+            if (!loc.address?.trim()) {
+                errors.push("Street Address is required.");
+            } else if (loc.address.trim().length < 5) {
+                errors.push("Street Address must be at least 5 characters.");
+            }
+
+            if (!loc.city?.trim()) {
+                errors.push("City is required.");
+            } else if (loc.city.trim().length < 2) {
+                errors.push("City name must be at least 2 characters.");
+            }
+
+            if (!loc.country?.trim()) {
+                errors.push("Country is required.");
+            } else if (loc.country.trim().length < 2) {
+                errors.push("Country name must be at least 2 characters.");
+            }
+
+            if (loc.postal_code?.trim() && loc.postal_code.trim().length < 3) {
+                errors.push("Postal code must be at least 3 characters.");
+            }
+        }
+
+        if (errors.length > 0) {
+            alert(`Validation Failed!\n\n${errors.join("\n")}`);
+            return false;
+        }
+
+        return true;
+    };
+
     const handleNext = (e) => {
         e.preventDefault();
-        if (currentStep < steps.length - 1) {
+        if (!validateStep(currentStep)) return;
+        if (currentStep < 4) {
             setCurrentStep((prev) => prev + 1);
         }
     };
@@ -186,7 +307,8 @@ export default function PropertyEditPage({ params }) {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Final prevention of default submission
+        e.preventDefault();
+        if (!validateStep(0) || !validateStep(1)) return;
         setIsSubmitting(true);
         setSubmitMessage("");
 

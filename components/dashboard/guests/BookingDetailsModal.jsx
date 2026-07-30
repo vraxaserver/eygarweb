@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { isWithinCheckInWindow } from "@/lib/bookingUtils";
 
 export function BookingDetailsModal({
     booking,
@@ -15,6 +16,7 @@ export function BookingDetailsModal({
     onCancel,
 }) {
     if (!booking) return null;
+    const canCheckIn = isWithinCheckInWindow(booking);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -46,7 +48,11 @@ export function BookingDetailsModal({
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 mt-6">
-                    <Button onClick={onCheckin}>Check-in</Button>
+                    {booking?.checkout_status !== "checked_in" && (
+                        <Button onClick={onCheckin} disabled={!canCheckIn} title={!canCheckIn ? "Check-in is only available between check-in and check-out dates." : ""}>
+                            Check-in
+                        </Button>
+                    )}
                     <Button variant="destructive" onClick={onCancel}>
                         Cancel Booking
                     </Button>

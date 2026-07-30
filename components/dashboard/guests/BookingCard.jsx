@@ -2,11 +2,12 @@ import { Eye, QrCode, LogIn, MapPin, Calendar } from "lucide-react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getBookingState } from "@/lib/bookingUtils";
+import { getBookingState, isWithinCheckInWindow } from "@/lib/bookingUtils";
 import clsx from "clsx";
 
 export function BookingCard({ booking, onView, onShowQr, onCheckin, disabled }) {
     const state = getBookingState(booking);
+    const canCheckIn = isWithinCheckInWindow(booking);
 
     const bgClass = clsx({
         "bg-green-50 border-green-300": state === "active_checked_in",
@@ -63,12 +64,21 @@ export function BookingCard({ booking, onView, onShowQr, onCheckin, disabled }) 
                         <QrCode className="w-4 h-4" />
                     </Button>
 
-                    {state === "needs_checkin" && (
+                    {booking?.checkout_status !== "checked_in" && state !== "history" && (
                         <Button
                             size="sm"
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                            className={
+                                canCheckIn
+                                    ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                            }
                             onClick={onCheckin}
-                            disabled={disabled}
+                            disabled={disabled || !canCheckIn}
+                            title={
+                                !canCheckIn
+                                    ? "Check-in is only available between check-in and check-out dates."
+                                    : "Click to check in"
+                            }
                         >
                             <LogIn className="w-4 h-4 mr-1" />
                             Check-in

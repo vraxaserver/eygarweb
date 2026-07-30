@@ -39,26 +39,30 @@ export default function ImagesDisplay({
                 <div>
                     <h3 className="text-lg font-medium text-gray-700 mb-2">Current Images</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {existingImages.map((image) => (
-                            <div key={image.id} className="relative h-32 rounded-md overflow-hidden shadow-sm group">
-                                <Image
-                                    src={image.image_url}
-                                    alt="Property"
-                                    layout="fill"
-                                    objectFit="cover"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => onRemoveExistingImage(image.id)}
-                                    className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Remove Image"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))}
+                        {existingImages.map((image, index) => {
+                            const key = image.id || image._id || image.image_url || `existing-img-${index}`;
+                            const imageId = image.id || image._id || image.image_url;
+                            return (
+                                <div key={key} className="relative h-32 rounded-md overflow-hidden shadow-sm group">
+                                    <Image
+                                        src={image.image_url}
+                                        alt="Property"
+                                        layout="fill"
+                                        objectFit="cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => onRemoveExistingImage(imageId)}
+                                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove Image"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -69,7 +73,7 @@ export default function ImagesDisplay({
                     <h3 className="text-lg font-medium text-gray-700 mb-2">New Images to Upload</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {newImages.map((file, index) => (
-                            <div key={index} className="relative h-32 rounded-md overflow-hidden shadow-sm group border-2 border-green-400">
+                            <div key={`new-img-${index}-${file.name || ''}`} className="relative h-32 rounded-md overflow-hidden shadow-sm group border-2 border-green-400">
                                 {/* Create local preview URL */}
                                 <Image
                                     src={URL.createObjectURL(file)}

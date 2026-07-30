@@ -1,7 +1,59 @@
-// app/properties/[id]/edit/components/DetailsStep.jsx
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function DetailsStep({ formData, handleChange }) {
+    const [titleError, setTitleError] = useState('');
+    const [descError, setDescError] = useState('');
+
+    const titleLength = formData.title?.trim()?.length || 0;
+    const descLength = formData.description?.trim()?.length || 0;
+
+    const TITLE_MIN = 10;
+    const TITLE_MAX = 100;
+    const DESC_MIN = 50;
+    const DESC_MAX = 500;
+
+    const validateTitle = (val) => {
+        const trimmed = (val ?? '').trim();
+        if (!trimmed) return "Property title is required.";
+        if (trimmed.length < TITLE_MIN) return `Title must be at least ${TITLE_MIN} characters (${trimmed.length}/${TITLE_MIN}).`;
+        if (trimmed.length > TITLE_MAX) return `Title cannot exceed ${TITLE_MAX} characters.`;
+        return "";
+    };
+
+    const validateDesc = (val) => {
+        const trimmed = (val ?? '').trim();
+        if (!trimmed) return "Description is required.";
+        if (trimmed.length < DESC_MIN) return `Description must be at least ${DESC_MIN} characters (${trimmed.length}/${DESC_MIN}).`;
+        if (trimmed.length > DESC_MAX) return `Description cannot exceed ${DESC_MAX} characters.`;
+        return "";
+    };
+
+    const handleTitleFocus = (e) => {
+        setTitleError(validateTitle(e.target.value));
+    };
+
+    const handleDescFocus = (e) => {
+        setDescError(validateDesc(e.target.value));
+    };
+
+    const handleTitleBlur = (e) => {
+        setTitleError(validateTitle(e.target.value));
+    };
+
+    const handleDescBlur = (e) => {
+        setDescError(validateDesc(e.target.value));
+    };
+
+    const handleTitleChange = (e) => {
+        handleChange(e);
+        setTitleError(validateTitle(e.target.value));
+    };
+
+    const handleDescChange = (e) => {
+        handleChange(e);
+        setDescError(validateDesc(e.target.value));
+    };
+
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-semibold mb-4 text-gray-700">Property Basic Information</h2>
@@ -9,10 +61,12 @@ export default function DetailsStep({ formData, handleChange }) {
             <div>
                 <div className="flex justify-between items-center mb-1">
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                        Property Title *
+                        Property Title * <span className="text-xs text-gray-500 font-normal">(min {TITLE_MIN}, max {TITLE_MAX} chars)</span>
                     </label>
-                    <span className={`text-xs font-medium ${100 - (formData.title?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                        Remaining: {100 - (formData.title?.length || 0)}
+                    <span className={`text-xs font-medium ${
+                        titleError ? 'text-red-600' : titleLength >= TITLE_MIN ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                        {titleLength}/{TITLE_MAX}
                     </span>
                 </div>
                 <input
@@ -20,32 +74,57 @@ export default function DetailsStep({ formData, handleChange }) {
                     id="title"
                     name="title"
                     value={formData.title || ''}
-                    onChange={handleChange}
-                    placeholder="Enter Property Title (e.g. Luxury Beachside Villa - max 100 chars)"
-                    maxLength={100}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onChange={handleTitleChange}
+                    onFocus={handleTitleFocus}
+                    onBlur={handleTitleBlur}
+                    placeholder={`Enter property title (${TITLE_MIN}–${TITLE_MAX} characters required)`}
+                    maxLength={TITLE_MAX}
+                    className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        titleError ? 'border-red-400 bg-red-50' : titleLength >= TITLE_MIN ? 'border-green-400' : 'border-gray-300'
+                    }`}
                 />
+                {titleError && (
+                    <p className="mt-1 text-xs text-red-600 font-medium">⚠️ {titleError}</p>
+                )}
             </div>
 
             <div>
                 <div className="flex justify-between items-center mb-1">
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                        Description *
+                        Description * <span className="text-xs text-gray-500 font-normal">(min {DESC_MIN}, max {DESC_MAX} chars)</span>
                     </label>
-                    <span className={`text-xs font-medium ${1000 - (formData.description?.length || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                        Remaining: {1000 - (formData.description?.length || 0)}
+                    <span className={`text-xs font-medium ${
+                        descError ? 'text-red-600' : descLength >= DESC_MIN ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                        {descLength}/{DESC_MAX}
                     </span>
                 </div>
+                {/* Progress bar showing how close description is to minimum */}
+                {descLength > 0 && descLength < DESC_MIN && (
+                    <div className="w-full bg-gray-200 rounded-full h-1 mb-1">
+                        <div
+                            className="bg-orange-400 h-1 rounded-full transition-all"
+                            style={{ width: `${Math.min((descLength / DESC_MIN) * 100, 100)}%` }}
+                        />
+                    </div>
+                )}
                 <textarea
                     id="description"
                     name="description"
-                    rows="4"
+                    rows="5"
                     value={formData.description || ''}
-                    onChange={handleChange}
-                    placeholder="Enter Property Description (max 1000 chars)"
-                    maxLength={1000}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onChange={handleDescChange}
+                    onFocus={handleDescFocus}
+                    onBlur={handleDescBlur}
+                    placeholder={`Describe the property in detail (${DESC_MIN}–${DESC_MAX} characters required)`}
+                    maxLength={DESC_MAX}
+                    className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        descError ? 'border-red-400 bg-red-50' : descLength >= DESC_MIN ? 'border-green-400' : 'border-gray-300'
+                    }`}
                 />
+                {descError && (
+                    <p className="mt-1 text-xs text-red-600 font-medium">⚠️ {descError}</p>
+                )}
             </div>
 
             <div>

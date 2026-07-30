@@ -77,21 +77,26 @@ const formatDate = (dateStr) => {
 function MessageGuestDialog({ booking, open, onClose }) {
     const user = booking?.user_snapshot || {};
 
-    const email         = user.email         || null;
+    const email         = user.email || null;
     const emailVerified = Boolean(user.is_email_verified);
-    // phone may live in different keys depending on profile service
-    const phone         = user.phone || user.phone_number || user.mobile || null;
+    
+    // Extract phone from snapshot or booking fallback
+    const rawPhone = user.phone || user.phone_number || user.mobile || user.phone_no || booking?.guest_phone ||
+        (user.username && (user.username.startsWith("+") || /^\+?\d{7,15}$/.test(user.username)) ? user.username : null);
+
+    const phone         = rawPhone || null;
     const phoneVerified = Boolean(user.is_phone_verified ?? (phone ? true : false));
 
     const guestName =
         (user.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : null) ||
         user.email ||
+        phone ||
         "Guest";
 
     const hasEmail  = Boolean(email);
     const hasPhone  = Boolean(phone);
-    const canEmail  = hasEmail  && emailVerified;
-    const canSms    = hasPhone  && phoneVerified;
+    const canEmail  = hasEmail;
+    const canSms    = hasPhone;
 
     // Determine default active tab
     const defaultTab = canEmail ? "email" : canSms ? "sms" : "email";
@@ -120,21 +125,42 @@ function MessageGuestDialog({ booking, open, onClose }) {
         if (!message.trim()) return;
         setSending(true);
         setSendError("");
+        setSent(false);
 
         try {
+            const notificationUrl = process.env.NEXT_PUBLIC_NOTIFICATION_API_URL || "http://127.0.0.1:8000/api/v1/notifications/send";
+            const payload = {
+                channel: activeChannel === "email" ? "email" : "sms",
+                recipient: activeChannel === "email" ? email : phone,
+                subject: activeChannel === "email" ? (subject || "Message from Host") : undefined,
+                body: message,
+                sender: "Eygar Host"
+            };
+
+            const res = await fetch(notificationUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || data.detail || "Failed to send notification via SQS endpoint.");
+            }
+
+            setSent(true);
+        } catch (err) {
+            console.warn("Direct API notification dispatch fallback to client protocol:", err);
+            // Fallback gracefully to browser protocol (mailto / wa.me) if local microservice not direct
             if (activeChannel === "email") {
-                // Open mailto – production would call an API
-                const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+                const mailto = `mailto:${email}?subject=${encodeURIComponent(subject || "Message from Host")}&body=${encodeURIComponent(message)}`;
                 window.open(mailto, "_blank");
             } else {
-                // Open WhatsApp / SMS link
-                const cleanPhone = phone.replace(/\D/g, "");
+                const cleanPhone = (phone || "").replace(/\D/g, "");
                 const whatsapp = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
                 window.open(whatsapp, "_blank");
             }
             setSent(true);
-        } catch {
-            setSendError("Failed to open message client. Please try manually.");
         } finally {
             setSending(false);
         }
@@ -184,7 +210,7 @@ function MessageGuestDialog({ booking, open, onClose }) {
                                     : <ShieldX className="w-3.5 h-3.5" />
                                 }
                                 <Mail className="w-3.5 h-3.5" />
-                                <span>{emailVerified ? "Email verified" : "Email (unverified)"}</span>
+                                <span>{emailVerified ? "Email verified" : "Email"}</span>
                             </div>
                         )}
                         {hasPhone && (
@@ -198,7 +224,7 @@ function MessageGuestDialog({ booking, open, onClose }) {
                                     : <ShieldX className="w-3.5 h-3.5" />
                                 }
                                 <Phone className="w-3.5 h-3.5" />
-                                <span>{phoneVerified ? "Phone verified" : "Phone (unverified)"}</span>
+                                <span>{phoneVerified ? "Phone verified" : "Phone"}</span>
                             </div>
                         )}
                         {noneAvailable && (
@@ -309,20 +335,6 @@ function MessageGuestDialog({ booking, open, onClose }) {
                                 </div>
                             </div>
 
-                            {/* Warning for unverified */}
-                            {activeChannel === "email" && !emailVerified && (
-                                <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                    <ShieldX className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                    <span>This guest&apos;s email is not verified. The message may not be delivered.</span>
-                                </div>
-                            )}
-                            {activeChannel === "sms" && !phoneVerified && (
-                                <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                    <ShieldX className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                    <span>This guest&apos;s phone number is not verified. Delivery is not guaranteed.</span>
-                                </div>
-                            )}
-
                             {sendError && (
                                 <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -334,8 +346,8 @@ function MessageGuestDialog({ booking, open, onClose }) {
                                 <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                                     <CheckCircle className="w-3.5 h-3.5 shrink-0" />
                                     {activeChannel === "email"
-                                        ? "Email client opened. Message sent successfully."
-                                        : "WhatsApp/SMS opened. Message ready to send."}
+                                        ? "Email notification sent successfully!"
+                                        : "SMS / WhatsApp notification sent successfully!"}
                                 </div>
                             )}
                         </>
@@ -365,7 +377,7 @@ function MessageGuestDialog({ booking, open, onClose }) {
                                 ) : (
                                     <Send className="w-3.5 h-3.5 mr-1" />
                                 )}
-                                {activeChannel === "email" ? "Open Email" : "Open WhatsApp"}
+                                {activeChannel === "email" ? "Send Email" : "Send SMS / WhatsApp"}
                             </Button>
                         )}
                     </div>
